@@ -8,16 +8,15 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body class="site-wrapper">
+
     {% with messages = get_flashed_messages() %}
       {% if messages %}
-        <!-- expose first flash message to JS for conditional behavior -->
         <div id="flash-message" style="display:none">{{ messages[0] }}</div>
         <script>alert("{{ messages[0] }}");</script>
       {% endif %}
     {% endwith %}
 
     <script>
-        // expose session info to front-end scripts
         window.Auth = {
             userId: {{ session.get('user_id')|tojson }},
             role: {{ session.get('role')|tojson }},
@@ -27,10 +26,11 @@
 
     <header class="glass-nav" id="mainNav">
         <img src="{{ url_for('static', filename='images/busgologo.png') }}" alt="Logo" class="logo">
+
         <nav>
             <ul class="nav-links">
                 <li><a href="{{ url_for('home') }}">Home</a></li>
-                {# choose plain anchor when already on home to avoid reload #}
+
                 {% set home_url = url_for('home') %}
                 {% if request.path == home_url %}
                     <li><a href="#about">About Us</a></li>
@@ -39,24 +39,33 @@
                     <li><a href="{{ home_url }}#about">About Us</a></li>
                     <li><a href="{{ home_url }}#contact">Contact Us</a></li>
                 {% endif %}
-                
+
                 {% if session.get('user_id') %}
+                    
                     {% if session.get('role') == 'admin' %}
                         <li><a href="{{ url_for('admin_dashboard') }}">Admin Panel</a></li>
-                    {% elif session.get('role') == 'driver' %}
-                        <li><a href="{{ url_for('driver_dashboard') }}">Driver Panel</a></li>
+                    
                     {% else %}
-                        <li><a href="{{ url_for('booking') }}">Book Now</a></li>
+                        <li><a href="{{ url_for('schedules') }}">Book Now</a></li>
+                        <li><a href="{{ url_for('user_dashboard') }}">My Bookings</a></li>
                     {% endif %}
-                   <li>
+
+                    <li>
                         <a href="{{ url_for('logout') }}" 
-                        class="login-btn" 
-                        onclick="confirmLogout(event)">
-                        Logout
+                           class="login-btn" 
+                           onclick="confirmLogout(event)">
+                           Logout
                         </a>
-                   </li>
+                    </li>
+
                 {% else %}
-                    <li><a href="javascript:void(0)" class="login-btn" onclick="toggleModal()">Login</a></li>
+                    <li>
+                        <a href="javascript:void(0)" 
+                           class="login-btn" 
+                           onclick="toggleModal()">
+                           Login
+                        </a>
+                    </li>
                 {% endif %}
             </ul>
         </nav>
@@ -69,6 +78,7 @@
     <div class="modal-overlay" id="loginModal">
         <div class="login-card">
             <button class="close-modal" onclick="toggleModal()">&times;</button>
+
             <div id="loginForm">
                 <h2>Welcome Back</h2>
                 <form class="auth-form" method="POST" action="{{ url_for('login') }}">
@@ -76,34 +86,53 @@
                         <i class="fa-solid fa-envelope"></i>
                         <input type="email" name="email" placeholder="Email Address" required>
                     </div>
+
                     <div class="input-group">
                         <i class="fa-solid fa-lock"></i>
                         <input type="password" name="password" id="loginPass" placeholder="Password" required>
                         <i class="fa-solid fa-eye password-toggle" onclick="togglePasswordVisibility('loginPass', this)"></i>
                     </div>
+
                     <button type="submit" class="auth-btn">Sign In</button>
                 </form>
-                <p class="login-footer-text">New? <a href="javascript:void(0)" onclick="switchAuth(true)">Create Account</a></p>
+
+                <p class="login-footer-text">
+                    New? <a href="javascript:void(0)" onclick="switchAuth(true)">Create Account</a>
+                </p>
             </div>
+
             <div id="registerForm" style="display: none;">
                 <h2>Join BusGo</h2>
+
                 <form class="auth-form" method="POST" action="{{ url_for('register') }}">
-                    <div class="input-group"><i class="fa-solid fa-user"></i><input type="text" name="fullname" placeholder="Full Name" required></div>
-                    <div class="input-group"><i class="fa-solid fa-envelope"></i><input type="email" name="email" placeholder="Email Address" required></div>
                     <div class="input-group">
-    <i class="fa-solid fa-lock"></i>
-    <input type="password" id="regPass" name="password" placeholder="Password" required oninput="checkStrength(this.value)">
-    <i class="fa-solid fa-eye password-toggle" onclick="togglePasswordVisibility('regPass', this)"></i>
-</div>
-<div class="input-group">
-    <i class="fa-solid fa-lock"></i>
-    <input type="password" id="confirmPass" name="confirm_password" placeholder="Confirm Password" required>
-    <i class="fa-solid fa-eye password-toggle" onclick="togglePasswordVisibility('confirmPass', this)"></i>
-</div>
-                    <div id="strength-meter" class="strength-meter"><div id="strength-bar"></div></div>
+                        <i class="fa-solid fa-user"></i>
+                        <input type="text" name="fullname" placeholder="Full Name" required>
+                    </div>
+
+                    <div class="input-group">
+                        <i class="fa-solid fa-envelope"></i>
+                        <input type="email" name="email" placeholder="Email Address" required>
+                    </div>
+
+                    <div class="input-group">
+                        <i class="fa-solid fa-lock"></i>
+                        <input type="password" id="regPass" name="password" placeholder="Password" required>
+                        <i class="fa-solid fa-eye password-toggle" onclick="togglePasswordVisibility('regPass', this)"></i>
+                    </div>
+
+                    <div class="input-group">
+                        <i class="fa-solid fa-lock"></i>
+                        <input type="password" id="confirmPass" name="confirm_password" placeholder="Confirm Password" required>
+                        <i class="fa-solid fa-eye password-toggle" onclick="togglePasswordVisibility('confirmPass', this)"></i>
+                    </div>
+
                     <button type="submit" class="auth-btn">Register</button>
                 </form>
-                <p class="login-footer-text">Have an account? <a href="javascript:void(0)" onclick="switchAuth(false)">Sign In</a></p>
+
+                <p class="login-footer-text">
+                    Have an account? <a href="javascript:void(0)" onclick="switchAuth(false)">Sign In</a>
+                </p>
             </div>
         </div>
     </div>
@@ -114,12 +143,11 @@
         </div>
     </footer>
 
-    <!-- back to top button -->
     <button id="backToTop" title="Back to top">&#8679;</button>
 
     <script src="{{ url_for('static', filename='script.js') }}"></script>
+
     <script>
-        /* scroll to anchor on page load (smooth behavior already defined in CSS) */
         document.addEventListener('DOMContentLoaded', () => {
             if (window.location.hash) {
                 const target = document.querySelector(window.location.hash);
@@ -129,5 +157,6 @@
             }
         });
     </script>
+
 </body>
 </html>

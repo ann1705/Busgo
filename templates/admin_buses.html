@@ -1,37 +1,107 @@
-{% extends "admin_dashboard.html" %}
+{% extends "base.html" %}
 
-{% block admin_title %}Manage Buses{% endblock %}
+{% block title %}BusGo | Manage Bus{% endblock %}
 
-{% block admin_content %}
-<form method="POST" class="glass-card">
-    <h2>Add New Bus</h2>
-    <div class="input-group"><input type="text" name="bus_no" placeholder="Bus Number" required></div>
-    <div class="input-group"><input type="text" name="route" placeholder="Route" required></div>
-    <div class="input-group"><input type="text" name="departure" placeholder="Departure Time" required></div>
-    <div class="input-group"><input type="text" name="arrival" placeholder="Arrival Time" required></div>
-    <div class="input-group"><input type="number" step="0.01" name="price" placeholder="Price" required></div>
-    <button type="submit" class="auth-btn">Add Bus</button>
-</form>
+{% block content %}
+<div class="admin-wrapper">
 
-<div class="table-container">
-    <div class="table-header">Existing Buses</div>
-    <table class="admin-table">
-        <thead>
-            <tr><th>ID</th><th>No.</th><th>Route</th><th>Dep</th><th>Arr</th><th>Price</th><th>Action</th></tr>
-        </thead>
-        <tbody>
-            {% for bus in buses %}
-            <tr>
-                <td>{{ bus.id }}</td>
-                <td>{{ bus.bus_no }}</td>
-                <td>{{ bus.route }}</td>
-                <td>{{ bus.departure }}</td>
-                <td>{{ bus.arrival }}</td>
-                <td>{{ bus.price }}</td>
-                <td><a href="{{ url_for('delete_bus', bus_id=bus.id) }}" class="cancel-btn">Delete</a></td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+    <aside class="sidebar">
+        <nav class="sidebar-nav">
+
+            <a href="{{ url_for('admin_dashboard') }}"
+               class="{% if request.endpoint == 'admin_dashboard' %}active{% endif %}">
+                <i class="fa-solid fa-chart-pie"></i> Dashboard
+            </a>
+
+            <a href="{{ url_for('admin_buses') }}"
+               class="{% if request.endpoint == 'admin_buses' %}active{% endif %}">
+                <i class="fa-solid fa-bus"></i> Manage Bus
+            </a>
+
+            <a href="{{ url_for('admin_bookings') }}"
+               class="{% if request.endpoint == 'admin_bookings' %}active{% endif %}">
+                <i class="fa-solid fa-ticket"></i> Bookings
+            </a>
+
+            <a href="{{ url_for('logout') }}" class="logout-link">
+                <i class="fa-solid fa-right-from-bracket"></i> Logout
+            </a>
+
+        </nav>
+    </aside>
+
+    <div class="admin-content">
+        <main class="schedule-main">
+            <div class="schedule-container glass-card">
+
+                <header class="content-header">
+                    <h1>Manage Bus</h1>
+                </header>
+
+                <!-- ADD BUS FORM -->
+                <form method="POST" style="margin-bottom: 25px;">
+                    <div class="input-group">
+                        <input type="text" name="bus_no" placeholder="Bus Number" required>
+                    </div>
+
+                    <div class="input-group">
+                        <input type="text" name="route" placeholder="Route" required>
+                    </div>
+
+                    <div class="input-group">
+                        <input type="text" name="departure" placeholder="Departure (e.g. 06:00 AM)" required>
+                    </div>
+
+                    <div class="input-group">
+                        <input type="text" name="arrival" placeholder="Arrival (e.g. 12:00 PM)" required>
+                    </div>
+
+                    <div class="input-group">
+                        <input type="number" step="0.01" name="price" placeholder="Price" required>
+                    </div>
+
+                    <button type="submit" class="auth-btn">
+                        Add Bus
+                    </button>
+                </form>
+
+                <!-- BUS TABLE -->
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Bus No</th>
+                            <th>Route</th>
+                            <th>Departure</th>
+                            <th>Arrival</th>
+                            <th>Price</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        {% for bus in buses %}
+                        <tr>
+                            <td>{{ bus.id }}</td>
+                            <td>{{ bus.bus_no }}</td>
+                            <td>{{ bus.route }}</td>
+                            <td>{{ bus.departure }}</td>
+                            <td>{{ bus.arrival }}</td>
+                            <td>{{ bus.price }}</td>
+                            <td>
+                                <a href="{{ url_for('delete_bus', bus_id=bus.id) }}"
+                                   class="cancel-btn">
+                                    Delete
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+
+            </div>
+        </main>
+    </div>
+
 </div>
 {% endblock %}

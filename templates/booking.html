@@ -1,50 +1,65 @@
 {% extends "base.html" %}
-
-{% block title %}BusGo | Seat Selection{% endblock %}
-
 {% block content %}
-<main class="schedule-main">
-    <div class="schedule-container glass-booking-card">
-        <h1 class="schedule-title">Ticket Booking</h1>
 
-        <section class="booking-glass-section">
+<div class="schedule-main">
+    <div class="schedule-container glass-booking-card">
+
+        <h1 class="schedule-title">Selected Bus Info</h1>
+
+        <!-- Dynamic Bus Name -->
+        <div class="bus-grid-header">
+            Bus No - {{ bus.bus_no }}
+        </div>
+
+        <form method="POST">
+
             <div class="booking-input-group">
                 <label>Passenger Name:</label>
-                <input type="text" id="passName" placeholder="Enter Full Name">
+                <input type="text" name="passenger_name" required>
             </div>
+
             <div class="booking-input-group">
                 <label>Contact Number:</label>
-                <input type="text" id="passContact" placeholder="Enter Phone Number">
+                <input type="text" name="contact" required>
             </div>
-        </section>
 
-        <h3 class="selection-subtitle">Selected Bus: EXP-001</h3>
-        
-        <section class="seat-selection-wrapper">
-            <div class="bus-grid-header">
-                <span>Select Your Seat</span>
-            </div>
-            <div class="seat-grid" id="seatGrid">
+            <div class="seat-selection-wrapper">
+                <div class="seat-grid">
+                    {% for i in range(1, 17) %}
+                        <div class="seat-box" data-seat="{{ i }}">
+                            {{ i }}
+                        </div>
+                    {% endfor %}
                 </div>
-        </section>
+            </div>
 
-        <div class="action-footer">
-            <button class="confirm-booking-btn" onclick="confirmFinalBooking()">Confirm Booking</button>
-        </div>
+            <!-- Hidden seat field -->
+            <input type="hidden" id="seat_number" name="seat_number">
+
+            <div style="text-align:center;">
+                <button type="submit" class="confirm-booking-btn">
+                    Confirm Booking
+                </button>
+            </div>
+
+        </form>
+
     </div>
-</main>
+</div>
 
 <script>
-    // Local script to generate the 4x4 grid specifically for this page
-    const grid = document.getElementById('seatGrid');
-    if (grid) {
-        for (let i = 1; i <= 16; i++) {
-            const seat = document.createElement('div');
-            seat.className = 'seat-box';
-            seat.onclick = function() { this.classList.toggle('selected'); };
-            grid.appendChild(seat);
-        }
-    }
-    }
+    const seats = document.querySelectorAll(".seat-box");
+    const seatInput = document.getElementById("seat_number");
+
+    seats.forEach(seat => {
+        seat.addEventListener("click", function() {
+
+            seats.forEach(s => s.classList.remove("selected"));
+            this.classList.add("selected");
+
+            seatInput.value = this.getAttribute("data-seat");
+        });
+    });
 </script>
+
 {% endblock %}

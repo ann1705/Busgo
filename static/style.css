@@ -929,3 +929,121 @@ html, body {
 html {
     scroll-behavior: smooth;
 }.admin-content .table-header { background: rgba(255,255,255,0.2) !important; color: #222 !important; }
+
+.glass-booking-card,
+.glass-booking-card h1,
+.glass-booking-card h2,
+.glass-booking-card h3,
+.glass-booking-card h4,
+.glass-booking-card p,
+.glass-booking-card span,
+.glass-booking-card label,
+.glass-booking-card div {
+    color: #222 !important;
+}
+
+/* Ensure form inputs are dark */
+.glass-booking-card input {
+    color: #222 !important;
+}
+
+/* Fix Ticket Details page (if using schedule-container) */
+.schedule-container {
+    color: #222 !important;
+}
+
+/* Make booking titles properly styled */
+.selection-subtitle {
+    color: #1b5394 !important;
+    font-weight: 700;
+}
+
+/* Fix status text */
+.status-value {
+    color: #333 !important;
+}
+
+/* Keep confirmed status green */
+.status-confirmed {
+    color: #2eb82e !important;
+    font-weight: bold;
+}
+
+/* Seat Section */
+.bus-grid-header {
+    background: #6a8caf;
+    color: white;
+    padding: 10px 15px;
+    font-weight: 600;
+}
+
+.seat-selection-wrapper {
+    border: 1px solid #333;
+    padding: 20px;
+}
+
+.seat-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 20px;
+    max-width: 300px;
+    margin: auto;
+}
+
+.seat-box {
+    width: 55px;
+    height: 55px;
+    background: #d9d9d9;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.seat-box:hover {
+    background: #c0c0c0;
+}
+
+.seat-box.selected {
+    background: #1b5394;
+}
+
+.bus-grid-header {
+    background: #6a8caf;
+    color: white;
+    padding: 10px 15px;
+    font-weight: 600;
+}
+
+.seat-selection-wrapper {
+    border: 1px solid #333;
+    padding: 20px;
+    margin-top: 20px;
+}
+
+.seat-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 20px;
+    max-width: 300px;
+    margin: auto;
+}
+
+.seat-box {
+    width: 55px;
+    height: 55px;
+    background: #d9d9d9;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    transition: 0.2s;
+}
+
+.seat-box:hover {
+    background: #c0c0c0;
+}
+
+.seat-box.selected {
+    background: #1b5394;
+    color: white;
+}

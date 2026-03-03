@@ -8,7 +8,9 @@
         <h1 class="schedule-title">Welcome Back, {{ session['fullname'] }}!</h1>
         
         <div class="user-actions">
-            <button class="print-btn" onclick="window.location.href='/schedules'"><i class="fa-solid fa-plus"></i> Book New Trip</button>
+            <button class="print-btn" onclick="window.location.href='/schedules'">
+                <i class="fa-solid fa-plus"></i> Book New Trip
+            </button>
         </div>
 
         <div class="table-container" style="margin-top: 30px;">
@@ -36,12 +38,19 @@
                             <td>{{ booking.departure }}</td>
                             <td>{{ booking.arrival }}</td>
                             <td>₱{{ booking.price }}</td>
-                            <td class="status-{{ booking.status }}">{{ booking.status|capitalize }}</td>
+                            <td class="status-{{ booking.status }}">
+                                {{ booking.status|capitalize }}
+                            </td>
                             <td>
-                                <a href="{{ url_for('view_booking', booking_id=booking.id) }}" class="book-now-btn">View</a>
+                                <a href="{{ url_for('view_booking', booking_id=booking.id) }}" class="book-now-btn">
+                                    View
+                                </a>
+
                                 {% if booking.status != 'cancelled' %}
-                                    <form method="POST" action="{{ url_for('cancel_user_booking', booking_id=booking.id) }}" style="display:inline;">
-                                        <button type="submit" class="cancel-btn" onclick="return confirm('Cancel this booking?')">Cancel</button>
+                                    <form method="GET" action="{{ url_for('user_cancel_booking', booking_id=booking.id) }}" style="display:inline;">
+                                        <button type="submit" class="cancel-btn" onclick="return confirm('Cancel this booking?')">
+                                            Cancel
+                                        </button>
                                     </form>
                                 {% endif %}
                             </td>

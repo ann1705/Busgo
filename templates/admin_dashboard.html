@@ -6,10 +6,26 @@
 <div class="admin-wrapper">
     <aside class="sidebar">
         <nav class="sidebar-nav">
-            <a href="{{ url_for('admin_dashboard') }}" class="{% if request.endpoint=='admin_dashboard' %}active{% endif %}"><i class="fa-solid fa-chart-pie"></i> Dashboard</a>
-            <a href="{{ url_for('admin_buses') }}" class="{% if request.endpoint=='admin_buses' %}active{% endif %}"><i class="fa-solid fa-bus"></i> Buses</a>
-            <a href="{{ url_for('admin_bookings') }}" class="{% if request.endpoint=='admin_bookings' %}active{% endif %}"><i class="fa-solid fa-ticket"></i> Bookings</a>
-            <a href="{{ url_for('logout') }}" class="logout-link"><i class="fa-solid fa-right-from-bracket"></i> Logout</a>
+
+            <a href="{{ url_for('admin_dashboard') }}"
+            class="{% if request.endpoint == 'admin_dashboard' %}active{% endif %}">
+                <i class="fa-solid fa-chart-pie"></i> Dashboard
+            </a>
+
+            <a href="{{ url_for('admin_buses') }}"
+            class="{% if request.endpoint == 'admin_buses' %}active{% endif %}">
+                <i class="fa-solid fa-bus"></i> Manage Bus
+            </a>
+
+            <a href="{{ url_for('admin_bookings') }}"
+            class="{% if request.endpoint == 'admin_bookings' %}active{% endif %}">
+                <i class="fa-solid fa-ticket"></i> Bookings
+            </a>
+
+            <a href="{{ url_for('logout') }}" class="logout-link">
+                <i class="fa-solid fa-right-from-bracket"></i> Logout
+            </a>
+
         </nav>
     </aside>
 
@@ -17,11 +33,68 @@
         <main class="schedule-main">
             <div class="schedule-container glass-card">
                 <header class="content-header">
-                    <h1>{% block admin_title %}Admin Dashboard{% endblock %}</h1>
+                    <h1>Admin Dashboard</h1>
                 </header>
-                {% block admin_content %}{% endblock %}
+
+                <!-- USERS -->
+                <h2>Users</h2>
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Name</th>
+                            <th>Email</th>
+                            <th>Role</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for user in users %}
+                        <tr>
+                            <td>{{ user.id }}</td>
+                            <td>{{ user.fullname }}</td>
+                            <td>{{ user.email }}</td>
+                            <td>{{ user.role }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+
+                <!-- BUSES -->
+                <h2 style="margin-top:30px;">Buses</h2>
+
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Bus No</th>
+                            <th>Route</th>
+                            <th>Departure</th>
+                            <th>Arrival</th>
+                            <th>Price</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for bus in buses %}
+                        <tr>
+                            <td>{{ bus.id }}</td>
+                            <td>{{ bus.bus_no }}</td>
+                            <td>{{ bus.route }}</td>
+                            <td>{{ bus.departure }}</td>
+                            <td>{{ bus.arrival }}</td>
+                            <td>{{ bus.price }}</td>
+                            <td>
+                                <a href="{{ url_for('delete_bus', bus_id=bus.id) }}" class="cancel-btn">
+                                    Delete
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+
             </div>
         </main>
-        </div>
+    </div>
 </div>
 {% endblock %}

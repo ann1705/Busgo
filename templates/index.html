@@ -3,29 +3,37 @@
 {% block title %}BusGo | Premium Travel{% endblock %}
 
 {% block content %}
+{% if login_required %}
+<script>
+    alert("You need to log in first.");
+    window.location.href = "#login";
+</script>
+{% endif %}
 <main id="home">
     <section class="hero"></section>
+
     <section class="services-container">
+
         <article class="glass-card" onclick="window.location.href='{{ url_for('schedules') }}'">
             <i class="fa-solid fa-calendar-days glow-icon"></i>
             <h2>View Schedules</h2>
             <p>Explore all available routes and real-time timings.</p>
         </article>
 
-        <article class="glass-card" onclick="window.location.href='{{ url_for('booking') }}'">
+        <article class="glass-card" onclick="window.location.href='{{ url_for('schedules') }}'">
             <i class="fa-solid fa-bus glow-icon"></i>
             <h2>Book Ticket</h2>
             <p>Secure your seat instantly with our easy system.</p>
         </article>
 
-        <article class="glass-card" onclick="window.location.href='{{ url_for('status') }}'">
+        <article class="glass-card" onclick="window.location.href='{{ url_for('user_dashboard') }}'">
             <i class="fa-solid fa-ticket glow-icon"></i>
             <h2>Ticket Status</h2>
             <p>Track your journey or download tickets.</p>
         </article>
+
     </section>
 
-    <!-- About & contact placeholders -->
     <section id="about" class="info-section">
         <div class="glass-content">
             <h2>About BusGo</h2>

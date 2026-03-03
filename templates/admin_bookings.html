@@ -1,30 +1,81 @@
-{% extends "admin_dashboard.html" %}
+{% extends "base.html" %}
 
-{% block admin_title %}Bookings{% endblock %}
+{% block title %}BusGo | Bookings{% endblock %}
 
-{% block admin_content %}
-<div class="table-container">
-    <div class="table-header">All Bookings</div>
-    <table class="admin-table">
-        <thead>
-            <tr><th>ID</th><th>User</th><th>Bus No.</th><th>Route</th><th>Status</th></tr>
-        </thead>
-        <tbody>
-            {% for b in bookings %}
-            <tr>
-                <td>{{ b.id }}</td>
-                <td>{{ b.user }}</td>
-                <td>{{ b.bus_no }}</td>
-                <td>{{ b.route }}</td>
-                <td class="status-{{ b.status }}">{{ b.status }}</td>
-                <td>
-                    {% if b.status != 'cancelled' %}
-                        <a href="{{ url_for('cancel_booking', booking_id=b.id) }}" class="cancel-btn">Cancel</a>
-                    {% endif %}
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+{% block content %}
+<div class="admin-wrapper">
+
+    <aside class="sidebar">
+        <nav class="sidebar-nav">
+
+            <a href="{{ url_for('admin_dashboard') }}"
+               class="{% if request.endpoint == 'admin_dashboard' %}active{% endif %}">
+                Dashboard
+            </a>
+
+            <a href="{{ url_for('admin_buses') }}"
+               class="{% if request.endpoint == 'admin_buses' %}active{% endif %}">
+                Manage Bus
+            </a>
+
+            <a href="{{ url_for('admin_bookings') }}"
+               class="{% if request.endpoint == 'admin_bookings' %}active{% endif %}">
+                Bookings
+            </a>
+
+            <a href="{{ url_for('logout') }}">Logout</a>
+
+        </nav>
+    </aside>
+
+    <div class="admin-content">
+        <main class="schedule-main">
+            <div class="schedule-container glass-card">
+
+                <header class="content-header">
+                    <h1>Bookings</h1>
+                </header>
+
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>User</th>
+                            <th>Bus No.</th>
+                            <th>Route</th>
+                            <th>Seat</th>
+                            <th>Status</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        {% for b in bookings %}
+                        <tr>
+                            <td>{{ b.id }}</td>
+                            <td>{{ b.user }}</td>
+                            <td>{{ b.bus_no }}</td>
+                            <td>{{ b.route }}</td>
+                            <td>{{ b.seat_number }}</td>
+                            <td class="status-{{ b.status }}">{{ b.status }}</td>
+                            <td>
+                                {% if b.status != 'cancelled' %}
+                                    <a href="{{ url_for('cancel_booking', booking_id=b.id) }}" class="cancel-btn">
+                                        Cancel
+                                    </a>
+                                {% else %}
+                                    —
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+
+                </table>
+
+            </div>
+        </main>
+    </div>
+
 </div>
 {% endblock %}

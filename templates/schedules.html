@@ -1,41 +1,40 @@
 {% extends "base.html" %}
-
-{% block title %}BusGo | Available Schedules{% endblock %}
-
 {% block content %}
-<main class="schedule-main">
-    <div class="schedule-container">
-        <h1 class="schedule-title">Bus Schedules</h1>
-        
-        <div class="filter-row">
-            <div class="search-box">
-                <input type="text" id="scheduleSearch" placeholder="Search destination..." onkeyup="filterSchedules()">
-                <i class="fa-solid fa-magnifying-glass"></i>
-            </div>
-        </div>
 
-        <table class="bus-table" id="busTable">
+<div class="schedule-main">
+    <div class="schedule-container">
+        <h1 class="schedule-title">Available Buses</h1>
+
+        <table class="bus-table">
             <thead>
                 <tr>
-                    <th>Bus No.</th>
+                    <th>Bus No</th>
                     <th>Route</th>
                     <th>Departure</th>
                     <th>Arrival</th>
                     <th>Price</th>
-                    <th>Action</th>
+                    <th></th>
                 </tr>
             </thead>
             <tbody>
+                {% for bus in buses %}
                 <tr>
-                    <td>EXP-001</td>
-                    <td>Cebu City → Lapu-Lapu</td>
-                    <td>08:00 AM</td>
-                    <td>09:30 AM</td>
-                    <td>₱150.00</td>
-                    <td><button class="book-now-btn" onclick="window.location.href='/booking'">Book Now</button></td>
+                    <td>{{ bus.bus_no }}</td>
+                    <td>{{ bus.route }}</td>
+                    <td>{{ bus.departure }}</td>
+                    <td>{{ bus.arrival }}</td>
+                    <td>₱{{ bus.price }}</td>
+                    <td>
+                        <a href="{{ url_for('booking', bus_id=bus.id) }}" 
+                           class="book-now-btn">
+                            Book Now
+                        </a>
+                    </td>
                 </tr>
-                </tbody>
+                {% endfor %}
+            </tbody>
         </table>
     </div>
-</main>
+</div>
+
 {% endblock %}
