@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+
+{% block title %}BusGo | Admin Panel{% endblock %}
+
+{% block content %}
+<div class="admin-wrapper">
+    <aside class="sidebar">
+        <nav class="sidebar-nav">
+            <a href="{{ url_for('admin_dashboard') }}" class="{% if request.endpoint=='admin_dashboard' %}active{% endif %}"><i class="fa-solid fa-chart-pie"></i> Dashboard</a>
+            <a href="{{ url_for('admin_buses') }}" class="{% if request.endpoint=='admin_buses' %}active{% endif %}"><i class="fa-solid fa-bus"></i> Buses</a>
+            <a href="{{ url_for('admin_bookings') }}" class="{% if request.endpoint=='admin_bookings' %}active{% endif %}"><i class="fa-solid fa-ticket"></i> Bookings</a>
+            <a href="{{ url_for('logout') }}" class="logout-link"><i class="fa-solid fa-right-from-bracket"></i> Logout</a>
+        </nav>
+    </aside>
+
+    <div class="admin-content">
+        <main class="schedule-main">
+            <div class="schedule-container glass-card">
+                <header class="content-header">
+                    <h1>{% block admin_title %}Admin Dashboard{% endblock %}</h1>
+                </header>
+                {% block admin_content %}{% endblock %}
+            </div>
+        </main>
+        </div>
+</div>
+{% endblock %}

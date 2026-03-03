@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+
+{% block title %}BusGo | My Dashboard{% endblock %}
+
+{% block content %}
+<section class="schedule-main">
+    <div class="schedule-container glass-booking-card">
+        <h1 class="schedule-title">Welcome Back, {{ session['fullname'] }}!</h1>
+        
+        <div class="user-actions">
+            <button class="print-btn" onclick="window.location.href='/schedules'"><i class="fa-solid fa-plus"></i> Book New Trip</button>
+        </div>
+
+        <div class="table-container" style="margin-top: 30px;">
+            <div class="table-header">My Bookings</div>
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>Ticket ID</th>
+                        <th>Bus No.</th>
+                        <th>Route</th>
+                        <th>Departure</th>
+                        <th>Arrival</th>
+                        <th>Price</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if bookings %}
+                        {% for booking in bookings %}
+                        <tr>
+                            <td>#{{ booking.id }}</td>
+                            <td>{{ booking.bus_no }}</td>
+                            <td>{{ booking.route }}</td>
+                            <td>{{ booking.departure }}</td>
+                            <td>{{ booking.arrival }}</td>
+                            <td>₱{{ booking.price }}</td>
+                            <td class="status-{{ booking.status }}">{{ booking.status|capitalize }}</td>
+                            <td>
+                                <a href="{{ url_for('view_booking', booking_id=booking.id) }}" class="book-now-btn">View</a>
+                                {% if booking.status != 'cancelled' %}
+                                    <form method="POST" action="{{ url_for('cancel_user_booking', booking_id=booking.id) }}" style="display:inline;">
+                                        <button type="submit" class="cancel-btn" onclick="return confirm('Cancel this booking?')">Cancel</button>
+                                    </form>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="8" style="text-align:center; padding:20px; color:#666;">
+                                No bookings yet. <a href="/schedules">Book a trip now!</a>
+                            </td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</section>
+{% endblock %}

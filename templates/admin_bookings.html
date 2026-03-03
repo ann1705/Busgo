@@ -1,0 +1,30 @@
+{% extends "admin_dashboard.html" %}
+
+{% block admin_title %}Bookings{% endblock %}
+
+{% block admin_content %}
+<div class="table-container">
+    <div class="table-header">All Bookings</div>
+    <table class="admin-table">
+        <thead>
+            <tr><th>ID</th><th>User</th><th>Bus No.</th><th>Route</th><th>Status</th></tr>
+        </thead>
+        <tbody>
+            {% for b in bookings %}
+            <tr>
+                <td>{{ b.id }}</td>
+                <td>{{ b.user }}</td>
+                <td>{{ b.bus_no }}</td>
+                <td>{{ b.route }}</td>
+                <td class="status-{{ b.status }}">{{ b.status }}</td>
+                <td>
+                    {% if b.status != 'cancelled' %}
+                        <a href="{{ url_for('cancel_booking', booking_id=b.id) }}" class="cancel-btn">Cancel</a>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

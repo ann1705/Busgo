@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+
+{% block title %}BusGo | Driver Panel{% endblock %}
+
+{% block content %}
+<div class="admin-wrapper">
+    <aside class="sidebar">
+        <nav class="sidebar-nav">
+            <a href="#" class="active">Dashboard</a>
+            <a href="#">My Trips</a>
+            <a href="#">Logout</a>
+        </nav>
+    </aside>
+
+    <div class="admin-content">
+        <header class="content-header">
+            <h1>Driver Dashboard</h1>
+        </header>
+        <p>Welcome, {{ session['fullname'] }}! Here you can view your assigned trips and manage availability.</p>
+    </div>
+</div>
+{% endblock %}

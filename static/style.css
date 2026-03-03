@@ -23,7 +23,7 @@
 
 body {
     background: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), 
-                url('../images/busbg.png'); /* Jump out of static to find images */
+                url('/static/images/busbg.png'); /* Jump out of static to find images */
     background-size: cover;
     background-position: center;
     background-attachment: fixed;
@@ -99,7 +99,7 @@ body {
    3. HERO & SERVICE CARDS
    ========================================= */
 .hero { 
-    height: 35vh; 
+    height: 60vh; /* larger hero area to match design */
 }
 
 .services-container { 
@@ -126,6 +126,34 @@ body {
     background: rgba(255, 255, 255, 0.18); 
     border-color: var(--busgo-lightblue);
 }
+
+/* admin pages: center forms and style tables inside glass containers */
+.admin-content .glass-card {
+    max-width: 600px;
+    margin: 0 auto 30px auto;
+    padding: 30px;
+    text-align: left;
+    color: #222;
+}
+
+.admin-content .glass-card input,
+.admin-content .glass-card select {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 15px;
+    background: rgba(255,255,255,0.6);
+    border: 1px solid rgba(0,0,0,0.1);
+    border-radius: 8px;
+}
+
+.admin-content .table-container {
+    background: var(--glass-bg);
+    backdrop-filter: blur(15px);
+}
+
+.admin-content .admin-table tr:nth-child(even) { background: rgba(255,255,255,0.1); }
+.admin-content .admin-table tr:hover { background: rgba(255,255,255,0.2); }
+.admin-content .admin-table th, .admin-content .admin-table td { color: #222; }
 
 .glow-icon { 
     font-size: 2.5rem; 
@@ -219,6 +247,18 @@ body {
     font-size: 0.9rem; 
 }
 
+/* password toggle icon positioned on right */
+.input-group .password-toggle {
+    left: auto;
+    right: 15px;
+    cursor: pointer;
+}
+
+/* give password inputs extra right padding so eye icon doesn't overlap text */
+.input-group input[type="password"] {
+    padding-right: 42px;
+}
+
 .input-group input { 
     width: 100%; 
     padding: 10px 15px 10px 42px; 
@@ -293,11 +333,35 @@ body {
 }
 
 .footer-bottom { 
-    text-align: center; 
+    text-align: bottom; 
     padding-top: 1rem; 
     opacity: 0.4; 
     font-size: 0.75rem; 
 }
+
+/* back-to-top button */
+#backToTop {
+    position: fixed;
+    bottom: 40px;
+    right: 40px;
+    display: none;
+    background: var(--busgo-lightblue);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 45px;
+    height: 45px;
+    font-size: 1.5rem;
+    cursor: pointer;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+    transition: opacity 0.3s;
+    z-index: 2000;
+}
+
+#backToTop:hover {
+    opacity: 0.8;
+}
+
 
 #backToTop { 
     display: none; 
@@ -331,6 +395,13 @@ body {
     border-radius: 15px;
     box-shadow: 0 20px 40px rgba(0,0,0,0.3);
     color: var(--busgo-dark); /* Ensure text is readable on white */
+}
+
+/* admin override: make schedule-container glass when inside admin pages */
+.admin-content .schedule-container {
+    background: var(--glass-bg);
+    backdrop-filter: blur(15px);
+    color: #222;
 }
 
 .schedule-title {
@@ -434,7 +505,7 @@ body {
 
 .page-num.active {
     background-color: var(--busgo-blue);
-    color: white;
+    color: rgb(12, 11, 11);
 }
 
 .page-arrow {
@@ -603,3 +674,258 @@ body {
     opacity: 0.9;
     transform: translateY(-2px);
 }
+/* =========================================
+   11. ADMIN DASHBOARD (SIDEBAR STYLE)
+   ========================================= */
+.admin-body {
+    background-color: #f0f4f8; /* Light grey as seen in your image */
+    color: #333;
+}
+
+.admin-wrapper {
+    display: flex;
+    min-height: 100vh;
+    padding: 2rem;
+    background: url('/static/images/busbg.png') center/cover fixed;
+}
+
+/* Sidebar */
+.sidebar {
+    width: 260px;
+    background: var(--glass-bg);
+    backdrop-filter: blur(20px);
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    border-radius: 20px;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+}
+
+.sidebar-logo {
+    padding: 0 20px 30px;
+    text-align: center;
+}
+
+.sidebar-logo img { width: 120px; }
+
+.sidebar-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 0 15px;
+}
+
+.sidebar-nav a {
+    text-decoration: none;
+    color: #fff;
+    background: rgba(255,255,255,0.1);
+    padding: 12px 20px;
+    border-radius: 8px;
+    font-weight: 600;
+    text-align: center;
+    transition: 0.3s;
+}
+
+.sidebar-nav a.active, .sidebar-nav a:hover {
+    background: rgba(255,255,255,0.25);
+}
+
+.logout-link { margin-top: auto; }
+
+/* Content Area */
+.admin-content {
+    flex: 1;
+    padding: 40px;
+}
+
+.content-header h1 {
+    font-size: 2.5rem;
+    border-bottom: 2px solid #ccc;
+    padding-bottom: 10px;
+    margin-bottom: 30px;
+}
+
+/* Stats Cards */
+.stats-row {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 30px;
+}
+
+.stat-card {
+    flex: 1;
+    background: white;
+    padding: 20px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+}
+
+.stat-card i { font-size: 2.5rem; color: #444; }
+
+/* Admin Table Styling */
+.table-container {
+    background: rgb(0, 0, 0);
+    border: 1px solid #444;
+}
+
+.table-header {
+    padding: 15px;
+    font-weight: bold;
+    font-size: 1.1rem;
+    border-bottom: 1px solid #444;
+}
+
+.admin-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.admin-table th {
+    text-align: left;
+    padding: 12px 15px;
+    border-bottom: 1px solid #444;
+    background: #000000;
+}
+
+.admin-table td {
+    padding: 12px 15px;
+    border-bottom: 1px solid #000000;
+}
+
+.status-cancelled { color: var(--error); font-weight: bold; }
+
+/* Pagination Simple */
+.pagination-simple {
+    padding: 15px;
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    color: #888;
+}
+
+.page-active {
+    background: #6a8caf;
+    color: white;
+    padding: 2px 8px;
+    border-radius: 4px;
+}
+/* Sidebar Styles */
+.admin-body { background: #f0f4f8; }
+.admin-wrapper { display: flex; min-height: 100vh; }
+.sidebar { width: 250px; background: #a4bed5; padding: 20px; display: flex; flex-direction: column; }
+.sidebar-nav a { 
+    display: block; background: #6a8caf; color: white; 
+    padding: 12px; margin-bottom: 10px; text-decoration: none; 
+    border-radius: 5px; text-align: center; font-weight: 600;
+}
+.sidebar-nav a.active { background: #1b5394; }
+
+/* Dashboard Tables */
+.table-container { background: white; border: 1px solid #444; margin-top: 20px; }
+.table-header { padding: 15px; font-weight: bold; border-bottom: 1px solid #444; }
+.admin-table { width: 100%; border-collapse: collapse; }
+.admin-table th, .admin-table td { padding: 12px; text-align: left; border-bottom: 1px solid #eee; }
+.status-confirmed { color: #2eb82e; font-weight: bold; }
+.status-cancelled { color: #ff4d4d; font-weight: bold; }
+
+/* Admin Sidebar Layout */
+.admin-body { background: #f0f4f8; margin: 0; }
+.admin-wrapper { display: flex; min-height: 100vh; }
+
+.sidebar { 
+    width: 260px; 
+    background: #a4bed5; /* Blue color from your dashboard pic */
+    padding: 20px; 
+    display: flex; 
+    flex-direction: column; 
+    gap: 10px;
+}
+
+.sidebar-nav a {
+    text-decoration: none;
+    color: white;
+    background: #6a8caf; /* Darker blue button */
+    padding: 12px;
+    border-radius: 4px;
+    text-align: center;
+    font-weight: 600;
+}
+
+.sidebar-nav a.active, .sidebar-nav a:hover {
+    background: #1b5394;
+}
+
+/* Stats and Tables */
+.admin-content { flex: 1; padding: 40px; }
+.stats-row { display: flex; gap: 20px; margin-bottom: 30px; }
+.stat-card { 
+    background: white; flex: 1; padding: 20px; 
+    display: flex; align-items: center; gap: 15px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.admin-table { width: 100%; border-collapse: collapse; background: white; }
+.admin-table th, .admin-table td { 
+    padding: 12px; border: 1px solid #ddd; text-align: left; 
+}
+
+/* Position the Eye Icon */
+.input-group {
+    position: relative;
+}
+
+.toggle-password {
+    position: absolute;
+    right: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    cursor: pointer;
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 0.9rem;
+    transition: 0.3s;
+    z-index: 10;
+}
+
+.toggle-password:hover {
+    color: var(--busgo-lightblue);
+}
+
+/* Adjust input padding so text doesn't overlap the eye */
+.input-group input[type="password"],
+.input-group input[type="text"] {
+    padding-right: 40px; 
+}
+
+/* Ensure the body takes full height */
+html, body {
+    height: 100%;
+    margin: 0;
+}
+
+/* The wrapper that holds everything */
+.site-wrapper {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh; /* Full viewport height */
+}
+
+/* The content area grows to fill space, pushing footer down */
+.main-content {
+    flex: 1 0 auto;
+}
+
+/* Footer styles */
+.main-footer {
+    flex-shrink: 0;
+    background: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(10px);
+    padding: 20px 0;
+    width: 100%;
+}
+
+/* Smooth Scrolling for the Nav links */
+html {
+    scroll-behavior: smooth;
+}.admin-content .table-header { background: rgba(255,255,255,0.2) !important; color: #222 !important; }

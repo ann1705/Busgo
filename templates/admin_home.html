@@ -1,0 +1,29 @@
+{% extends "admin_dashboard.html" %}
+
+{% block admin_title %}Overview{% endblock %}
+
+{% block admin_content %}
+<div class="stats-row">
+    <div class="stat-card">
+        <i class="fa-solid fa-users"></i>
+        <div>
+            <div class="stat-number">{{ user_count }}</div>
+            <div>Registered Users</div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <i class="fa-solid fa-bus"></i>
+        <div>
+            <div class="stat-number">{{ bus_count }}</div>
+            <div>Available Buses</div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <i class="fa-solid fa-ticket"></i>
+        <div>
+            <div class="stat-number">{{ booking_count }}</div>
+            <div>Total Bookings</div>
+        </div>
+    </div>
+</div>
+{% endblock %}

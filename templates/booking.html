@@ -1,67 +1,50 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BusGo | Ticket Booking</title>
-    <link rel="stylesheet" href="../static/style.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-</head>
-<body class="booking-page">
+{% extends "base.html" %}
 
-    <header class="glass-nav scrolled">
-        <img src="../images/busgologo.png" alt="BusGo Logo" class="logo">
-        <nav>
-            <ul class="nav-links">
-                <li><a href="index.html">Home</a></li>
-                <li><a href="schedules.html">Schedules</a></li>
-                <li><a href="javascript:void(0)" class="login-btn" onclick="toggleModal()">Login</a></li>
-            </ul>
-        </nav>
-    </header>
+{% block title %}BusGo | Seat Selection{% endblock %}
 
-    <main class="schedule-main"> <div class="schedule-container glass-booking-card">
-            <h1 class="schedule-title">Ticket Booking</h1>
+{% block content %}
+<main class="schedule-main">
+    <div class="schedule-container glass-booking-card">
+        <h1 class="schedule-title">Ticket Booking</h1>
 
-            <section class="booking-glass-section">
-                <div class="booking-input-group">
-                    <label>Passenger Name:</label>
-                    <input type="text" id="passName" placeholder="Enter Full Name">
-                </div>
-                <div class="booking-input-group">
-                    <label>Contact Number:</label>
-                    <input type="text" id="passContact" placeholder="Enter Phone Number">
-                </div>
-            </section>
-
-            <h3 class="selection-subtitle">Selected Bus Info</h3>
-            
-            <section class="seat-selection-wrapper">
-                <div class="bus-grid-header">
-                    <span>Bus No - Express 001</span>
-                </div>
-                <div class="seat-grid" id="seatGrid">
-                    </div>
-            </section>
-
-            <div class="action-footer">
-                <button class="confirm-booking-btn" onclick="confirmFinalBooking()">Confirm Booking</button>
+        <section class="booking-glass-section">
+            <div class="booking-input-group">
+                <label>Passenger Name:</label>
+                <input type="text" id="passName" placeholder="Enter Full Name">
             </div>
-        </div>
-    </main>
+            <div class="booking-input-group">
+                <label>Contact Number:</label>
+                <input type="text" id="passContact" placeholder="Enter Phone Number">
+            </div>
+        </section>
 
-    <script src="../static/script.js"></script>
-    <script>
-        // Generate the 4x4 grid as seen in your reference photo
-        const grid = document.getElementById('seatGrid');
+        <h3 class="selection-subtitle">Selected Bus: EXP-001</h3>
+        
+        <section class="seat-selection-wrapper">
+            <div class="bus-grid-header">
+                <span>Select Your Seat</span>
+            </div>
+            <div class="seat-grid" id="seatGrid">
+                </div>
+        </section>
+
+        <div class="action-footer">
+            <button class="confirm-booking-btn" onclick="confirmFinalBooking()">Confirm Booking</button>
+        </div>
+    </div>
+</main>
+
+<script>
+    // Local script to generate the 4x4 grid specifically for this page
+    const grid = document.getElementById('seatGrid');
+    if (grid) {
         for (let i = 1; i <= 16; i++) {
             const seat = document.createElement('div');
             seat.className = 'seat-box';
-            seat.onclick = function() {
-                this.classList.toggle('selected');
-            };
+            seat.onclick = function() { this.classList.toggle('selected'); };
             grid.appendChild(seat);
         }
-    </script>
-</body>
-</html>
+    }
+    }
+</script>
+{% endblock %}

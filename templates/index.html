@@ -1,136 +1,43 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BusGo | Premium Travel</title>
-    <link rel="stylesheet" href="../static/style.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-</head>
-<body>
+{% extends "base.html" %}
 
-    <button id="backToTop" title="Go to top"><i class="fa-solid fa-arrow-up"></i></button>
+{% block title %}BusGo | Premium Travel{% endblock %}
 
-    <header class="glass-nav" id="mainNav">
-        <img src="../images/busgologo.png" alt="BusGo Logo" class="logo">
-        <nav>
-            <ul class="nav-links">
-                <li><a href="#home">Home</a></li>
-                <li><a href="#about">About Us</a></li>
-                <li><a href="#contact">Contact</a></li>
-                <li><a href="javascript:void(0)" class="login-btn" onclick="toggleModal()">Login</a></li>
-            </ul>
-        </nav>
-    </header>
+{% block content %}
+<main id="home">
+    <section class="hero"></section>
+    <section class="services-container">
+        <article class="glass-card" onclick="window.location.href='{{ url_for('schedules') }}'">
+            <i class="fa-solid fa-calendar-days glow-icon"></i>
+            <h2>View Schedules</h2>
+            <p>Explore all available routes and real-time timings.</p>
+        </article>
 
-    <main id="home">
-        <section class="hero"></section>
+        <article class="glass-card" onclick="window.location.href='{{ url_for('booking') }}'">
+            <i class="fa-solid fa-bus glow-icon"></i>
+            <h2>Book Ticket</h2>
+            <p>Secure your seat instantly with our easy system.</p>
+        </article>
 
-        <section class="services-container">
-            <article class="glass-card" onclick="window.location.href='schedules.html'">
-                <i class="fa-solid fa-calendar-days glow-icon"></i>
-                <h2>View Schedules</h2>
-                <p>Explore all available routes and real-time timings.</p>
-            </article>
+        <article class="glass-card" onclick="window.location.href='{{ url_for('status') }}'">
+            <i class="fa-solid fa-ticket glow-icon"></i>
+            <h2>Ticket Status</h2>
+            <p>Track your journey or download tickets.</p>
+        </article>
+    </section>
 
-            <article class="glass-card" onclick="handleAction('Booking')">
-                <i class="fa-solid fa-bus glow-icon"></i>
-                <h2>Book Ticket</h2>
-                <p>Secure your seat instantly with our easy booking system.</p>
-            </article>
-
-            <article class="glass-card" onclick="handleAction('Status')">
-                <i class="fa-solid fa-ticket glow-icon"></i>
-                <h2>Ticket Status</h2>
-                <p>Track your journey or download your digital tickets.</p>
-            </article>
-        </section>
-
-        <section class="info-section" id="about">
-            <div class="glass-content">
-                <h2>About BusGo</h2>
-                <p>We provide a seamless travel experience with modern fleets and high-end security. Our mission is to connect cities with the comfort of a private lounge on wheels.</p>
-            </div>
-        </section>
-
-        <section class="info-section" id="contact">
-            <div class="glass-content">
-                <h2>Get In Touch</h2>
-                <div class="contact-details" style="display: flex; justify-content: center; gap: 30px; margin-top: 1rem;">
-                    <p><i class="fa-solid fa-envelope"></i> support@busgo.com</p>
-                    <p><i class="fa-solid fa-phone"></i> +1 800-BUS-GO</p>
-                </div>
-            </div>
-        </section>
-    </main>
-
-    <footer class="main-footer">
-        <div class="footer-content">
-            <div class="footer-brand">
-                <img src="../images/busgologo.png" alt="BusGo Logo" class="footer-logo-img">
-                <p>Premium travel, simplified.</p>
-            </div>
-            <div class="footer-socials">
-                <a href="#"><i class="fa-brands fa-facebook"></i></a>
-                <a href="#"><i class="fa-brands fa-instagram"></i></a>
-                <a href="#"><i class="fa-brands fa-twitter"></i></a>
-            </div>
+    <!-- About & contact placeholders -->
+    <section id="about" class="info-section">
+        <div class="glass-content">
+            <h2>About BusGo</h2>
+            <p>We provide a seamless travel experience with modern fleets and high-end security. Our mission is to connect cities with the comfort of a private lounge on wheels.</p>
         </div>
-        <div class="footer-bottom">
-            <p>&copy; 2026 BusGo Premium Travel. All rights reserved.</p>
+    </section>
+
+    <section id="contact" class="info-section">
+        <div class="glass-content">
+            <h2>Contact Us</h2>
+            <p>Have questions? Reach out at <a href="mailto:support@busgo.com">support@busgo.com</a> or call 123-456-7890.</p>
         </div>
-    </footer>
-
-    <div class="modal-overlay" id="loginModal">
-        <div class="login-card">
-            <button class="close-modal" onclick="toggleModal()">&times;</button>
-            
-            <div id="loginForm">
-                <div class="login-header">
-                    <img src="../images/busgologo.png" alt="BusGo Logo">
-                    <h2>Welcome Back</h2>
-                    <p style="font-size: 0.8rem; opacity: 0.7;">Sign in to manage your bookings</p>
-                </div>
-                <form class="auth-form" onsubmit="return false">
-                    <div class="input-group">
-                        <i class="fa-solid fa-envelope"></i>
-                        <input type="email" placeholder="Email Address" required>
-                    </div>
-                    <div class="input-group">
-                        <i class="fa-solid fa-lock"></i>
-                        <input type="password" placeholder="Password" required>
-                    </div>
-                    <button type="submit" class="auth-btn">Sign In</button>
-                </form>
-                <div class="login-footer-text">
-                    <p>Don't have an account? <a href="javascript:void(0)" onclick="switchAuth(true)">Create one</a></p>
-                </div>
-            </div>
-
-            <div id="registerForm" style="display: none;">
-                <div class="login-header">
-                    <img src="../images/busgologo.png" alt="BusGo Logo">
-                    <h2>Join BusGo</h2>
-                </div>
-                <form class="auth-form" onsubmit="return false">
-                    <div class="input-group">
-                        <i class="fa-solid fa-user"></i>
-                        <input type="text" placeholder="Full Name" required>
-                    </div>
-                    <div class="input-group">
-                        <i class="fa-solid fa-lock"></i>
-                        <input type="password" placeholder="Create Password" required oninput="checkStrength(this.value)">
-                        <div class="strength-meter"><div id="strength-bar"></div></div>
-                    </div>
-                    <button type="submit" class="auth-btn">Create Account</button>
-                </form>
-                <div class="login-footer-text">
-                    <p>Already have an account? <a href="javascript:void(0)" onclick="switchAuth(false)">Sign In</a></p>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <script src="../static/script.js"></script>
-</body>
-</html>
+    </section>
+</main>
+{% endblock %}
