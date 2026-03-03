@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BusGo | View Schedules</title>
+    <link rel="stylesheet" href="../static/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="schedule-body">
+
+    <header class="glass-nav scrolled" id="mainNav">
+        <img src="../images/busgologo.png" alt="BusGo Logo" class="logo">
+        <nav>
+            <ul class="nav-links">
+                <li><a href="index.html">Home</a></li>
+                <li><a href="index.html#about">About Us</a></li>
+                <li><a href="javascript:void(0)" class="login-btn" onclick="toggleModal()">Login</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main class="schedule-main">
+        <div class="schedule-container">
+            <h1 class="schedule-title">View Bus Schedule</h1>
+            
+            <div class="filter-row">
+                <div class="route-labels">
+                    <span>From: <b>Cebu City</b></span>
+                    <span style="margin-left: 25px;">To:</span>
+                </div>
+                <div class="search-box">
+                    <input type="text" id="scheduleSearch" placeholder="Search destination..." onkeyup="filterSchedules()">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                </div>
+            </div>
+
+            <table class="bus-table" id="busTable">
+                <thead>
+                    <tr>
+                        <th>Bus No.</th>
+                        <th>Route</th>
+                        <th>Departure</th>
+                        <th>Seat Available</th>
+                        <th>Price</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td>CEB-201</td><td>Lapu-Lapu City</td><td>6:00 AM</td><td>15</td><td>₱60</td><td><button class="book-now-btn">Book Now</button></td></tr>
+                    <tr><td>CEB-202</td><td>Mandaue City</td><td>6:30 AM</td><td>8</td><td>₱40</td><td><button class="book-now-btn">Book Now</button></td></tr>
+                    <tr><td>CEB-203</td><td>Danao City</td><td>7:00 AM</td><td>23</td><td>₱90</td><td><button class="book-now-btn">Book Now</button></td></tr>
+                    <tr><td>CEB-204</td><td>Carcar City</td><td>7:30 AM</td><td>15</td><td>₱95</td><td><button class="book-now-btn">Book Now</button></td></tr>
+                </tbody>
+            </table>
+
+            <div class="pagination">
+                <span class="page-arrow">&laquo;</span>
+                <span class="page-num active">1</span>
+                <span class="page-num">2</span>
+                <span class="page-num">3</span>
+                <span class="page-arrow">&raquo;</span>
+            </div>
+        </div>
+    </main>
+
+    <footer class="main-footer">
+        <div class="footer-content">
+            <img src="../images/busgologo.png" alt="BusGo Logo" class="footer-logo-img">
+            <p>&copy; 2026 BusGo Premium Travel. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script src="../static/script.js"></script>
+</body>
+</html>

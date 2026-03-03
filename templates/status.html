@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BusGo | Ticket Status</title>
+    <link rel="stylesheet" href="../static/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="booking-page">
+
+    <header class="glass-nav scrolled">
+        <img src="../images/busgologo.png" alt="BusGo Logo" class="logo">
+        <nav>
+            <ul class="nav-links">
+                <li><a href="index.html">Home</a></li>
+                <li><a href="schedules.html">Schedules</a></li>
+                <li><a href="javascript:void(0)" class="login-btn" onclick="toggleModal()">Login</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main class="schedule-main">
+        <div class="schedule-container glass-booking-card">
+            <h1 class="schedule-title">Your Ticket Details</h1>
+            
+            <section class="status-selection-wrapper">
+                <div class="bus-grid-header">
+                    <span>Ticket ID: BG8745123</span>
+                </div>
+                
+                <div class="status-content-padding">
+                    <div class="booking-input-group">
+                        <label>Passenger Name:</label>
+                        <span class="status-value">Justin Mason</span>
+                    </div>
+                    <div class="booking-input-group">
+                        <label>Route:</label>
+                        <span class="status-value">Cebu City to Lapu-Lapu</span>
+                    </div>
+                    <div class="booking-input-group">
+                        <label>Seat Number:</label>
+                        <span class="status-value">A3, A4</span>
+                    </div>
+                    <div class="booking-input-group">
+                        <label>Date & Time:</label>
+                        <span class="status-value">2026-03-04 | 09:00 AM</span>
+                    </div>
+                    <div class="booking-input-group">
+                        <label>Status:</label>
+                        <span class="status-value status-confirmed">Confirmed</span>
+                    </div>
+                    <div class="booking-input-group" style="border-bottom: none;">
+                        <label>Total Fare:</label>
+                        <span class="status-value">₱120.00</span>
+                    </div>
+                </div>
+            </section>
+
+            <div class="action-footer status-btn-gap">
+                <button class="print-btn" onclick="window.print()">
+                    <i class="fa-solid fa-print"></i> Print Ticket
+                </button>
+                <button class="cancel-btn" onclick="handleCancel()">
+                    <i class="fa-solid fa-trash-can"></i> Cancel Ticket
+                </button>
+            </div>
+        </div>
+    </main>
+
+    <script src="../static/script.js"></script>
+</body>
+</html>
