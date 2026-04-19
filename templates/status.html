@@ -1,80 +1,146 @@
 {% extends "base.html" %}
-{% block title %}BusGo | Ticket Status{% endblock %}
+
+{% block title %}BusGo | Booking Status{% endblock %}
 
 {% block content %}
 <main class="schedule-main">
-    <div class="schedule-container glass-booking-card">
-        <h1 class="schedule-title">Your Ticket Details</h1>
+    <div class="schedule-container">
+        <h1 class="schedule-title">Booking Details</h1>
 
-        <div class="booking-input-group">
-            <label>Passenger Name:</label>
-            <span>{{ booking.passenger_name }}</span>
-        </div>
-
-        <div class="booking-input-group">
-            <label>Contact:</label>
-            <span>{{ booking.contact }}</span>
-        </div>
-
-        <div class="booking-input-group">
-            <label>Seat:</label>
-            <span>{{ booking.seat_number }}</span>
-        </div>
-
-        <div class="booking-input-group">
-            <label>Bus Number:</label>
-            <span>{{ booking.bus_no }}</span>
-        </div>
-
-        <div class="booking-input-group">
-            <label>Route:</label>
-            <span>{{ booking.route }}</span>
-        </div>
-
-        <div class="booking-input-group">
-            <label>Departure:</label>
-            <span>{{ booking.departure }}</span>
-        </div>
-
-        <div class="booking-input-group">
-            <label>Arrival:</label>
-            <span>{{ booking.arrival }}</span>
-        </div>
-
-        <div class="booking-input-group">
-            <label>Total Fare:</label>
-            <span>₱{{ booking.price }}</span>
-        </div>
-
-        <div class="booking-input-group">
-            <label>Status:</label>
-            <span class="{% if booking.status == 'paid' %}status-confirmed{% endif %}">
-                {{ booking.status }}
+        <!-- Status Badge -->
+        <div style="text-align: center; margin-bottom: 2rem;">
+            <span style="display: inline-block; padding: 12px 28px; border-radius: 50px; font-weight: 700; font-size: 1.1rem; 
+                {% if booking.status == 'paid' %}
+                    background: #d4edda; color: var(--success);
+                {% elif booking.status == 'cancelled' %}
+                    background: #f8d7da; color: var(--danger);
+                {% else %}
+                    background: #fff3cd; color: var(--warning);
+                {% endif %}">
+                <i class="fa-solid 
+                    {% if booking.status == 'paid' %}fa-check-circle{% elif booking.status == 'cancelled' %}fa-times-circle{% else %}fa-clock{% endif %}"></i>
+                {{ booking.status|upper }}
             </span>
         </div>
 
-        <!-- SHOW PAY + CANCEL ONLY IF NOT PAID OR CANCELLED -->
+        <!-- Ticket Container -->
+        <div style="background: linear-gradient(135deg, var(--primary), var(--primary-light)); color: white; padding: 2.5rem; border-radius: 15px; margin-bottom: 2rem; box-shadow: var(--shadow-large);">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
+                <div>
+                    <p style="opacity: 0.95; font-size: 0.9rem; text-transform: uppercase; margin-bottom: 0.3rem; font-weight: 600;">Ticket Number</p>
+                    <p style="font-size: 1.8rem; font-weight: 700;">#{{ booking.id }}</p>
+                </div>
+                <div style="text-align: right;">
+                    <p style="opacity: 0.95; font-size: 0.9rem; text-transform: uppercase; margin-bottom: 0.3rem; font-weight: 600;">Total Fare</p>
+                    <p style="font-size: 1.8rem; font-weight: 700;">₱{{ "%.2f"|format(booking.price) }}</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Trip Information -->
+        <div style="background: #f5f5f5; padding: 2rem; border-radius: 12px; margin-bottom: 2rem;">
+            <h3 style="color: var(--primary); margin-bottom: 1.5rem;">Trip Information</h3>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
+                <div>
+                    <div style="margin-bottom: 1.5rem;">
+                        <p style="font-size: 0.85rem; color: #555; text-transform: uppercase; margin-bottom: 0.3rem; font-weight: 600;">Route</p>
+                        <p style="font-size: 1.2rem; font-weight: 700; color: var(--primary);">{{ booking.route }}</p>
+                    </div>
+                    <div style="margin-bottom: 1.5rem;">
+                        <p style="font-size: 0.85rem; color: #555; text-transform: uppercase; margin-bottom: 0.3rem; font-weight: 600;">Bus Number</p>
+                        <p style="font-size: 1rem; font-weight: 700; color: var(--primary);">{{ booking.bus_no }}</p>
+                    </div>
+                </div>
+                
+                <div>
+                    <div style="margin-bottom: 1.5rem;">
+                        <p style="font-size: 0.85rem; color: #555; text-transform: uppercase; margin-bottom: 0.3rem; font-weight: 600;">Departure</p>
+                        <p style="font-size: 1.2rem; font-weight: 700; color: var(--primary);">{{ booking.departure }}</p>
+                    </div>
+                    <div style="margin-bottom: 1.5rem;">
+                        <p style="font-size: 0.85rem; color: #555; text-transform: uppercase; margin-bottom: 0.3rem; font-weight: 600;">Arrival</p>
+                        <p style="font-size: 1.2rem; font-weight: 700; color: var(--primary);">{{ booking.arrival }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Passenger Information -->
+        <div style="background: #f5f5f5; padding: 2rem; border-radius: 12px; margin-bottom: 2rem;">
+            <h3 style="color: var(--primary); margin-bottom: 1.5rem;">Passenger Information</h3>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
+                <div>
+                    <p style="font-size: 0.85rem; color: #555; text-transform: uppercase; margin-bottom: 0.3rem; font-weight: 600;">Passenger Name</p>
+                    <p style="font-size: 1.1rem; font-weight: 700; color: var(--dark-text);">{{ booking.passenger_name }}</p>
+                </div>
+                <div>
+                    <p style="font-size: 0.85rem; color: #555; text-transform: uppercase; margin-bottom: 0.3rem; font-weight: 600;">Contact</p>
+                    <p style="font-size: 1.1rem; font-weight: 700; color: var(--dark-text);">{{ booking.contact }}</p>
+                </div>
+            </div>
+            
+            <div style="margin-top: 1.5rem;">
+                <p style="font-size: 0.85rem; color: #555; text-transform: uppercase; margin-bottom: 0.3rem; font-weight: 600;">Seat Number</p>
+                <p style="display: inline-block; background: linear-gradient(135deg, var(--yellow), var(--yellow-dark)); color: #000; padding: 12px 28px; border-radius: 50px; font-weight: 700; font-size: 1.3rem;">{{ booking.seat_number }}</p>
+            </div>
+        </div>
+
         {% if booking.status != 'paid' and booking.status != 'cancelled' %}
-        <div class="status-btn-gap" style="display:flex; justify-content:center;">
-            <a href="{{ url_for('pay_booking', booking_id=booking.id) }}" class="print-btn">
-                Pay Now
-            </a>
+            <div id="payment-section" class="payment-panel" style="background: #ffffff; padding: 1.8rem; border-radius: 18px; box-shadow: 0 20px 45px rgba(16, 42, 67, 0.12); margin-bottom: 2rem;">
+                <div style="display: flex; flex-direction: column; gap: 1.2rem;">
+                    <div>
+                        <h3 style="margin-bottom: 0.5rem; color: var(--primary);">Complete Payment with GCash</h3>
+                        <p style="color: #334e68; line-height: 1.6;">Scan the QR code below or use the payment details to transfer the exact amount.</p>
+                    </div>
 
-            <a href="{{ url_for('user_cancel_booking', booking_id=booking.id) }}" class="cancel-btn">
-                Cancel
-            </a>
-        </div>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1.5rem; align-items: center;">
+                        <div style="display: grid; gap: 0.85rem;">
+                            <p style="margin: 0; font-weight: 700;">Amount</p>
+                            <p style="margin: 0; color: var(--accent); font-size: 1.6rem; font-weight: 800;">₱{{ "%.2f"|format(booking.price) }}</p>
+                            <p style="margin: 0.5rem 0 0; color: #4b5b7b;"><strong>GCash Number:</strong> <span style="color: #102a43;">0917-123-4567</span></p>
+                            <p style="margin: 0; color: #4b5b7b;"><strong>Reference:</strong> <span style="color: #102a43;">BusGo Booking #{{ booking.id }}</span></p>
+                            <p style="margin: 0; color: #4b5b7b; line-height: 1.6;">Open your GCash app and scan the QR code below, or manually enter the amount and reference.</p>
+                        </div>
+                        <div style="background: var(--surface); border-radius: 16px; padding: 1rem; text-align: center;">
+                            <img id="gcash-qr" src="" alt="GCash QR Code" style="max-width: 100%; border-radius: 14px; box-shadow: 0 16px 32px rgba(16, 42, 67, 0.08);" />
+                            <p style="margin: 1rem 0 0; color: #334e68; font-weight: 600;">Scan to pay with GCash</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
         {% endif %}
 
-        <!-- SHOW BACK BUTTON IF CANCELLED -->
-        {% if booking.status == 'cancelled' %}
-        <div style="display:flex; justify-content:center; margin-top:20px;">
-            <a href="{{ url_for('user_dashboard') }}" class="print-btn">
-                Back to Dashboard
+        <!-- Actions -->
+        <div style="display: flex; gap: 1.5rem; justify-content: center; flex-wrap: wrap;">
+            {% if booking.status != 'paid' and booking.status != 'cancelled' %}
+                <a href="#payment-section" class="print-btn">
+                    <i class="fa-solid fa-qrcode"></i> Pay with GCash
+                </a>
+                <a href="{{ url_for('user_cancel_booking', booking_id=booking.id) }}" class="cancel-btn" onclick="return confirm('Are you sure you want to cancel this booking?')">
+                    <i class="fa-solid fa-times"></i> Cancel Booking
+                </a>
+            {% endif %}
+            
+            <a href="{{ url_for('user_dashboard') }}" class="print-btn" style="background: #999;">
+                <i class="fa-solid fa-arrow-left"></i> Back to Dashboard
             </a>
         </div>
-        {% endif %}
-
     </div>
 </main>
+
+{% if booking.status != 'paid' and booking.status != 'cancelled' %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const qrImage = document.getElementById('gcash-qr');
+        if (!qrImage) return;
+
+        const amountValue = '{{ "%.2f"|format(booking.price) }}';
+        const bookingRef = 'BusGo Booking #{{ booking.id }}';
+        const qrData = `GCash Payment\nPay to: 0917-123-4567\nAmount: ₱${amountValue}\nReference: ${bookingRef}`;
+        qrImage.src = `https://api.qrserver.com/v1/create-qr-code/?size=280x280&data=${encodeURIComponent(qrData)}`;
+    });
+</script>
+{% endif %}
 {% endblock %}

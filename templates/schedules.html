@@ -1,40 +1,49 @@
 {% extends "base.html" %}
-{% block content %}
 
+{% block title %}BusGo | Book Your Trip{% endblock %}
+
+{% block content %}
 <div class="schedule-main">
     <div class="schedule-container">
         <h1 class="schedule-title">Available Buses</h1>
-
-        <table class="bus-table">
-            <thead>
-                <tr>
-                    <th>Bus No</th>
-                    <th>Route</th>
-                    <th>Departure</th>
-                    <th>Arrival</th>
-                    <th>Price</th>
-                    <th></th>
-                </tr>
-            </thead>
-            <tbody>
+        
+        {% if buses %}
+            <div class="buses-grid">
                 {% for bus in buses %}
-                <tr>
-                    <td>{{ bus.bus_no }}</td>
-                    <td>{{ bus.route }}</td>
-                    <td>{{ bus.departure }}</td>
-                    <td>{{ bus.arrival }}</td>
-                    <td>₱{{ bus.price }}</td>
-                    <td>
-                        <a href="{{ url_for('booking', bus_id=bus.id) }}" 
-                           class="book-now-btn">
-                            Book Now
+                <div class="bus-card">
+                    <div class="bus-card-header">
+                        <div>
+                            <div class="bus-number">Bus {{ bus.bus_no }}</div>
+                            <div class="bus-route" style="margin-top: 0.8rem;">{{ bus.route }}</div>
+                        </div>
+                    </div>
+                    
+                    <div class="bus-times">
+                        <div class="time-box">
+                            <div class="time-label">Departure</div>
+                            <div class="time-value">{{ bus.departure }}</div>
+                        </div>
+                        <div class="time-box">
+                            <div class="time-label">Arrival</div>
+                            <div class="time-value">{{ bus.arrival }}</div>
+                        </div>
+                    </div>
+                    
+                    <div class="bus-price">
+                        <div class="price">₱{{ "%.2f"|format(bus.price) }}</div>
+                        <a href="{{ url_for('booking', bus_id=bus.id) }}" class="book-now-btn">
+                            <i class="fa-solid fa-arrow-right"></i> Book Now
                         </a>
-                    </td>
-                </tr>
+                    </div>
+                </div>
                 {% endfor %}
-            </tbody>
-        </table>
+            </div>
+        {% else %}
+            <div style="text-align: center; padding: 3rem; color: rgba(255, 255, 255, 0.7);">
+                <i class="fa-solid fa-inbox" style="font-size: 3rem; margin-bottom: 1rem; display: block; color: var(--yellow);\"></i>
+                <p>No buses available at the moment. Please check back later.</p>
+            </div>
+        {% endif %}
     </div>
 </div>
-
 {% endblock %}

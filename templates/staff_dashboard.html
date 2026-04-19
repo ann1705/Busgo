@@ -1,0 +1,403 @@
+{% extends "base.html" %}
+
+{% block title %}BusGo | Staff Dashboard{% endblock %}
+
+{% block content %}
+<section class="schedule-main">
+    <div class="schedule-container glass-booking-card dashboard-page">
+        <div class="dashboard-header">
+            <h1>Staff Walk-In Booking</h1>
+            <p>Create walk-in reservations for customers and review your recent bookings.</p>
+        </div>
+
+        <div class="user-actions">
+            <span class="print-btn" style="background: rgba(255,255,255,0.16); color: white; box-shadow: none; cursor: default;">
+                Walk-in only workflow
+            </span>
+        </div>
+
+        <div class="staff-tabs">
+            <button type="button" class="tab-btn active" data-tab="new-booking-tab">New Walk-in Booking</button>
+            <button type="button" class="tab-btn" data-tab="booking-records-tab">Walk-in Records</button>
+        </div>
+
+        <div id="new-booking-tab" class="tab-panel active">
+            <div class="table-container">
+                <div class="table-header">
+                    <i class="fa-solid fa-person-walking" style="margin-right: 0.5rem;"></i>
+                    Walk-in Booking
+                </div>
+
+                <form method="POST" class="dashboard-form">
+                    <div class="input-group">
+                        <label for="bus_id">Select Bus</label>
+                        <select name="bus_id" id="bus_id" required>
+                            <option value="">Choose a bus</option>
+                            {% for bus in buses %}
+                                <option value="{{ bus.id }}">{{ bus.bus_no }} — {{ bus.route }} ({{ bus.departure }} → {{ bus.arrival }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="input-group">
+                        <label for="passenger_name">Passenger Name</label>
+                        <input type="text" name="passenger_name" id="passenger_name" placeholder="Enter passenger name" required />
+                    </div>
+
+                    <div class="input-group">
+                        <label for="contact">Contact Number</label>
+                        <input type="text" name="contact" id="contact" placeholder="Enter contact details" required />
+                    </div>
+
+                    <div class="seat-selection-wrapper">
+                        <h3 class="selection-subtitle">Select Your Seat</h3>
+                        <p style="color: #102a43; font-size: 0.95rem; margin-bottom: 1rem; font-weight: 600;">
+                            <span style="display: inline-block; margin-right: 2rem;"><span class="seat-legend available"></span> Available</span>
+                            <span style="display: inline-block;"><span class="seat-legend booked"></span> Booked</span>
+                        </p>
+
+                        <div class="bus-layout" id="staff-seat-map"></div>
+                        <div class="booking-summary-panel" id="staff-booking-summary">
+                            <h3 class="selection-subtitle">Booking Summary</h3>
+                            <div class="booking-summary-grid">
+                                <div class="booking-summary-item">
+                                    <label>Seat</label>
+                                    <span class="value" id="staff-summary-seat">None</span>
+                                </div>
+                                <div class="booking-summary-item">
+                                    <label>Route</label>
+                                    <span class="value" id="staff-summary-route">—</span>
+                                </div>
+                                <div class="booking-summary-item">
+                                    <label>Departure</label>
+                                    <span class="value" id="staff-summary-departure">—</span>
+                                </div>
+                                <div class="booking-summary-item">
+                                    <label>Arrival</label>
+                                    <span class="value" id="staff-summary-arrival">—</span>
+                                </div>
+                                <div class="booking-summary-item">
+                                    <label>Price</label>
+                                    <span class="value" id="staff-summary-price">—</span>
+                                </div>
+                                <div class="booking-summary-item">
+                                    <label>Status</label>
+                                    <span class="value" id="staff-summary-status">Walk-in</span>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <input type="hidden" id="seat_number" name="seat_number">
+                    <input type="hidden" id="payment_method" name="payment_method" value="">
+                    <input type="hidden" id="cash_given" name="cash_given" value="">
+                    <input type="hidden" id="payment_amount" name="payment_amount" value="">
+
+                    <button type="button" id="proceed-payment-btn" class="book-now-btn">Proceed Payment</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Payment Modal -->
+        <div id="payment-modal" class="modal hidden">
+            <div class="modal-content">
+                <span class="close">&times;</span>
+                <h3>Choose Payment Method</h3>
+                <div class="payment-options">
+                    <label><input type="radio" name="modal_payment_method" value="cash" checked> Cash</label>
+                    <label><input type="radio" name="modal_payment_method" value="gcash"> GCash</label>
+                </div>
+
+                <div id="cash-fields" class="payment-fields">
+                    <div class="input-group">
+                        <label for="modal_cash_given">Cash Given</label>
+                        <input type="number" step="0.01" min="0" id="modal_cash_given" placeholder="Enter cash received" />
+                    </div>
+                    <div class="payment-summary">
+                        <span>Total: <strong id="total-amount">₱0.00</strong></span><br>
+                        <span>Change: <strong id="cash-change">₱0.00</strong></span>
+                    </div>
+                </div>
+
+                <div id="gcash-fields" class="payment-fields hidden">
+                    <div class="payment-summary">
+                        <p>Scan this QR to pay the exact amount.</p>
+                        <img id="gcash-qr" src="" alt="GCash QR Code" />
+                        <p>Amount: <strong id="gcash-amount">₱0.00</strong></p>
+                    </div>
+                </div>
+
+                <button id="confirm-payment-btn" class="book-now-btn">Confirm Payment</button>
+            </div>
+        </div>
+
+        <div id="booking-records-tab" class="tab-panel">
+            <div class="table-container">
+                <div class="table-header">
+                    <i class="fa-solid fa-ticket" style="margin-right: 0.5rem;"></i>
+                    Walk-in Records
+                </div>
+
+                {% if bookings_by_date %}
+                    {% for date, items in bookings_by_date.items() %}
+                        <div class="date-group">
+                            <h3>{{ date }} <small>({{ items|length }} bookings)</small></h3>
+                            <table class="admin-table">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Time</th>
+                                        <th>Passenger</th>
+                                        <th>Contact</th>
+                                        <th>Bus</th>
+                                        <th>Route</th>
+                                        <th>Departure</th>
+                                        <th>Seat</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for booking in items %}
+                                        <tr>
+                                            <td><strong>#{{ booking.id }}</strong></td>
+                                            <td>{{ booking.created_time }}</td>
+                                            <td>{{ booking.passenger_name }}</td>
+                                            <td>{{ booking.contact }}</td>
+                                            <td>{{ booking.bus_no }}</td>
+                                            <td>{{ booking.route }}</td>
+                                            <td>{{ booking.departure }}</td>
+                                            <td>{{ booking.seat_number }}</td>
+                                            <td><span class="status-{{ booking.status.lower() }}">{{ booking.status|capitalize }}</span></td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <div style="text-align: center; padding: 3rem; color: rgba(255, 255, 255, 0.7);">
+                        <i class="fa-solid fa-inbox" style="font-size: 3rem; margin-bottom: 1rem; color: var(--accent);"></i>
+                        <p style="font-size: 1.1rem;">No walk-in records yet.</p>
+                        <p style="margin-top: 1rem;"><a href="javascript:void(0)" onclick="document.querySelector('[data-tab=\'new-booking-tab\']').click()" style="color: var(--accent); text-decoration: none; font-weight: 600;">Create a new walk-in booking.</a></p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</section>
+
+<script>
+    const bookedSeatsByBus = {{ booked_seats_by_bus | tojson }};
+    const busData = {{ buses_json | tojson }};
+    const busSelect = document.getElementById('bus_id');
+    const seatMap = document.getElementById('staff-seat-map');
+    const seatInput = document.getElementById('seat_number');
+    const summarySeat = document.getElementById('staff-summary-seat');
+    const summaryRoute = document.getElementById('staff-summary-route');
+    const summaryDeparture = document.getElementById('staff-summary-departure');
+    const summaryArrival = document.getElementById('staff-summary-arrival');
+    const summaryPrice = document.getElementById('staff-summary-price');
+    const summaryStatus = document.getElementById('staff-summary-status');
+
+    // Payment modal elements
+    const proceedBtn = document.getElementById('proceed-payment-btn');
+    const paymentModal = document.getElementById('payment-modal');
+    const closeModal = paymentModal.querySelector('.close');
+    const paymentMethodRadios = document.querySelectorAll('input[name="modal_payment_method"]');
+    const cashFields = document.getElementById('cash-fields');
+    const gcashFields = document.getElementById('gcash-fields');
+    const cashGivenInput = document.getElementById('modal_cash_given');
+    const totalAmountEl = document.getElementById('total-amount');
+    const cashChangeEl = document.getElementById('cash-change');
+    const gcashAmountEl = document.getElementById('gcash-amount');
+    const gcashQr = document.getElementById('gcash-qr');
+    const confirmBtn = document.getElementById('confirm-payment-btn');
+
+    // Hidden form inputs
+    const paymentMethodInput = document.getElementById('payment_method');
+    const cashGivenFormInput = document.getElementById('cash_given');
+    const paymentAmountInput = document.getElementById('payment_amount');
+
+    const seatRows = [
+        [[1, 2], [3, 4]],
+        [[5, 6], [7, 8]],
+        [[9, 10], [11, 12]],
+        [[13, 14], [15, 16]],
+        [[17, 18], [19, 20]],
+        [[21, 22], [23, 24]],
+        [[25, 26], [27, 28]],
+        [[29, 30], [31, 32]],
+        [[33, 34], [35, 36]],
+        [[37, 38], [39, 40]],
+        [[41, 42], [43, 44]],
+        [[45, 46], [47, 48]],
+        [[49, 50], [51, 52]]
+    ];
+
+    function getBookedSeats(busId) {
+        return new Set(bookedSeatsByBus[busId] || []);
+    }
+
+    function renderSeatMap(busId) {
+        seatMap.innerHTML = '';
+        seatInput.value = '';
+        summarySeat.textContent = 'None';
+        const bookedSeats = getBookedSeats(busId);
+        const busInfo = busData.find(bus => String(bus.id) === String(busId));
+
+        if (!busId || !busInfo) {
+            seatMap.innerHTML = '<p style="color: #102a43; text-align: center; padding: 1rem;">Please select a bus to display seat availability.</p>';
+            summaryRoute.textContent = '—';
+            summaryDeparture.textContent = '—';
+            summaryArrival.textContent = '—';
+            summaryPrice.textContent = '—';
+            summaryStatus.textContent = 'Walk-in';
+            return;
+        }
+
+        summaryRoute.textContent = busInfo.route || '—';
+        summaryDeparture.textContent = busInfo.departure || '—';
+        summaryArrival.textContent = busInfo.arrival || '—';
+        const priceValue = busInfo.price ? Number(busInfo.price).toFixed(2) : '0.00';
+        summaryPrice.textContent = priceValue !== '0.00' ? `₱${priceValue}` : '—';
+        summaryStatus.textContent = 'Walk-in';
+
+        // Update modal amount
+        totalAmountEl.textContent = `₱${priceValue}`;
+        gcashAmountEl.textContent = `₱${priceValue}`;
+        paymentAmountInput.value = priceValue;
+        updateGcashQr(priceValue);
+
+        seatRows.forEach((rowGroups) => {
+            const rowEl = document.createElement('div');
+            rowEl.className = 'seat-row';
+
+            rowGroups.forEach((group, groupIndex) => {
+                const groupEl = document.createElement('div');
+                groupEl.className = 'seat-group';
+
+                group.forEach((seat) => {
+                    const seatEl = document.createElement('div');
+                    seatEl.className = 'seat-box';
+                    seatEl.setAttribute('data-seat', seat);
+                    seatEl.textContent = seat;
+
+                    if (bookedSeats.has(String(seat))) {
+                        seatEl.classList.add('booked');
+                        seatEl.title = 'Seat booked';
+                    }
+
+                    seatEl.addEventListener('click', () => {
+                        if (seatEl.classList.contains('booked')) {
+                            alert('This seat is already booked. Please choose another seat.');
+                            return;
+                        }
+
+                        document.querySelectorAll('#staff-seat-map .seat-box').forEach((box) => {
+                            box.classList.remove('selected');
+                        });
+
+                        seatEl.classList.add('selected');
+                        const seatNumber = seatEl.getAttribute('data-seat');
+                        seatInput.value = seatNumber;
+                        summarySeat.textContent = `Seat #${seatNumber}`;
+                    });
+
+                    groupEl.appendChild(seatEl);
+                });
+
+                rowEl.appendChild(groupEl);
+                if (groupIndex < rowGroups.length - 1) {
+                    const aisleEl = document.createElement('div');
+                    aisleEl.className = 'aisle';
+                    rowEl.appendChild(aisleEl);
+                }
+            });
+
+            seatMap.appendChild(rowEl);
+        });
+    }
+
+    function updateGcashQr(amount) {
+        const qrData = `GCash Payment\nPay to: 0917-123-4567\nAmount: ₱${amount}\nReference: BusGo Walk-in`;
+        gcashQr.src = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(qrData)}`;
+    }
+
+    function updateCashChange() {
+        const cashGiven = parseFloat(cashGivenInput.value) || 0;
+        const total = parseFloat(paymentAmountInput.value) || 0;
+        const change = cashGiven - total;
+        cashChangeEl.textContent = change >= 0 ? `₱${change.toFixed(2)}` : '₱0.00';
+    }
+
+    // Event listeners
+    busSelect.addEventListener('change', function () {
+        renderSeatMap(this.value);
+    });
+
+    proceedBtn.addEventListener('click', function () {
+        if (!seatInput.value) {
+            alert('Please select a seat before proceeding to payment.');
+            return;
+        }
+        paymentModal.classList.remove('hidden');
+    });
+
+    closeModal.addEventListener('click', function () {
+        paymentModal.classList.add('hidden');
+    });
+
+    paymentMethodRadios.forEach(radio => {
+        radio.addEventListener('change', function () {
+            if (this.value === 'cash') {
+                cashFields.classList.remove('hidden');
+                gcashFields.classList.add('hidden');
+            } else {
+                cashFields.classList.add('hidden');
+                gcashFields.classList.remove('hidden');
+            }
+        });
+    });
+
+    cashGivenInput.addEventListener('input', updateCashChange);
+
+    confirmBtn.addEventListener('click', function () {
+        const selectedMethod = document.querySelector('input[name="modal_payment_method"]:checked').value;
+        paymentMethodInput.value = selectedMethod;
+
+        if (selectedMethod === 'cash') {
+            const cashGiven = parseFloat(cashGivenInput.value) || 0;
+            const total = parseFloat(paymentAmountInput.value) || 0;
+            if (cashGiven < total) {
+                alert('Cash given must be equal to or greater than the total amount.');
+                return;
+            }
+            cashGivenFormInput.value = cashGivenInput.value;
+        } else {
+            cashGivenFormInput.value = '';
+        }
+
+        // Submit the form
+        document.querySelector('form.dashboard-form').submit();
+    });
+
+    const tabButtons = document.querySelectorAll('.tab-btn');
+    const tabPanels = document.querySelectorAll('.tab-panel');
+
+    tabButtons.forEach(button => {
+        button.addEventListener('click', () => {
+            tabButtons.forEach(btn => btn.classList.remove('active'));
+            tabPanels.forEach(panel => panel.classList.remove('active'));
+
+            button.classList.add('active');
+            const activePanel = document.getElementById(button.dataset.tab);
+            if (activePanel) {
+                activePanel.classList.add('active');
+            }
+        });
+    });
+
+    renderSeatMap(busSelect.value);
+</script>
+{% endblock %}

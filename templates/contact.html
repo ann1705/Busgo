@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+
+{% block title %}BusGo | Contact{% endblock %}
+
+{% block content %}
+<main class="info-section">
+    <div class="glass-content">
+        <h1>Contact BusGo</h1>
+        <p>Have a question, need help with a booking, or want to learn more about our services? Our support team is here to help.</p>
+
+        <div class="contact-details" style="display: grid; gap: 1rem; margin-top: 2rem; color: var(--dark-text);">
+            <p><i class="fa-solid fa-envelope"></i> <a href="mailto:support@busgo.com">support@busgo.com</a></p>
+            <p><i class="fa-solid fa-phone"></i> <a href="tel:+1234567890">+1 (234) 567-890</a></p>
+            <p><i class="fa-solid fa-map-marker-alt"></i> 123 Travel Street, Adventure City, AC 12345</p>
+        </div>
+
+        <div style="margin-top: 2rem; text-align: left;">
+            <h3>Send us a message</h3>
+            <form class="auth-form" style="gap: 1rem;">
+                <input type="text" placeholder="Your Name" style="width: 100%; padding: 12px 15px; border-radius: 8px; border: 1px solid rgba(0,0,0,0.12);" />
+                <input type="email" placeholder="Your Email" style="width: 100%; padding: 12px 15px; border-radius: 8px; border: 1px solid rgba(0,0,0,0.12);" />
+                <textarea placeholder="Your Message" rows="5" style="width: 100%; padding: 12px 15px; border-radius: 8px; border: 1px solid rgba(0,0,0,0.12);"></textarea>
+                <button type="submit" class="book-now-btn" style="width: fit-content; padding: 12px 24px;">Send Message</button>
+            </form>
+        </div>
+    </div>
+</main>
+{% endblock %}

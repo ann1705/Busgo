@@ -1,49 +1,522 @@
 {% extends "base.html" %}
-{% block content %}
 
+{% block title %}BusGo | Complete Your Booking{% endblock %}
+
+{% block content %}
 <div class="schedule-main">
     <div class="schedule-container glass-booking-card">
+        <h1 class="schedule-title">Booking Details</h1>
 
-        <h1 class="schedule-title">Selected Bus Info</h1>
-
-        <!-- Dynamic Bus Name -->
+        <!-- Bus Info Header -->
         <div class="bus-grid-header">
-            Bus No - {{ bus.bus_no }}
+            <i class="fa-solid fa-bus" style="margin-right: 0.8rem;"></i>
+            Bus {{ bus.bus_no }} | {{ bus.route }}
         </div>
 
-        <form method="POST">
+        <form method="POST" style="margin-top: 2rem;">
+            <!-- Passenger Info -->
+            <div style="background: #f5f5f5; padding: 2rem; border-radius: 12px; margin-bottom: 2rem;">
+                <h3 style="color: var(--primary); margin-bottom: 1.5rem;">Passenger Information</h3>
+                
+                <div class="booking-input-group">
+                    <label><i class="fa-solid fa-user" style="color: var(--yellow); margin-right: 0.5rem;"></i>Full Name</label>
+                    <input type="text" name="passenger_name" placeholder="Enter your full name" required>
+                </div>
 
-            <div class="booking-input-group">
-                <label>Passenger Name:</label>
-                <input type="text" name="passenger_name" required>
-            </div>
-
-            <div class="booking-input-group">
-                <label>Contact Number:</label>
-                <input type="text" name="contact" required>
-            </div>
-
-            <div class="seat-selection-wrapper">
-                <div class="seat-grid">
-                    {% for i in range(1, 17) %}
-                        <div class="seat-box" data-seat="{{ i }}">
-                            {{ i }}
-                        </div>
-                    {% endfor %}
+                <div class="booking-input-group">
+                    <label><i class="fa-solid fa-phone" style="color: var(--yellow); margin-right: 0.5rem;"></i>Contact Number</label>
+                    <input type="text" name="contact" placeholder="Enter your phone number" required>
                 </div>
             </div>
 
-            <!-- Hidden seat field -->
-            <input type="hidden" id="seat_number" name="seat_number">
+            <!-- Seat Selection -->
+            <div style="background: #f5f5f5; padding: 2rem; border-radius: 12px; margin-bottom: 2rem;">
+                <h3 style="color: var(--primary); margin-bottom: 1rem;">Select Your Seat (52 Seats Available)</h3>
+                <p style="color: #333; font-size: 0.9rem; margin-bottom: 1.5rem; font-weight: 500;">
+                    <span style="display: inline-block; margin-right: 2rem;"><span class="seat-legend available"></span> Available</span>
+                    <span style="display: inline-block;"><span class="seat-legend booked"></span> Booked</span>
+                </p>
+                
+                <div class="bus-layout">
+                    <!-- Driver area -->
+                    <div class="driver-area">
+                        <i class="fa-solid fa-steering-wheel"></i> DRIVER
+                    </div>
 
-            <div style="text-align:center;">
-                <button type="submit" class="confirm-booking-btn">
-                    Confirm Booking
-                </button>
+                    <!-- Seat Rows with proper numbering pattern -->
+                    <!-- Row 1: Seats 1-4 -->
+                    <div class="seat-row">
+                        <div class="seat-pair">
+                            {% set seat_list = [1, 2] %}
+                            {% for seat_num in seat_list %}
+                                {% if seat_num|string in booked_seats %}
+                                    <div class="seat-box booked" data-seat="{{ seat_num }}" title="Seat booked">
+                                        <span class="seat-number">{{ seat_num }}</span>
+                                    </div>
+                                {% else %}
+                                    <div class="seat-box" data-seat="{{ seat_num }}">
+                                        <span class="seat-number">{{ seat_num }}</span>
+                                    </div>
+                                {% endif %}
+                            {% endfor %}
+                        </div>
+                        <div class="aisle"></div>
+                        <div class="seat-pair">
+                            {% set seat_list = [3, 4] %}
+                            {% for seat_num in seat_list %}
+                                {% if seat_num|string in booked_seats %}
+                                    <div class="seat-box booked" data-seat="{{ seat_num }}" title="Seat booked">
+                                        <span class="seat-number">{{ seat_num }}</span>
+                                    </div>
+                                {% else %}
+                                    <div class="seat-box" data-seat="{{ seat_num }}">
+                                        <span class="seat-number">{{ seat_num }}</span>
+                                    </div>
+                                {% endif %}
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <!-- Row 2: Seats 8,7,6,5 -->
+                    <div class="seat-row">
+                        <div class="seat-pair">
+                            {% set seat_list = [8, 7] %}
+                            {% for seat_num in seat_list %}
+                                {% if seat_num|string in booked_seats %}
+                                    <div class="seat-box booked" data-seat="{{ seat_num }}" title="Seat booked">
+                                        <span class="seat-number">{{ seat_num }}</span>
+                                    </div>
+                                {% else %}
+                                    <div class="seat-box" data-seat="{{ seat_num }}">
+                                        <span class="seat-number">{{ seat_num }}</span>
+                                    </div>
+                                {% endif %}
+                            {% endfor %}
+                        </div>
+                        <div class="aisle"></div>
+                        <div class="seat-pair">
+                            {% set seat_list = [6, 5] %}
+                            {% for seat_num in seat_list %}
+                                {% if seat_num|string in booked_seats %}
+                                    <div class="seat-box booked" data-seat="{{ seat_num }}" title="Seat booked">
+                                        <span class="seat-number">{{ seat_num }}</span>
+                                    </div>
+                                {% else %}
+                                    <div class="seat-box" data-seat="{{ seat_num }}">
+                                        <span class="seat-number">{{ seat_num }}</span>
+                                    </div>
+                                {% endif %}
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <!-- Row 3: Seats 9,10,11,12 -->
+                    <div class="seat-row">
+                        <div class="seat-pair">
+                            {% set seat_list = [9, 10] %}
+                            {% for seat_num in seat_list %}
+                                {% if seat_num|string in booked_seats %}
+                                    <div class="seat-box booked" data-seat="{{ seat_num }}" title="Seat booked">
+                                        <span class="seat-number">{{ seat_num }}</span>
+                                    </div>
+                                {% else %}
+                                    <div class="seat-box" data-seat="{{ seat_num }}">
+                                        <span class="seat-number">{{ seat_num }}</span>
+                                    </div>
+                                {% endif %}
+                            {% endfor %}
+                        </div>
+                        <div class="aisle"></div>
+                        <div class="seat-pair">
+                            {% set seat_list = [11, 12] %}
+                            {% for seat_num in seat_list %}
+                                {% if seat_num|string in booked_seats %}
+                                    <div class="seat-box booked" data-seat="{{ seat_num }}" title="Seat booked">
+                                        <span class="seat-number">{{ seat_num }}</span>
+                                    </div>
+                                {% else %}
+                                    <div class="seat-box" data-seat="{{ seat_num }}">
+                                        <span class="seat-number">{{ seat_num }}</span>
+                                    </div>
+                                {% endif %}
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <!-- Row 4: Seats 16,15,14,13 -->
+                    <div class="seat-row">
+                        <div class="seat-pair">
+                            {% set seat_list = [16, 15] %}
+                            {% for seat_num in seat_list %}
+                                {% if seat_num|string in booked_seats %}
+                                    <div class="seat-box booked" data-seat="{{ seat_num }}" title="Seat booked">
+                                        <span class="seat-number">{{ seat_num }}</span>
+                                    </div>
+                                {% else %}
+                                    <div class="seat-box" data-seat="{{ seat_num }}">
+                                        <span class="seat-number">{{ seat_num }}</span>
+                                    </div>
+                                {% endif %}
+                            {% endfor %}
+                        </div>
+                        <div class="aisle"></div>
+                        <div class="seat-pair">
+                            {% set seat_list = [14, 13] %}
+                            {% for seat_num in seat_list %}
+                                {% if seat_num|string in booked_seats %}
+                                    <div class="seat-box booked" data-seat="{{ seat_num }}" title="Seat booked">
+                                        <span class="seat-number">{{ seat_num }}</span>
+                                    </div>
+                                {% else %}
+                                    <div class="seat-box" data-seat="{{ seat_num }}">
+                                        <span class="seat-number">{{ seat_num }}</span>
+                                    </div>
+                                {% endif %}
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <!-- Row 5: Seats 17,18,19,20 -->
+                    <div class="seat-row">
+                        <div class="seat-pair">
+                            {% set seat_list = [17, 18] %}
+                            {% for seat_num in seat_list %}
+                                {% if seat_num|string in booked_seats %}
+                                    <div class="seat-box booked" data-seat="{{ seat_num }}" title="Seat booked">
+                                        <span class="seat-number">{{ seat_num }}</span>
+                                    </div>
+                                {% else %}
+                                    <div class="seat-box" data-seat="{{ seat_num }}">
+                                        <span class="seat-number">{{ seat_num }}</span>
+                                    </div>
+                                {% endif %}
+                            {% endfor %}
+                        </div>
+                        <div class="aisle"></div>
+                        <div class="seat-pair">
+                            {% set seat_list = [19, 20] %}
+                            {% for seat_num in seat_list %}
+                                {% if seat_num|string in booked_seats %}
+                                    <div class="seat-box booked" data-seat="{{ seat_num }}" title="Seat booked">
+                                        <span class="seat-number">{{ seat_num }}</span>
+                                    </div>
+                                {% else %}
+                                    <div class="seat-box" data-seat="{{ seat_num }}">
+                                        <span class="seat-number">{{ seat_num }}</span>
+                                    </div>
+                                {% endif %}
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <!-- Row 6: Seats 24,23,22,21 -->
+                    <div class="seat-row">
+                        <div class="seat-pair">
+                            {% set seat_list = [24, 23] %}
+                            {% for seat_num in seat_list %}
+                                {% if seat_num|string in booked_seats %}
+                                    <div class="seat-box booked" data-seat="{{ seat_num }}" title="Seat booked">
+                                        <span class="seat-number">{{ seat_num }}</span>
+                                    </div>
+                                {% else %}
+                                    <div class="seat-box" data-seat="{{ seat_num }}">
+                                        <span class="seat-number">{{ seat_num }}</span>
+                                    </div>
+                                {% endif %}
+                            {% endfor %}
+                        </div>
+                        <div class="aisle"></div>
+                        <div class="seat-pair">
+                            {% set seat_list = [22, 21] %}
+                            {% for seat_num in seat_list %}
+                                {% if seat_num|string in booked_seats %}
+                                    <div class="seat-box booked" data-seat="{{ seat_num }}" title="Seat booked">
+                                        <span class="seat-number">{{ seat_num }}</span>
+                                    </div>
+                                {% else %}
+                                    <div class="seat-box" data-seat="{{ seat_num }}">
+                                        <span class="seat-number">{{ seat_num }}</span>
+                                    </div>
+                                {% endif %}
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <!-- Row 7: Seats 25,26,27,28 -->
+                    <div class="seat-row">
+                        <div class="seat-pair">
+                            {% set seat_list = [25, 26] %}
+                            {% for seat_num in seat_list %}
+                                {% if seat_num|string in booked_seats %}
+                                    <div class="seat-box booked" data-seat="{{ seat_num }}" title="Seat booked">
+                                        <span class="seat-number">{{ seat_num }}</span>
+                                    </div>
+                                {% else %}
+                                    <div class="seat-box" data-seat="{{ seat_num }}">
+                                        <span class="seat-number">{{ seat_num }}</span>
+                                    </div>
+                                {% endif %}
+                            {% endfor %}
+                        </div>
+                        <div class="aisle"></div>
+                        <div class="seat-pair">
+                            {% set seat_list = [27, 28] %}
+                            {% for seat_num in seat_list %}
+                                {% if seat_num|string in booked_seats %}
+                                    <div class="seat-box booked" data-seat="{{ seat_num }}" title="Seat booked">
+                                        <span class="seat-number">{{ seat_num }}</span>
+                                    </div>
+                                {% else %}
+                                    <div class="seat-box" data-seat="{{ seat_num }}">
+                                        <span class="seat-number">{{ seat_num }}</span>
+                                    </div>
+                                {% endif %}
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <!-- Row 8: Seats 32,31,30,29 -->
+                    <div class="seat-row">
+                        <div class="seat-pair">
+                            {% set seat_list = [32, 31] %}
+                            {% for seat_num in seat_list %}
+                                {% if seat_num|string in booked_seats %}
+                                    <div class="seat-box booked" data-seat="{{ seat_num }}" title="Seat booked">
+                                        <span class="seat-number">{{ seat_num }}</span>
+                                    </div>
+                                {% else %}
+                                    <div class="seat-box" data-seat="{{ seat_num }}">
+                                        <span class="seat-number">{{ seat_num }}</span>
+                                    </div>
+                                {% endif %}
+                            {% endfor %}
+                        </div>
+                        <div class="aisle"></div>
+                        <div class="seat-pair">
+                            {% set seat_list = [30, 29] %}
+                            {% for seat_num in seat_list %}
+                                {% if seat_num|string in booked_seats %}
+                                    <div class="seat-box booked" data-seat="{{ seat_num }}" title="Seat booked">
+                                        <span class="seat-number">{{ seat_num }}</span>
+                                    </div>
+                                {% else %}
+                                    <div class="seat-box" data-seat="{{ seat_num }}">
+                                        <span class="seat-number">{{ seat_num }}</span>
+                                    </div>
+                                {% endif %}
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <!-- Row 9: Seats 33,34,35,36 -->
+                    <div class="seat-row">
+                        <div class="seat-pair">
+                            {% set seat_list = [33, 34] %}
+                            {% for seat_num in seat_list %}
+                                {% if seat_num|string in booked_seats %}
+                                    <div class="seat-box booked" data-seat="{{ seat_num }}" title="Seat booked">
+                                        <span class="seat-number">{{ seat_num }}</span>
+                                    </div>
+                                {% else %}
+                                    <div class="seat-box" data-seat="{{ seat_num }}">
+                                        <span class="seat-number">{{ seat_num }}</span>
+                                    </div>
+                                {% endif %}
+                            {% endfor %}
+                        </div>
+                        <div class="aisle"></div>
+                        <div class="seat-pair">
+                            {% set seat_list = [35, 36] %}
+                            {% for seat_num in seat_list %}
+                                {% if seat_num|string in booked_seats %}
+                                    <div class="seat-box booked" data-seat="{{ seat_num }}" title="Seat booked">
+                                        <span class="seat-number">{{ seat_num }}</span>
+                                    </div>
+                                {% else %}
+                                    <div class="seat-box" data-seat="{{ seat_num }}">
+                                        <span class="seat-number">{{ seat_num }}</span>
+                                    </div>
+                                {% endif %}
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <!-- Row 10: Seats 40,39,38,37 -->
+                    <div class="seat-row">
+                        <div class="seat-pair">
+                            {% set seat_list = [40, 39] %}
+                            {% for seat_num in seat_list %}
+                                {% if seat_num|string in booked_seats %}
+                                    <div class="seat-box booked" data-seat="{{ seat_num }}" title="Seat booked">
+                                        <span class="seat-number">{{ seat_num }}</span>
+                                    </div>
+                                {% else %}
+                                    <div class="seat-box" data-seat="{{ seat_num }}">
+                                        <span class="seat-number">{{ seat_num }}</span>
+                                    </div>
+                                {% endif %}
+                            {% endfor %}
+                        </div>
+                        <div class="aisle"></div>
+                        <div class="seat-pair">
+                            {% set seat_list = [38, 37] %}
+                            {% for seat_num in seat_list %}
+                                {% if seat_num|string in booked_seats %}
+                                    <div class="seat-box booked" data-seat="{{ seat_num }}" title="Seat booked">
+                                        <span class="seat-number">{{ seat_num }}</span>
+                                    </div>
+                                {% else %}
+                                    <div class="seat-box" data-seat="{{ seat_num }}">
+                                        <span class="seat-number">{{ seat_num }}</span>
+                                    </div>
+                                {% endif %}
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <!-- Row 11: Seats 41,42,43,44 -->
+                    <div class="seat-row">
+                        <div class="seat-pair">
+                            {% set seat_list = [41, 42] %}
+                            {% for seat_num in seat_list %}
+                                {% if seat_num|string in booked_seats %}
+                                    <div class="seat-box booked" data-seat="{{ seat_num }}" title="Seat booked">
+                                        <span class="seat-number">{{ seat_num }}</span>
+                                    </div>
+                                {% else %}
+                                    <div class="seat-box" data-seat="{{ seat_num }}">
+                                        <span class="seat-number">{{ seat_num }}</span>
+                                    </div>
+                                {% endif %}
+                            {% endfor %}
+                        </div>
+                        <div class="aisle"></div>
+                        <div class="seat-pair">
+                            {% set seat_list = [43, 44] %}
+                            {% for seat_num in seat_list %}
+                                {% if seat_num|string in booked_seats %}
+                                    <div class="seat-box booked" data-seat="{{ seat_num }}" title="Seat booked">
+                                        <span class="seat-number">{{ seat_num }}</span>
+                                    </div>
+                                {% else %}
+                                    <div class="seat-box" data-seat="{{ seat_num }}">
+                                        <span class="seat-number">{{ seat_num }}</span>
+                                    </div>
+                                {% endif %}
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <!-- Row 12: Seats 46,45 -->
+                    <div class="seat-row">
+                        <div class="seat-pair">
+                            {% set seat_list = [46, 45] %}
+                            {% for seat_num in seat_list %}
+                                {% if seat_num|string in booked_seats %}
+                                    <div class="seat-box booked" data-seat="{{ seat_num }}" title="Seat booked">
+                                        <span class="seat-number">{{ seat_num }}</span>
+                                    </div>
+                                {% else %}
+                                    <div class="seat-box" data-seat="{{ seat_num }}">
+                                        <span class="seat-number">{{ seat_num }}</span>
+                                    </div>
+                                {% endif %}
+                            {% endfor %}
+                        </div>
+                        <div class="aisle"></div>
+                        <div class="seat-pair"></div>
+                    </div>
+
+                    <!-- Row 13: Seats 48,47,49,50,51,52 (Back row with 6 seats) -->
+                    <div class="seat-row">
+                        <div class="seat-pair">
+                            {% set seat_list = [48, 47] %}
+                            {% for seat_num in seat_list %}
+                                {% if seat_num|string in booked_seats %}
+                                    <div class="seat-box booked" data-seat="{{ seat_num }}" title="Seat booked">
+                                        <span class="seat-number">{{ seat_num }}</span>
+                                    </div>
+                                {% else %}
+                                    <div class="seat-box" data-seat="{{ seat_num }}">
+                                        <span class="seat-number">{{ seat_num }}</span>
+                                    </div>
+                                {% endif %}
+                            {% endfor %}
+                        </div>
+                        <div class="aisle"></div>
+                        <div class="seat-pair">
+                            {% set seat_list = [49, 50] %}
+                            {% for seat_num in seat_list %}
+                                {% if seat_num|string in booked_seats %}
+                                    <div class="seat-box booked" data-seat="{{ seat_num }}" title="Seat booked">
+                                        <span class="seat-number">{{ seat_num }}</span>
+                                    </div>
+                                {% else %}
+                                    <div class="seat-box" data-seat="{{ seat_num }}">
+                                        <span class="seat-number">{{ seat_num }}</span>
+                                    </div>
+                                {% endif %}
+                            {% endfor %}
+                        </div>
+                        <div class="aisle"></div>
+                        <div class="seat-pair">
+                            {% set seat_list = [51, 52] %}
+                            {% for seat_num in seat_list %}
+                                {% if seat_num|string in booked_seats %}
+                                    <div class="seat-box booked" data-seat="{{ seat_num }}" title="Seat booked">
+                                        <span class="seat-number">{{ seat_num }}</span>
+                                    </div>
+                                {% else %}
+                                    <div class="seat-box" data-seat="{{ seat_num }}">
+                                        <span class="seat-number">{{ seat_num }}</span>
+                                    </div>
+                                {% endif %}
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
             </div>
 
-        </form>
+            <!-- Trip Summary -->
+            <div style="background: #f5f5f5; padding: 2rem; border-radius: 12px; margin-bottom: 2rem;">
+                <h3 style="color: var(--primary); margin-bottom: 1.5rem;">Trip Summary</h3>
+                
+                <div style="display: flex; justify-content: space-between; padding: 0.8rem 0; border-bottom: 1px solid var(--border-gray);">
+                    <span style="color: #333; font-weight: 600;">Selected Seat:</span>
+                    <span id="selected-seat-display" style="font-weight: 700; color: var(--primary);">Not selected</span>
+                </div>
+                
+                <div style="display: flex; justify-content: space-between; padding: 0.8rem 0; border-bottom: 1px solid var(--border-gray);">
+                    <span style="color: #333; font-weight: 600;">Route:</span>
+                    <span style="font-weight: 700; color: var(--primary);">{{ bus.route }}</span>
+                </div>
+                
+                <div style="display: flex; justify-content: space-between; padding: 0.8rem 0; border-bottom: 1px solid var(--border-gray);">
+                    <span style="color: #333; font-weight: 600;">Departure:</span>
+                    <span style="font-weight: 700; color: var(--primary);">{{ bus.departure }}</span>
+                </div>
+                
+                <div style="display: flex; justify-content: space-between; padding: 0.8rem 0; border-bottom: 1px solid var(--border-gray);">
+                    <span style="color: #333; font-weight: 600;">Arrival:</span>
+                    <span style="font-weight: 700; color: var(--primary);">{{ bus.arrival }}</span>
+                </div>
+                
+                <div style="display: flex; justify-content: space-between; padding: 1rem 0; margin-top: 1rem; border-top: 2px solid var(--yellow);">
+                    <span style="font-weight: 700; color: var(--primary); font-size: 1.1rem;">Total Price:</span>
+                    <span style="font-weight: 700; color: var(--yellow); font-size: 1.5rem;">₱{{ "%.2f"|format(bus.price) }}</span>
+                </div>
+            </div>
 
+            <!-- Hidden Seat Field -->
+            <input type="hidden" id="seat_number" name="seat_number">
+
+            <!-- Submit Button -->
+            <div style="text-align: center;">
+                <button type="submit" class="confirm-booking-btn">
+                    <i class="fa-solid fa-check"></i> Confirm Booking
+                </button>
+            </div>
+        </form>
     </div>
 </div>
 
@@ -53,13 +526,33 @@
 
     seats.forEach(seat => {
         seat.addEventListener("click", function() {
-
+            // Prevent clicking booked seats
+            if (this.classList.contains("booked")) {
+                alert("This seat is already booked. Please select another seat.");
+                return;
+            }
+            
             seats.forEach(s => s.classList.remove("selected"));
             this.classList.add("selected");
-
-            seatInput.value = this.getAttribute("data-seat");
+            const seatNumber = this.getAttribute("data-seat");
+            seatInput.value = seatNumber;
+            
+            // Update summary to show selected seat
+            const seatDisplay = document.getElementById("selected-seat-display");
+            if (seatDisplay) {
+                seatDisplay.textContent = "Seat #" + seatNumber;
+                seatDisplay.style.color = "var(--yellow)";
+                seatDisplay.style.fontWeight = "700";
+            }
         });
     });
+    
+    // Prevent form submission if no seat is selected
+    document.querySelector('form').addEventListener('submit', function(e) {
+        if (!seatInput.value) {
+            e.preventDefault();
+            alert('Please select a seat');
+        }
+    });
 </script>
-
 {% endblock %}

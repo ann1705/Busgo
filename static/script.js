@@ -58,7 +58,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const regForm = document.querySelector('#registerForm form');
     if (regForm) {
-        regForm.addEventListener('submit', () => {
+        regForm.addEventListener('submit', (e) => {
+            const password = document.getElementById('regPass').value;
+            const confirmPassword = document.getElementById('confirmPass').value;
+            
+            // Validate passwords match
+            if (password !== confirmPassword) {
+                e.preventDefault();
+                alert('⚠️ Passwords do not match. Please try again.');
+                return;
+            }
+            
+            // Validate password length
+            if (password.length < 6) {
+                e.preventDefault();
+                alert('⚠️ Password must be at least 6 characters long.');
+                return;
+            }
+            
             const btn = regForm.querySelector('button[type=submit]');
             if (btn) {
                 btn.disabled = true;

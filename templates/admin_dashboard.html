@@ -4,37 +4,43 @@
 
 {% block content %}
 <div class="admin-wrapper">
-    <aside class="sidebar">
-        <nav class="sidebar-nav">
-
-            <a href="{{ url_for('admin_dashboard') }}"
-            class="{% if request.endpoint == 'admin_dashboard' %}active{% endif %}">
+    <div class="admin-content">
+        <div class="admin-topnav">
+            <a href="{{ url_for('admin_dashboard') }}" class="{% if request.endpoint == 'admin_dashboard' %}active{% endif %}">
                 <i class="fa-solid fa-chart-pie"></i> Dashboard
             </a>
-
-            <a href="{{ url_for('admin_buses') }}"
-            class="{% if request.endpoint == 'admin_buses' %}active{% endif %}">
+            <a href="{{ url_for('admin_buses') }}" class="{% if request.endpoint == 'admin_buses' %}active{% endif %}">
                 <i class="fa-solid fa-bus"></i> Manage Bus
             </a>
-
-            <a href="{{ url_for('admin_bookings') }}"
-            class="{% if request.endpoint == 'admin_bookings' %}active{% endif %}">
+            <a href="{{ url_for('admin_bookings') }}" class="{% if request.endpoint == 'admin_bookings' %}active{% endif %}">
                 <i class="fa-solid fa-ticket"></i> Bookings
             </a>
-
-            <a href="{{ url_for('logout') }}" class="logout-link">
-                <i class="fa-solid fa-right-from-bracket"></i> Logout
-            </a>
-
-        </nav>
-    </aside>
-
-    <div class="admin-content">
+        </div>
         <main class="schedule-main">
             <div class="schedule-container glass-card">
                 <header class="content-header">
                     <h1>Admin Dashboard</h1>
                 </header>
+
+                <!-- STAFF MANAGEMENT -->
+                <div class="glass-card" style="margin-bottom: 2rem; padding: 2rem; background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.25);">
+                    <h2>Add Staff Account</h2>
+                    <form method="POST" style="display: grid; gap: 1rem; margin-top: 1rem;">
+                        <div style="display: grid; gap: 0.5rem;">
+                            <label style="color: var(--dark-text);">Full Name</label>
+                            <input type="text" name="fullname" required style="padding: 10px 12px; border-radius: 10px; border: 1px solid rgba(0,0,0,0.12);" />
+                        </div>
+                        <div style="display: grid; gap: 0.5rem;">
+                            <label style="color: var(--dark-text);">Email</label>
+                            <input type="email" name="email" required style="padding: 10px 12px; border-radius: 10px; border: 1px solid rgba(0,0,0,0.12);" />
+                        </div>
+                        <div style="display: grid; gap: 0.5rem;">
+                            <label style="color: var(--dark-text);">Password</label>
+                            <input type="password" name="password" required style="padding: 10px 12px; border-radius: 10px; border: 1px solid rgba(0,0,0,0.12);" />
+                        </div>
+                        <button type="submit" class="book-now-btn" style="width: fit-content; padding: 12px 24px;">Create Staff</button>
+                    </form>
+                </div>
 
                 <!-- USERS -->
                 <h2>Users</h2>
