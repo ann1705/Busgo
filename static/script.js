@@ -213,3 +213,131 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 });
+
+/* =========================================
+   ADMIN BUS MANAGEMENT
+   ========================================= */
+
+// Realtime search for buses
+document.addEventListener('DOMContentLoaded', () => {
+    const searchInput = document.getElementById('busSearch');
+    const tableBody = document.querySelector('.admin-table tbody');
+
+    if (searchInput && tableBody) {
+        searchInput.addEventListener('input', function() {
+            const searchTerm = this.value.toLowerCase();
+            const rows = tableBody.querySelectorAll('tr');
+
+            rows.forEach(row => {
+                const cells = row.querySelectorAll('td');
+                let match = false;
+
+                cells.forEach(cell => {
+                    if (cell.textContent.toLowerCase().includes(searchTerm)) {
+                        match = true;
+                    }
+                });
+
+                row.style.display = match ? '' : 'none';
+            });
+        });
+    }
+
+    // Add Bus Modal
+    const addBusBtn = document.getElementById('addBusBtn');
+    const modal = document.getElementById('addBusModal');
+    const closeModal = document.querySelector('.close-modal');
+
+    if (addBusBtn && modal) {
+        addBusBtn.addEventListener('click', () => {
+            modal.style.display = 'block';
+        });
+
+        if (closeModal) {
+            closeModal.addEventListener('click', () => {
+                modal.style.display = 'none';
+            });
+        }
+
+        // Close modal when clicking outside
+        window.addEventListener('click', (event) => {
+            if (event.target === modal) {
+                modal.style.display = 'none';
+            }
+        });
+    }
+
+    const userSearchInput = document.getElementById('userSearch');
+    const usersTable = document.getElementById('usersTable');
+    const addUserBtn = document.getElementById('addUserBtn');
+    const addUserModal = document.getElementById('addUserModal');
+    const userModalClose = document.querySelector('#addUserModal .close-modal');
+
+    if (userSearchInput && usersTable) {
+        userSearchInput.addEventListener('input', function() {
+            const filter = this.value.trim().toLowerCase();
+            const rows = usersTable.querySelectorAll('tbody tr');
+
+            rows.forEach(row => {
+                const rowText = row.textContent.toLowerCase();
+                row.style.display = rowText.includes(filter) ? '' : 'none';
+            });
+        });
+    }
+
+    if (addUserBtn && addUserModal) {
+        addUserBtn.addEventListener('click', () => {
+            addUserModal.style.display = 'block';
+        });
+
+        if (userModalClose) {
+            userModalClose.addEventListener('click', () => {
+                addUserModal.style.display = 'none';
+            });
+        }
+
+        window.addEventListener('click', (event) => {
+            if (event.target === addUserModal) {
+                addUserModal.style.display = 'none';
+            }
+        });
+    }
+
+    const activeBookingsTab = document.getElementById('activeBookingsTab');
+    const historyBookingsTab = document.getElementById('historyBookingsTab');
+    const activeBookingsSection = document.getElementById('activeBookingsSection');
+    const historyBookingsSection = document.getElementById('historyBookingsSection');
+
+    if (activeBookingsTab && historyBookingsTab && activeBookingsSection && historyBookingsSection) {
+        activeBookingsTab.addEventListener('click', () => {
+            activeBookingsTab.classList.add('active');
+            historyBookingsTab.classList.remove('active');
+            activeBookingsSection.classList.add('active');
+            historyBookingsSection.classList.remove('active');
+        });
+
+        historyBookingsTab.addEventListener('click', () => {
+            historyBookingsTab.classList.add('active');
+            activeBookingsTab.classList.remove('active');
+            historyBookingsSection.classList.add('active');
+            activeBookingsSection.classList.remove('active');
+        });
+    }
+
+    const bookingSearchInput = document.getElementById('bookingSearch');
+    const bookingTables = document.querySelectorAll('#activeBookingsSection table.admin-table tbody, #historyBookingsSection table.admin-table tbody');
+
+    if (bookingSearchInput && bookingTables.length) {
+        bookingSearchInput.addEventListener('input', function() {
+            const searchTerm = this.value.trim().toLowerCase();
+
+            bookingTables.forEach(tbody => {
+                const rows = tbody.querySelectorAll('tr');
+                rows.forEach(row => {
+                    const rowText = row.textContent.toLowerCase();
+                    row.style.display = rowText.includes(searchTerm) ? '' : 'none';
+                });
+            });
+        });
+    }
+});

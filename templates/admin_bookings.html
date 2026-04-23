@@ -8,23 +8,48 @@
     <div class="admin-content">
         <div class="admin-topnav">
             <a href="{{ url_for('admin_dashboard') }}" class="{% if request.endpoint == 'admin_dashboard' %}active{% endif %}">
-                Dashboard
+                <i class="fa-solid fa-chart-pie"></i> Dashboard
+            </a>
+            <a href="{{ url_for('admin_users') }}" class="{% if request.endpoint == 'admin_users' %}active{% endif %}">
+                <i class="fa-solid fa-users"></i> Users
             </a>
             <a href="{{ url_for('admin_buses') }}" class="{% if request.endpoint == 'admin_buses' %}active{% endif %}">
-                Manage Bus
+                <i class="fa-solid fa-bus"></i> Manage Bus
             </a>
             <a href="{{ url_for('admin_bookings') }}" class="{% if request.endpoint == 'admin_bookings' %}active{% endif %}">
-                Bookings
+                <i class="fa-solid fa-ticket"></i> Bookings
             </a>
         </div>
         <main class="schedule-main">
             <div class="schedule-container glass-card">
 
                 <header class="content-header">
-                    <h1>Bookings</h1>
+                    <div class="tab-switcher">
+                        <button id="activeBookingsTab" class="tab-btn active" type="button">Active</button>
+                        <button id="historyBookingsTab" class="tab-btn" type="button">History</button>
+                    </div>
                 </header>
 
-                <table class="admin-table">
+                <div class="search-toolbar" style="margin-bottom: 1.5rem; max-width: 420px;">
+                    <input id="bookingSearch" type="text" placeholder="Search bookings..." class="search-input">
+                </div>
+
+                {% set counts = namespace(active=0, history=0) %}
+                {% for b in bookings %}
+                    {% if b.status in ['paid', 'cancelled'] %}
+                        {% set counts.history = counts.history + 1 %}
+                    {% else %}
+                        {% set counts.active = counts.active + 1 %}
+                    {% endif %}
+                {% endfor %}
+
+                <div id="activeBookingsSection" class="booking-tab-section active">
+                    <div class="table-header" style="margin-bottom: 1rem;">
+                        <i class="fa-solid fa-ticket" style="margin-right: 0.5rem;"></i> Active Bookings
+                    </div>
+
+                    {% if counts.active > 0 %}
+                    <table class="admin-table">
                     <thead>
                         <tr>
                             <th>ID</th>
@@ -36,30 +61,73 @@
                             <th>Action</th>
                         </tr>
                     </thead>
-
                     <tbody>
-                        {% for b in bookings %}
+                        {% for b in bookings if b.status not in ['paid', 'cancelled'] %}
                         <tr>
                             <td>{{ b.id }}</td>
                             <td>{{ b.user }}</td>
                             <td>{{ b.bus_no }}</td>
                             <td>{{ b.route }}</td>
                             <td>{{ b.seat_number }}</td>
-                            <td class="status-{{ b.status }}">{{ b.status }}</td>
+                            <td class="status-{{ b.status }}">{{ b.status|capitalize }}</td>
                             <td>
-                                {% if b.status != 'cancelled' %}
-                                    <a href="{{ url_for('cancel_booking', booking_id=b.id) }}" class="cancel-btn">
-                                        Cancel
-                                    </a>
-                                {% else %}
-                                    —
-                                {% endif %}
+                                <a href="{{ url_for('cancel_booking', booking_id=b.id) }}" class="cancel-btn">
+                                    Cancel
+                                </a>
                             </td>
                         </tr>
                         {% endfor %}
                     </tbody>
-
                 </table>
+                {% else %}
+                <div style="text-align: center; padding: 2rem; color: rgba(255,255,255,0.7);">
+                    No active bookings available.
+                </div>
+                {% endif %}
+                </div>
+
+                <div id="historyBookingsSection" class="booking-tab-section" style="margin-top: 2rem;">
+                    <div class="table-header" style="margin-bottom: 1rem;">
+                        <i class="fa-solid fa-history" style="margin-right: 0.5rem;"></i> Booking History
+                    </div>
+
+                    {% if counts.history > 0 %}
+                    <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>User</th>
+                            <th>Bus No.</th>
+                            <th>Route</th>
+                            <th>Seat</th>
+                            <th>Status</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for b in bookings if b.status in ['paid', 'cancelled'] %}
+                        <tr>
+                            <td>{{ b.id }}</td>
+                            <td>{{ b.user }}</td>
+                            <td>{{ b.bus_no }}</td>
+                            <td>{{ b.route }}</td>
+                            <td>{{ b.seat_number }}</td>
+                            <td class="status-{{ b.status }}">{{ 'Completed' if b.status == 'paid' else b.status|capitalize }}</td>
+                            <td>
+                                <a href="{{ url_for('admin_delete_booking', booking_id=b.id) }}" class="cancel-btn" onclick="return confirm('Delete this booking record?')">
+                                    Delete
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <div style="text-align: center; padding: 2rem; color: rgba(255,255,255,0.7);">
+                    No completed or cancelled bookings in history.
+                </div>
+                {% endif %}
+                </div>
 
             </div>
         </main>

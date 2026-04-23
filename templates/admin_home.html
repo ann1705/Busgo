@@ -4,26 +4,26 @@
 
 {% block admin_content %}
 <div class="stats-row">
-    <div class="stat-card">
+    <a href="{{ url_for('admin_users') }}" class="stat-card stat-card-link">
         <i class="fa-solid fa-users"></i>
         <div>
             <div class="stat-number">{{ user_count }}</div>
-            <div>Registered Users</div>
+            <div class="stat-label">Total Users</div>
         </div>
-    </div>
-    <div class="stat-card">
+    </a>
+    <a href="{{ url_for('admin_buses') }}" class="stat-card stat-card-link">
         <i class="fa-solid fa-bus"></i>
         <div>
             <div class="stat-number">{{ bus_count }}</div>
-            <div>Available Buses</div>
+            <div class="stat-label">Total Buses</div>
         </div>
-    </div>
-    <div class="stat-card">
+    </a>
+    <a href="{{ url_for('admin_bookings') }}" class="stat-card stat-card-link">
         <i class="fa-solid fa-ticket"></i>
         <div>
             <div class="stat-number">{{ booking_count }}</div>
-            <div>Total Bookings</div>
+            <div class="stat-label">Bookings Today</div>
         </div>
-    </div>
+    </a>
 </div>
 {% endblock %}

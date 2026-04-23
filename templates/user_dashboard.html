@@ -18,10 +18,19 @@
 
         <div class="table-container">
             <div class="table-header">
-                <i class="fa-solid fa-ticket" style="margin-right: 0.5rem;"></i> My Bookings
+                <i class="fa-solid fa-ticket" style="margin-right: 0.5rem;"></i> Active Bookings
             </div>
-            
-            {% if bookings %}
+
+            {% set counts = namespace(active=0, history=0) %}
+            {% for booking in bookings %}
+                {% if booking.status in ['paid', 'cancelled'] %}
+                    {% set counts.history = counts.history + 1 %}
+                {% else %}
+                    {% set counts.active = counts.active + 1 %}
+                {% endif %}
+            {% endfor %}
+
+            {% if counts.active > 0 %}
                 <table class="admin-table">
                     <thead>
                         <tr>
@@ -35,7 +44,7 @@
                         </tr>
                     </thead>
                     <tbody>
-                        {% for booking in bookings %}
+                        {% for booking in bookings if booking.status not in ['paid', 'cancelled'] %}
                         <tr>
                             <td><strong>#{{ booking.id }}</strong></td>
                             <td>{{ booking.bus_no }}</td>
@@ -51,12 +60,10 @@
                                 <a href="{{ url_for('view_booking', booking_id=booking.id) }}" class="book-now-btn" style="padding: 8px 14px; font-size: 0.9rem;">
                                     View
                                 </a>
-                                {% if booking.status != 'cancelled' %}
-                                    <button form="cancel-{{ booking.id }}" type="submit" class="cancel-btn" style="padding: 8px 14px; font-size: 0.9rem;" onclick="return confirm('Cancel this booking?')">
-                                        Cancel
-                                    </button>
-                                    <form id="cancel-{{ booking.id }}" method="GET" action="{{ url_for('user_cancel_booking', booking_id=booking.id) }}" style="display: none;"></form>
-                                {% endif %}
+                                <button form="cancel-{{ booking.id }}" type="submit" class="cancel-btn" style="padding: 8px 14px; font-size: 0.9rem;" onclick="return confirm('Cancel this booking?')">
+                                    Cancel
+                                </button>
+                                <form id="cancel-{{ booking.id }}" method="GET" action="{{ url_for('user_cancel_booking', booking_id=booking.id) }}" style="display: none;"></form>
                             </td>
                         </tr>
                         {% endfor %}
@@ -65,8 +72,59 @@
             {% else %}
                 <div style="text-align: center; padding: 3rem; color: rgba(255, 255, 255, 0.7);">
                     <i class="fa-solid fa-inbox" style="font-size: 3rem; margin-bottom: 1rem; display: block; color: var(--yellow);"></i>
-                    <p style="font-size: 1.1rem;">No bookings yet.</p>
+                    <p style="font-size: 1.1rem;">You have no active bookings right now.</p>
                     <p style="margin-top: 1rem;"><a href="{{ url_for('schedules') }}" style="color: var(--yellow); text-decoration: none; font-weight: 600;">Book a trip now! →</a></p>
+                </div>
+            {% endif %}
+        </div>
+
+        <div class="table-container" style="margin-top: 2rem;">
+            <div class="table-header">
+                <i class="fa-solid fa-history" style="margin-right: 0.5rem;"></i> Booking History
+            </div>
+
+            {% if counts.history > 0 %}
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th>Ticket ID</th>
+                            <th>Bus</th>
+                            <th>Route</th>
+                            <th>Departure</th>
+                            <th>Price</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for booking in bookings if booking.status in ['paid', 'cancelled'] %}
+                        <tr>
+                            <td><strong>#{{ booking.id }}</strong></td>
+                            <td>{{ booking.bus_no }}</td>
+                            <td>{{ booking.route }}</td>
+                            <td><strong>{{ booking.departure }}</strong></td>
+                            <td><strong style="color: var(--yellow);">₱{{ "%.2f"|format(booking.price) }}</strong></td>
+                            <td>
+                                <span class="status-{{ booking.status.lower() }}">
+                                    {{ 'Completed' if booking.status == 'paid' else booking.status|capitalize }}
+                                </span>
+                            </td>
+                            <td>
+                                <a href="{{ url_for('view_booking', booking_id=booking.id) }}" class="book-now-btn" style="padding: 8px 14px; font-size: 0.9rem;">
+                                    View
+                                </a>
+                                <a href="{{ url_for('user_delete_booking', booking_id=booking.id) }}" class="cancel-btn" style="padding: 8px 14px; font-size: 0.9rem;" onclick="return confirm('Delete this booking from history?')">
+                                    Delete
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <div style="text-align: center; padding: 3rem; color: rgba(255, 255, 255, 0.7);">
+                    <i class="fa-solid fa-clock-rotate-left" style="font-size: 3rem; margin-bottom: 1rem; display: block; color: var(--yellow);"></i>
+                    <p style="font-size: 1.1rem;">No completed or cancelled bookings yet.</p>
                 </div>
             {% endif %}
         </div>

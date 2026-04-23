@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+
+{% block title %}BusGo | Manage Users{% endblock %}
+
+{% block content %}
+<div class="admin-wrapper">
+    <div class="admin-content">
+        <div class="admin-topnav">
+            <a href="{{ url_for('admin_dashboard') }}" class="{% if request.endpoint == 'admin_dashboard' %}active{% endif %}">
+                <i class="fa-solid fa-chart-pie"></i> Dashboard
+            </a>
+            <a href="{{ url_for('admin_users') }}" class="{% if request.endpoint == 'admin_users' %}active{% endif %}">
+                <i class="fa-solid fa-users"></i> Users
+            </a>
+            <a href="{{ url_for('admin_buses') }}" class="{% if request.endpoint == 'admin_buses' %}active{% endif %}">
+                <i class="fa-solid fa-bus"></i> Manage Bus
+            </a>
+            <a href="{{ url_for('admin_bookings') }}" class="{% if request.endpoint == 'admin_bookings' %}active{% endif %}">
+                <i class="fa-solid fa-ticket"></i> Bookings
+            </a>
+        </div>
+        <main class="schedule-main">
+            <div class="schedule-container glass-card user-panel-page">
+                <header class="content-header" style="justify-content: flex-start;">
+                    <div class="header-actions">
+                        <input id="userSearch" type="text" placeholder="Search users..." class="search-input">
+                        <button id="addUserBtn" class="add-bus-btn" type="button" aria-label="Add new user">
+                            <i class="fa-solid fa-plus"></i>
+                        </button>
+                    </div>
+                </header>
+
+                <div id="addUserModal" class="modal">
+                    <div class="modal-content">
+                        <span class="close-modal">&times;</span>
+                        <h2>Add New User</h2>
+                        <form method="POST" class="add-user-form">
+                            <div class="form-row">
+                                <label>Full Name</label>
+                                <input type="text" name="fullname" required />
+                            </div>
+                            <div class="form-row">
+                                <label>Email</label>
+                                <input type="email" name="email" required />
+                            </div>
+                            <div class="form-row">
+                                <label>Password</label>
+                                <input type="password" name="password" required />
+                            </div>
+                            <div class="form-row">
+                                <label>Role</label>
+                                <select name="role" required>
+                                    <option value="user">User</option>
+                                    <option value="staff">Staff</option>
+                                    <option value="admin">Admin</option>
+                                </select>
+                            </div>
+                            <div class="form-actions">
+                                <button type="submit" class="auth-btn">Create Account</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- USERS -->
+                <h2 class="section-heading">Users</h2>
+                <table class="admin-table" id="usersTable">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Name</th>
+                            <th>Email</th>
+                            <th>Role</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for user in users %}
+                        <tr>
+                            <td>{{ user.id }}</td>
+                            <td>{{ user.fullname }}</td>
+                            <td>{{ user.email }}</td>
+                            <td>{{ user.role }}</td>
+                            <td>
+                                <a href="{{ url_for('delete_user', user_id=user.id) }}" class="cancel-btn" onclick="return confirm('Are you sure you want to delete this user?')">Delete</a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+
+            </div>
+        </main>
+    </div>
+</div>
+{% endblock %}

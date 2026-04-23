@@ -25,7 +25,8 @@ def create_tables():
             fullname TEXT NOT NULL,
             email TEXT UNIQUE NOT NULL,
             password TEXT NOT NULL,
-            role TEXT NOT NULL DEFAULT 'user'
+            role TEXT NOT NULL DEFAULT 'user',
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP
         )
     """)
 
@@ -36,7 +37,8 @@ def create_tables():
             route TEXT NOT NULL,
             departure TEXT NOT NULL,
             arrival TEXT NOT NULL,
-            price REAL NOT NULL
+            price REAL NOT NULL,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP
         )
     """)
 
@@ -69,6 +71,35 @@ def ensure_bookings_created_at_column():
     conn.close()
 
 
+def ensure_bus_status_column():
+    conn = get_db_connection()
+    columns = [row['name'] for row in conn.execute("PRAGMA table_info(buses)").fetchall()]
+    if 'status' not in columns:
+        conn.execute("ALTER TABLE buses ADD COLUMN status TEXT DEFAULT 'available'")
+        conn.commit()
+    conn.close()
+
+
+def ensure_users_created_at_column():
+    conn = get_db_connection()
+    columns = [row['name'] for row in conn.execute("PRAGMA table_info(users)").fetchall()]
+    if 'created_at' not in columns:
+        conn.execute("ALTER TABLE users ADD COLUMN created_at TEXT")
+        conn.execute("UPDATE users SET created_at = CURRENT_TIMESTAMP WHERE created_at IS NULL")
+        conn.commit()
+    conn.close()
+
+
+def ensure_buses_created_at_column():
+    conn = get_db_connection()
+    columns = [row['name'] for row in conn.execute("PRAGMA table_info(buses)").fetchall()]
+    if 'created_at' not in columns:
+        conn.execute("ALTER TABLE buses ADD COLUMN created_at TEXT")
+        conn.execute("UPDATE buses SET created_at = CURRENT_TIMESTAMP WHERE created_at IS NULL")
+        conn.commit()
+    conn.close()
+
+
 def create_default_admin():
     conn = get_db_connection()
     admin = conn.execute("SELECT * FROM users WHERE role='admin'").fetchone()
@@ -90,6 +121,9 @@ def create_default_admin():
 
 create_tables()
 ensure_bookings_created_at_column()
+ensure_bus_status_column()
+ensure_users_created_at_column()
+ensure_buses_created_at_column()
 create_default_admin()
 
 def create_default_staff():
@@ -282,18 +316,38 @@ def admin_dashboard():
 
     conn = get_db_connection()
 
+    user_count = conn.execute("SELECT COUNT(*) FROM users").fetchone()[0]
+    bus_count = conn.execute("SELECT COUNT(*) FROM buses").fetchone()[0]
+    booking_count = conn.execute("SELECT COUNT(*) FROM bookings WHERE date(created_at) = date('now')").fetchone()[0]
+
+    conn.close()
+
+    return render_template("admin_home.html",
+                           user_count=user_count,
+                           bus_count=bus_count,
+                           booking_count=booking_count)
+
+
+@app.route("/admin/users", methods=["GET", "POST"])
+def admin_users():
+    if "user_id" not in session or session.get("role") != "admin":
+        return redirect(url_for("home"))
+
+    conn = get_db_connection()
+
     if request.method == "POST":
         fullname = request.form.get("fullname", "").strip()
         email = request.form.get("email", "").strip()
         password = request.form.get("password", "")
+        role = request.form.get("role", "user")
 
         if not fullname or not email or not password:
             conn.close()
-            return redirect(url_for("admin_dashboard", error="All staff fields are required."))
+            return redirect(url_for("admin_users", error="All fields are required."))
 
         if len(password) < 6:
             conn.close()
-            return redirect(url_for("admin_dashboard", error="Password must be at least 6 characters."))
+            return redirect(url_for("admin_users", error="Password must be at least 6 characters."))
 
         existing_user = conn.execute(
             "SELECT id FROM users WHERE email = ?",
@@ -302,7 +356,7 @@ def admin_dashboard():
 
         if existing_user:
             conn.close()
-            return redirect(url_for("admin_dashboard", error="That email is already registered."))
+            return redirect(url_for("admin_users", error="That email is already registered."))
 
         conn.execute(
             "INSERT INTO users (fullname, email, password, role) VALUES (?, ?, ?, ?)",
@@ -310,7 +364,7 @@ def admin_dashboard():
                 fullname,
                 email,
                 generate_password_hash(password),
-                "staff"
+                role
             )
         )
         conn.commit()
@@ -319,28 +373,9 @@ def admin_dashboard():
         "SELECT id, fullname, email, role FROM users"
     ).fetchall()
 
-    buses = conn.execute(
-        "SELECT * FROM buses"
-    ).fetchall()
-
-    bookings = conn.execute("""
-        SELECT b.id,
-               u.fullname AS user,
-               bs.bus_no,
-               b.seat_number,
-               b.status
-        FROM bookings b
-        JOIN users u ON u.id = b.user_id
-        JOIN buses bs ON bs.id = b.bus_id
-        ORDER BY b.id DESC
-    """).fetchall()
-
     conn.close()
 
-    return render_template("admin_dashboard.html",
-                           users=users,
-                           buses=buses,
-                           bookings=bookings)
+    return render_template("admin_users.html", users=users)
 
 
 @app.route("/staff", methods=["GET", "POST"])
@@ -455,16 +490,17 @@ def admin_buses():
         departure = request.form["departure"]
         arrival = request.form["arrival"]
         price = request.form["price"]
+        status = request.form.get("status", "available")
 
         if bus_id:
             conn.execute(
-                "UPDATE buses SET bus_no = ?, route = ?, departure = ?, arrival = ?, price = ? WHERE id = ?",
-                (bus_no, route, departure, arrival, price, bus_id)
+                "UPDATE buses SET bus_no = ?, route = ?, departure = ?, arrival = ?, price = ?, status = ? WHERE id = ?",
+                (bus_no, route, departure, arrival, price, status, bus_id)
             )
         else:
             conn.execute(
-                "INSERT INTO buses (bus_no, route, departure, arrival, price) VALUES (?, ?, ?, ?, ?)",
-                (bus_no, route, departure, arrival, price)
+                "INSERT INTO buses (bus_no, route, departure, arrival, price, status) VALUES (?, ?, ?, ?, ?, ?)",
+                (bus_no, route, departure, arrival, price, status)
             )
         conn.commit()
         conn.close()
@@ -490,6 +526,19 @@ def delete_bus(bus_id):
     conn.close()
 
     return redirect(url_for("admin_buses"))
+
+
+@app.route("/admin/delete_user/<int:user_id>")
+def delete_user(user_id):
+    if "user_id" not in session or session.get("role") != "admin":
+        return redirect(url_for("home"))
+
+    conn = get_db_connection()
+    conn.execute("DELETE FROM users WHERE id = ?", (user_id,))
+    conn.commit()
+    conn.close()
+
+    return redirect(url_for("admin_users"))
 
 
 @app.route("/admin/bookings")
@@ -528,6 +577,44 @@ def cancel_booking(booking_id):
     conn.commit()
     conn.close()
 
+    return redirect(url_for("admin_bookings"))
+
+
+@app.route("/user/delete_booking/<int:booking_id>")
+def user_delete_booking(booking_id):
+    if "user_id" not in session:
+        return redirect(url_for("home", login_required=1))
+
+    conn = get_db_connection()
+    booking = conn.execute(
+        "SELECT status FROM bookings WHERE id = ? AND user_id = ?",
+        (booking_id, session["user_id"])
+    ).fetchone()
+
+    if booking and booking["status"] in ("paid", "cancelled"):
+        conn.execute("DELETE FROM bookings WHERE id = ?", (booking_id,))
+        conn.commit()
+
+    conn.close()
+    return redirect(url_for("user_dashboard"))
+
+
+@app.route("/admin/delete_booking/<int:booking_id>")
+def admin_delete_booking(booking_id):
+    if "user_id" not in session or session.get("role") != "admin":
+        return redirect(url_for("home"))
+
+    conn = get_db_connection()
+    booking = conn.execute(
+        "SELECT status FROM bookings WHERE id = ?",
+        (booking_id,)
+    ).fetchone()
+
+    if booking and booking["status"] in ("paid", "cancelled"):
+        conn.execute("DELETE FROM bookings WHERE id = ?", (booking_id,))
+        conn.commit()
+
+    conn.close()
     return redirect(url_for("admin_bookings"))
 
 

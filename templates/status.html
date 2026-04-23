@@ -121,6 +121,10 @@
                 <a href="{{ url_for('user_cancel_booking', booking_id=booking.id) }}" class="cancel-btn" onclick="return confirm('Are you sure you want to cancel this booking?')">
                     <i class="fa-solid fa-times"></i> Cancel Booking
                 </a>
+            {% else %}
+                <a href="{{ url_for('user_delete_booking', booking_id=booking.id) }}" class="cancel-btn" onclick="return confirm('Delete this booking from history?')">
+                    <i class="fa-solid fa-trash"></i> Delete Booking
+                </a>
             {% endif %}
             
             <a href="{{ url_for('user_dashboard') }}" class="print-btn" style="background: #999;">

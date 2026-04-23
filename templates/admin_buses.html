@@ -10,6 +10,9 @@
             <a href="{{ url_for('admin_dashboard') }}" class="{% if request.endpoint == 'admin_dashboard' %}active{% endif %}">
                 <i class="fa-solid fa-chart-pie"></i> Dashboard
             </a>
+            <a href="{{ url_for('admin_users') }}" class="{% if request.endpoint == 'admin_users' %}active{% endif %}">
+                <i class="fa-solid fa-users"></i> Users
+            </a>
             <a href="{{ url_for('admin_buses') }}" class="{% if request.endpoint == 'admin_buses' %}active{% endif %}">
                 <i class="fa-solid fa-bus"></i> Manage Bus
             </a>
@@ -22,39 +25,60 @@
 
                 <header class="content-header">
                     <h1>Manage Bus</h1>
+                    <div class="header-actions">
+                        <input type="text" id="busSearch" placeholder="Search buses..." class="search-input">
+                        <button id="addBusBtn" class="add-bus-btn">
+                            <i class="fa-solid fa-plus"></i>
+                        </button>
+                    </div>
                 </header>
 
-                <!-- ADD BUS FORM -->
-                <form method="POST" style="margin-bottom: 25px;">
-                    <input type="hidden" name="bus_id" value="{{ edit_bus.id if edit_bus else '' }}">
+                <!-- ADD BUS MODAL -->
+                <div id="addBusModal" class="modal" style="{% if edit_bus %}display: block;{% endif %}">
+                    <div class="modal-content">
+                        <span class="close-modal">&times;</span>
+                        <h2>{{ 'Edit Bus' if edit_bus else 'Add New Bus' }}</h2>
+                        <form method="POST">
+                            <input type="hidden" name="bus_id" value="{{ edit_bus.id if edit_bus else '' }}">
 
-                    <div class="input-group">
-                        <input type="text" name="bus_no" placeholder="Bus Number" value="{{ edit_bus.bus_no if edit_bus else '' }}" required>
+                            <div class="input-group">
+                                <input type="text" name="bus_no" placeholder="Bus Number" value="{{ edit_bus.bus_no if edit_bus else '' }}" required>
+                            </div>
+
+                            <div class="input-group">
+                                <input type="text" name="route" placeholder="Route" value="{{ edit_bus.route if edit_bus else '' }}" required>
+                            </div>
+
+                            <div class="input-group">
+                                <input type="text" name="departure" placeholder="Departure (e.g. 06:00 AM)" value="{{ edit_bus.departure if edit_bus else '' }}" required>
+                            </div>
+
+                            <div class="input-group">
+                                <input type="text" name="arrival" placeholder="Arrival (e.g. 12:00 PM)" value="{{ edit_bus.arrival if edit_bus else '' }}" required>
+                            </div>
+
+                            <div class="input-group">
+                                <input type="number" step="0.01" name="price" placeholder="Price" value="{{ edit_bus.price if edit_bus else '' }}" required>
+                            </div>
+
+                            <div class="input-group">
+                                <select name="status" required style="width: 100%; padding: 10px 15px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); border-radius: 10px; color: white; outline: none;">
+                                    <option value="available" {% if edit_bus and edit_bus.status == 'available' %}selected{% endif %}>Available</option>
+                                    <option value="under_maintenance" {% if edit_bus and edit_bus.status == 'under_maintenance' %}selected{% endif %}>Under Maintenance</option>
+                                </select>
+                            </div>
+
+                            <div class="form-actions">
+                                <button type="submit" class="auth-btn">
+                                    {{ 'Update Bus' if edit_bus else 'Add Bus' }}
+                                </button>
+                                {% if edit_bus %}
+                                    <a href="{{ url_for('admin_buses') }}" class="cancel-btn cancel-edit-btn">Cancel Edit</a>
+                                {% endif %}
+                            </div>
+                        </form>
                     </div>
-
-                    <div class="input-group">
-                        <input type="text" name="route" placeholder="Route" value="{{ edit_bus.route if edit_bus else '' }}" required>
-                    </div>
-
-                    <div class="input-group">
-                        <input type="text" name="departure" placeholder="Departure (e.g. 06:00 AM)" value="{{ edit_bus.departure if edit_bus else '' }}" required>
-                    </div>
-
-                    <div class="input-group">
-                        <input type="text" name="arrival" placeholder="Arrival (e.g. 12:00 PM)" value="{{ edit_bus.arrival if edit_bus else '' }}" required>
-                    </div>
-
-                    <div class="input-group">
-                        <input type="number" step="0.01" name="price" placeholder="Price" value="{{ edit_bus.price if edit_bus else '' }}" required>
-                    </div>
-
-                    <button type="submit" class="auth-btn">
-                        {{ 'Update Bus' if edit_bus else 'Add Bus' }}
-                    </button>
-                    {% if edit_bus %}
-                        <a href="{{ url_for('admin_buses') }}" class="cancel-btn" style="margin-left: 1rem; padding: 0.95rem 1.4rem;">Cancel Edit</a>
-                    {% endif %}
-                </form>
+                </div>
 
                 <!-- BUS TABLE -->
                 <table class="admin-table">
@@ -66,6 +90,7 @@
                             <th>Departure</th>
                             <th>Arrival</th>
                             <th>Price</th>
+                            <th>Status</th>
                             <th>Action</th>
                         </tr>
                     </thead>
@@ -80,10 +105,21 @@
                             <td>{{ bus.arrival }}</td>
                             <td>{{ bus.price }}</td>
                             <td>
-                                <a href="{{ url_for('admin_buses', edit_id=bus.id) }}" class="auth-btn" style="margin-right: 0.5rem; padding: 0.7rem 1rem;">Edit</a>
-                                <a href="{{ url_for('delete_bus', bus_id=bus.id) }}" class="cancel-btn">
-                                    Delete
-                                </a>
+                                <span style="padding: 4px 12px; border-radius: 20px; font-size: 0.85rem; font-weight: 600;
+                                    {% if bus.status == 'available' %}
+                                        background: rgba(118, 165, 255, 0.2); color: #76a5ff;
+                                    {% else %}
+                                        background: rgba(74, 123, 212, 0.2); color: #4a7bd4;
+                                    {% endif %}
+                                ">
+                                    {{ 'Available' if bus.status == 'available' else 'Under Maintenance' }}
+                                </span>
+                            </td>
+                            <td>
+                                <div class="admin-action-group">
+                                    <a href="{{ url_for('admin_buses', edit_id=bus.id) }}" class="auth-btn action-btn" style="margin-right: 0.5rem; padding: 0.7rem 1rem;">Edit</a>
+                                    <a href="{{ url_for('delete_bus', bus_id=bus.id) }}" class="cancel-btn action-btn" style="padding: 0.7rem 1rem;">Delete</a>
+                                </div>
                             </td>
                         </tr>
                         {% endfor %}

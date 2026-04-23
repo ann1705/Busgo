@@ -385,6 +385,39 @@ body {
     background: var(--accent-dark);
 }
 
+.admin-action-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    align-items: center;
+}
+
+.admin-action-group .action-btn {
+    width: auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.form-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    justify-content: center;
+    align-items: center;
+    margin-top: 1rem;
+}
+
+.form-actions .auth-btn,
+.form-actions .cancel-btn {
+    width: auto;
+}
+
+.cancel-edit-btn {
+    margin-top: 0.5rem;
+    align-self: center;
+}
+
 /* back-to-top button */
 #backToTop {
     position: fixed;
@@ -1419,6 +1452,7 @@ body {
     padding: 15px 20px;
     border-bottom: 1px solid rgba(132, 180, 255, 0.1);
     color: rgba(255, 255, 255, 0.9);
+    font-weight: 700;
 }
 
 .admin-table tr:hover {
@@ -1751,6 +1785,261 @@ body {
 }
 
 /* =========================================
+   11. DASHBOARD STATS
+   ========================================= */
+.user-panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    width: min(860px, 100%);
+    margin: 0 auto 1.5rem;
+}
+
+.user-panel-actions {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: min(860px, 100%);
+    margin: 0 auto 2rem;
+    gap: 1rem;
+}
+
+.icon-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.18);
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    color: white;
+    font-size: 1.2rem;
+    cursor: pointer;
+    transition: transform 0.25s ease, background 0.25s ease, border-color 0.25s ease;
+}
+
+.icon-button:hover {
+    transform: translateY(-2px);
+    background: rgba(255, 255, 255, 0.28);
+    border-color: rgba(255, 255, 255, 0.55);
+}
+
+.user-actions-row {
+    display: flex;
+    justify-content: flex-end;
+    width: min(860px, 100%);
+    margin: 0 auto 1.5rem;
+}
+
+.search-wrapper {
+    position: relative;
+    width: min(420px, 100%);
+}
+
+.search-wrapper input {
+    width: 100%;
+    padding: 14px 64px 14px 18px;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    background: rgba(255, 255, 255, 0.18);
+    color: white;
+    outline: none;
+    transition: border-color 0.25s ease, background 0.25s ease;
+}
+
+.search-wrapper input::-webkit-search-decoration,
+.search-wrapper input::-webkit-search-cancel-button,
+.search-wrapper input::-ms-clear,
+.search-wrapper input::-ms-expand {
+    display: none;
+}
+
+.search-wrapper input::placeholder {
+    color: rgba(255, 255, 255, 0.75);
+}
+
+.search-wrapper i {
+    position: absolute;
+    right: 18px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: rgba(255, 255, 255, 0.75);
+    font-size: 1rem;
+}
+
+.add-user-panel {
+    width: min(640px, 100%);
+    margin: 0 auto 2rem;
+    padding: 2rem;
+    background: rgba(255, 255, 255, 0.14);
+    border: 1px solid rgba(255, 255, 255, 0.26);
+    border-radius: 24px;
+}
+
+.add-user-panel h2 {
+    color: #1a1a1a;
+    font-size: 1.4rem;
+    margin-bottom: 1rem;
+}
+
+.section-heading {
+    color: #1a1a1a !important;
+    font-size: 1.2rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+}
+
+.user-panel-page {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.add-user-form {
+    display: grid;
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.form-row {
+    display: grid;
+    gap: 0.5rem;
+}
+
+.form-row label {
+    color: #1a1a1a;
+    font-weight: 600;
+    font-size: 0.95rem;
+}
+
+.form-row input,
+.form-row select {
+    width: 100%;
+    padding: 12px 14px;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    background: rgba(255, 255, 255, 0.12);
+    color: white;
+    outline: none;
+    transition: border-color 0.25s ease, background 0.25s ease;
+}
+
+.form-row input:focus,
+.form-row select:focus {
+    border-color: rgba(255, 255, 255, 0.55);
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.hidden {
+    display: none !important;
+}
+
+/* =========================================
+   11. DASHBOARD STATS
+   ========================================= */
+.stats-row {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    gap: 2rem;
+    margin-bottom: 3rem;
+    padding: 0;
+    width: 100%;
+}
+
+.stat-card {
+    width: min(340px, 100%);
+    background: rgba(255, 255, 255, 0.18);
+    backdrop-filter: blur(30px);
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    border-radius: 28px;
+    padding: 2.5rem 2.2rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1.2rem;
+    box-shadow: 0 18px 60px rgba(16, 42, 67, 0.16);
+    transition: transform 0.3s ease, box-shadow 0.3s ease, background 0.3s ease, border-color 0.3s ease;
+    cursor: default;
+    text-decoration: none;
+}
+
+.stat-card-link {
+    cursor: pointer;
+}
+
+.stat-card:hover,
+.stat-card-link:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 28px 80px rgba(16, 42, 67, 0.2);
+    border-color: rgba(255, 255, 255, 0.55);
+    background: rgba(255, 255, 255, 0.26);
+}
+
+.stat-card i {
+    font-size: 3.2rem;
+    color: var(--accent);
+    text-shadow: 0 0 35px rgba(126, 195, 255, 0.45);
+}
+
+.stat-card > div {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    width: 100%;
+    align-items: center;
+    justify-content: center;
+}
+
+.stat-number {
+    font-size: 3rem;
+    font-weight: 900;
+    color: white;
+    line-height: 1;
+    text-shadow: 0 4px 20px rgba(0, 0, 0, 0.18);
+    letter-spacing: -0.03em;
+}
+
+.stat-label {
+    font-size: 1.2rem;
+    color: rgba(255, 255, 255, 0.95);
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    text-align: center;
+}
+
+.stat-card > div > div:last-child {
+    font-size: 1rem;
+    color: rgba(255, 255, 255, 0.82);
+    font-weight: 600;
+}
+
+@media (max-width: 768px) {
+    .stat-card {
+        flex-direction: column;
+        text-align: center;
+        min-height: auto;
+        padding: 2rem;
+    }
+    
+    .stat-card i {
+        font-size: 2.8rem;
+    }
+    
+    .stat-number {
+        font-size: 2.5rem;
+    }
+    
+    .stat-card > div > div:last-child {
+        font-size: 1rem;
+    }
+}
+
+/* =========================================
    12. RESPONSIVE DESIGN
    ========================================= */
 @media (max-width: 768px) {
@@ -1818,4 +2107,223 @@ body {
     .seat-pair {
         gap: 0.6rem;
     }
+}
+
+/* =========================================
+   ADMIN BUS MANAGEMENT STYLES
+   ========================================= */
+
+.content-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+}
+
+.content-subtitle {
+    color: rgba(16, 42, 67, 0.75);
+    font-size: 0.95rem;
+    margin-top: 0.35rem;
+}
+
+.tab-switcher {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.tab-btn {
+    padding: 0.85rem 1.3rem;
+    border: 1px solid rgba(16, 42, 67, 0.15);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.12);
+    color: var(--dark-text);
+    font-weight: 700;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.tab-btn:hover {
+    background: rgba(255, 255, 255, 0.25);
+}
+
+.tab-btn.active {
+    background: var(--primary);
+    color: var(--white);
+    border-color: transparent;
+}
+
+.booking-tab-section {
+    display: none;
+}
+
+.booking-tab-section.active {
+    display: block;
+}
+
+.header-actions {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.search-input {
+    padding: 0.75rem 1rem;
+    border: 2px solid var(--border-gray);
+    border-radius: 8px;
+    background: var(--white);
+    font-size: 0.95rem;
+    width: 250px;
+    transition: var(--transition);
+}
+
+.search-input:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(138, 184, 255, 0.2);
+}
+
+.add-bus-btn {
+    background: var(--primary);
+    color: var(--white);
+    border: none;
+    border-radius: 50%;
+    width: 50px;
+    height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: var(--transition);
+    font-size: 1.2rem;
+    box-shadow: var(--shadow-light);
+}
+
+.add-bus-btn:hover {
+    background: var(--accent);
+    transform: scale(1.05);
+    box-shadow: var(--shadow-medium);
+}
+
+.add-bus-btn:active {
+    transform: scale(0.95);
+}
+
+/* Modal Styles */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(20px);
+    animation: backdropFadeIn 0.3s ease-out;
+}
+
+.modal-content {
+    background-color: var(--white);
+    margin: 10% auto;
+    padding: 2rem;
+    border-radius: 12px;
+    box-shadow: var(--shadow-large);
+    width: 90%;
+    max-width: 500px;
+    position: relative;
+    animation: modalFadeIn 0.3s ease-out;
+}
+
+@keyframes modalFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-50px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes backdropFadeIn {
+    from {
+        opacity: 0;
+        backdrop-filter: blur(0px);
+    }
+    to {
+        opacity: 1;
+        backdrop-filter: blur(8px);
+    }
+}
+
+.close-modal {
+    position: absolute;
+    top: 1rem;
+    right: 1.5rem;
+    font-size: 2rem;
+    font-weight: bold;
+    color: var(--dark-text);
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.close-modal:hover {
+    color: var(--danger);
+    transform: scale(1.1);
+}
+
+.modal-content h2 {
+    margin-bottom: 1.5rem;
+    color: var(--dark-text);
+    font-size: 1.5rem;
+    text-align: center;
+}
+
+.modal-content .form-row input,
+.modal-content .form-row select {
+    width: 100%;
+    padding: 0.85rem 1rem;
+    border-radius: 10px;
+    border: 1px solid rgba(16, 42, 67, 0.15);
+    background: #f7fbff;
+    color: var(--dark-text);
+    outline: none;
+    transition: border-color 0.25s ease, box-shadow 0.25s ease;
+}
+
+.modal-content .form-row input:focus,
+.modal-content .form-row select:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(138, 184, 255, 0.18);
+}
+
+.modal-content .form-actions {
+    margin-top: 1rem;
+}
+
+.add-bus-btn {
+    background: var(--primary);
+    color: var(--white);
+    border: none;
+    border-radius: 50%;
+    width: 50px;
+    height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: var(--transition);
+    font-size: 1.2rem;
+    box-shadow: var(--shadow-light);
+}
+
+.add-bus-btn:hover {
+    background: var(--accent);
+    transform: scale(1.05);
+    box-shadow: var(--shadow-medium);
+}
+
+.add-bus-btn:active {
+    transform: scale(0.95);
 }
