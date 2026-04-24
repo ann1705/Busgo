@@ -21,13 +21,15 @@
             </a>
         </div>
         <main class="schedule-main">
-<div class="schedule-container glass-card bus-management-card">
-
-                <header class="content-header" style="justify-content: space-between; align-items: center;">
-                    <h1>Manage Bus</h1>
+            <div class="schedule-container glass-card bus-management-card" style="width: 95%; max-width: 1600px; padding: 2.5rem;">
+                <header class="content-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2.5rem; width: 100%; border-bottom: 2px solid rgba(16, 42, 67, 0.1); padding-bottom: 1.5rem;">
+                    <h2 class="section-heading" style="margin: 0; color: var(--dark-text); font-size: 1.8rem; font-weight: 800;">Manage Bus</h2>
                     <div class="header-actions">
-                        <input type="text" id="busSearch" placeholder="Search buses..." class="search-input">
-                        <button id="addBusBtn" class="add-bus-btn">
+                        <div class="search-wrapper" style="position: relative; margin: 0;">
+                            <input id="busSearch" type="text" placeholder="Search buses..." class="search-input" style="padding: 12px 45px 12px 15px; width: 320px; border-radius: 12px; background: white; color: var(--dark-text); border: 1px solid rgba(16,42,67,0.2);">
+                            <i class="fa-solid fa-magnifying-glass" style="position: absolute; right: 15px; top: 50%; transform: translateY(-50%); color: var(--accent-dark); font-size: 1.1rem;"></i>
+                        </div>
+                        <button id="addBusBtn" class="add-bus-btn" type="button" aria-label="Add new bus" style="border-radius: 12px; width: 48px; height: 48px; background: var(--accent-dark); margin-left: 0.5rem; border: none; color: white;">
                             <i class="fa-solid fa-plus"></i>
                         </button>
                     </div>
@@ -82,28 +84,28 @@
 
                 <!-- BUS TABLE -->
                 <table class="admin-table admin-buses-table">
-                    <thead>
+                    <thead style="background: var(--dark-text);">
                         <tr>
-                            <th>ID</th>
-                            <th>Bus No</th>
-                            <th>Route</th>
-                            <th>Departure</th>
-                            <th>Arrival</th>
-                            <th>Price</th>
-                            <th>Status</th>
-                            <th>Action</th>
+                            <th style="color: white; border-radius: 12px 0 0 0;">ID</th>
+                            <th style="color: white;">Bus No</th>
+                            <th style="color: white;">Route</th>
+                            <th style="color: white;">Departure</th>
+                            <th style="color: white;">Arrival</th>
+                            <th style="color: white;">Price</th>
+                            <th style="color: white;">Status</th>
+                            <th style="color: white; border-radius: 0 12px 0 0;">Action</th>
                         </tr>
                     </thead>
 
-                    <tbody>
+                    <tbody style="background: rgba(255,255,255,0.4);">
                         {% for bus in buses %}
-                        <tr>
-                            <td>{{ bus.id }}</td>
-                            <td>{{ bus.bus_no }}</td>
-                            <td>{{ bus.route }}</td>
-                            <td>{{ bus.departure }}</td>
-                            <td>{{ bus.arrival }}</td>
-                            <td>{{ bus.price }}</td>
+                        <tr style="border-bottom: 1px solid rgba(16,42,67,0.1);">
+                            <td style="color: var(--dark-text); font-weight: 700;">#{{ bus.id }}</td>
+                            <td style="color: var(--dark-text); font-weight: 700;">{{ bus.bus_no }}</td>
+                            <td style="color: var(--dark-text);">{{ bus.route }}</td>
+                            <td style="color: var(--dark-text);">{{ bus.departure }}</td>
+                            <td style="color: var(--dark-text);">{{ bus.arrival }}</td>
+                            <td style="color: var(--dark-text); font-weight: 700;">₱{{ "%.2f"|format(bus.price) }}</td>
                             <td>
                                 <span style="padding: 4px 12px; border-radius: 20px; font-size: 0.85rem; font-weight: 600;
                                     {% if bus.status == 'available' %}

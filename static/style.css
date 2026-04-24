@@ -1588,12 +1588,7 @@ body {
 .admin-table {
     width: 100%;
     border-collapse: collapse;
-    table-layout: fixed;
-}
-
-.admin-table th:nth-child(3),
-.admin-table td:nth-child(3) {
-    white-space: nowrap;
+    table-layout: auto;
 }
 
 .admin-table th {
@@ -1614,30 +1609,6 @@ body {
     font-weight: 700;
     word-break: break-word;
 }
-
-#usersTable th:nth-child(1) { width: 8%; }
-#usersTable th:nth-child(2) { width: 22%; }
-#usersTable th:nth-child(3) { width: 35%; }
-#usersTable th:nth-child(4) { width: 15%; }
-#usersTable th:nth-child(5) { width: 20%; }
-
-.admin-buses-table th:nth-child(1) { width: 8%; }
-.admin-buses-table th:nth-child(2) { width: 12%; }
-.admin-buses-table th:nth-child(3) { width: 18%; }
-.admin-buses-table th:nth-child(4) { width: 12%; }
-.admin-buses-table th:nth-child(5) { width: 12%; }
-.admin-buses-table th:nth-child(6) { width: 10%; }
-.admin-buses-table th:nth-child(7) { width: 15%; }
-.admin-buses-table th:nth-child(8) { width: 13%; }
-
-.admin-bookings-table th:nth-child(1) { width: 8%; }
-.admin-bookings-table th:nth-child(2) { width: 15%; }
-.admin-bookings-table th:nth-child(3) { width: 12%; }
-.admin-bookings-table th:nth-child(4) { width: 15%; }
-.admin-bookings-table th:nth-child(5) { width: 10%; }
-.admin-bookings-table th:nth-child(6) { width: 13%; }
-.admin-bookings-table th:nth-child(7) { width: 12%; }
-.admin-bookings-table th:nth-child(8) { width: 15%; }
 
 .admin-table tr:hover {
     background: rgba(132, 180, 255, 0.05);
@@ -1715,6 +1686,7 @@ body {
 .admin-topnav a:hover,
 .admin-topnav a.active {
     background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+    color: white !important;
     border-color: var(--accent);
 }
 
@@ -2520,4 +2492,66 @@ body {
 
 .add-bus-btn:active {
     transform: scale(0.95);
+}
+
+/* =========================================
+   13. PRINT STYLES (For Receipts/Tickets)
+   ========================================= */
+@media print {
+    /* Hide everything non-essential */
+    .glass-nav, 
+    .main-footer, 
+    .page-back-nav, 
+    .print-btn, 
+    .book-now-btn, 
+    .back-btn,
+    .user-actions,
+    .sidebar,
+    #backToTop {
+        display: none !important;
+    }
+
+    body {
+        background: white !important;
+        color: black !important;
+        padding: 0 !important;
+        margin: 0 !important;
+    }
+
+    .main-content {
+        padding: 0 !important;
+        min-height: auto !important;
+    }
+
+    .schedule-main {
+        padding: 0 !important;
+        display: block !important;
+    }
+
+    .ticket-printable {
+        background: white !important;
+        border: 2px solid #000 !important;
+        box-shadow: none !important;
+        border-radius: 0 !important;
+        padding: 40px !important;
+        max-width: 100% !important;
+        width: 100% !important;
+        backdrop-filter: none !important;
+    }
+
+    .booking-panel-blue {
+        background: #f4f7fb !important;
+        border: 1px solid #ccc !important;
+        -webkit-print-color-adjust: exact;
+    }
+
+    .printable-sub-card {
+        background: white !important;
+        border: 1px solid #eee !important;
+        -webkit-print-color-adjust: exact;
+    }
+
+    p, h1, h2, h3, span {
+        color: black !important;
+    }
 }

@@ -4,10 +4,14 @@
 
 {% block content %}
 <section class="schedule-main">
-    <div class="schedule-container glass-booking-card" style="max-width: 840px;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; gap: 1rem; flex-wrap: wrap;">
+    <div class="schedule-container glass-booking-card ticket-printable" style="max-width: 840px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; gap: 1rem; flex-wrap: wrap; border-bottom: 1px solid rgba(15, 31, 62, 0.1); padding-bottom: 1.5rem;">
+            <div style="display: flex; align-items: center; gap: 1rem;">
+                <img src="{{ url_for('static', filename='images/busgologo.png') }}" alt="BusGo Logo" style="height: 50px; object-fit: contain;">
+            </div>
+
             <div>
-                <h1 class="schedule-title" style="margin-bottom: 0.5rem;">BusGo E-Ticket</h1>
+                <h1 class="schedule-title" style="margin-bottom: 0.5rem; color: #102a43;">BusGo E-Ticket</h1>
                 <p style="margin: 0; color: rgba(15, 31, 62, 0.75);">Use this ticket after payment confirmation. Scan the QR code to see booking details instantly.</p>
             </div>
             <div style="text-align: right;">
@@ -29,30 +33,30 @@
             </div>
 
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1.5rem;">
-                <div style="padding: 1rem; background: rgba(255,255,255,0.7); border-radius: 18px;">
+                <div class="printable-sub-card" style="padding: 1rem; background: rgba(255,255,255,0.7); border-radius: 18px;">
                     <p style="font-size: 0.85rem; color: rgba(15, 31, 62, 0.7); text-transform: uppercase; margin-bottom: 0.5rem; font-weight: 700;">Bus Number</p>
                     <p style="font-size: 1.25rem; font-weight: 700; margin: 0; color: rgba(15, 31, 62, 0.9);">{{ booking.bus_no }}</p>
                 </div>
-                <div style="padding: 1rem; background: rgba(255,255,255,0.7); border-radius: 18px;">
+                <div class="printable-sub-card" style="padding: 1rem; background: rgba(255,255,255,0.7); border-radius: 18px;">
                     <p style="font-size: 0.85rem; color: rgba(15, 31, 62, 0.7); text-transform: uppercase; margin-bottom: 0.5rem; font-weight: 700;">Seat Number</p>
                     <p style="font-size: 1.25rem; font-weight: 700; margin: 0; color: rgba(15, 31, 62, 0.9);">{{ booking.seat_number }}</p>
                 </div>
             </div>
 
             <div style="margin-top: 1.5rem; display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem;">
-                <div style="padding: 1.2rem; background: rgba(255,255,255,0.85); border-radius: 18px;">
+                <div class="printable-sub-card" style="padding: 1.2rem; background: rgba(255,255,255,0.85); border-radius: 18px;">
                     <p style="font-size: 0.85rem; color: rgba(15, 31, 62, 0.7); text-transform: uppercase; margin-bottom: 0.5rem; font-weight: 700;">Departure</p>
                     <p style="font-size: 1.1rem; font-weight: 700; color: rgba(15, 31, 62, 0.95); margin: 0;">{{ booking.departure }}</p>
                 </div>
-                <div style="padding: 1.2rem; background: rgba(255,255,255,0.85); border-radius: 18px;">
+                <div class="printable-sub-card" style="padding: 1.2rem; background: rgba(255,255,255,0.85); border-radius: 18px;">
                     <p style="font-size: 0.85rem; color: rgba(15, 31, 62, 0.7); text-transform: uppercase; margin-bottom: 0.5rem; font-weight: 700;">Arrival</p>
                     <p style="font-size: 1.1rem; font-weight: 700; color: rgba(15, 31, 62, 0.95); margin: 0;">{{ booking.arrival }}</p>
                 </div>
-                <div style="padding: 1.2rem; background: rgba(255,255,255,0.85); border-radius: 18px;">
+                <div class="printable-sub-card" style="padding: 1.2rem; background: rgba(255,255,255,0.85); border-radius: 18px;">
                     <p style="font-size: 0.85rem; color: rgba(15, 31, 62, 0.7); text-transform: uppercase; margin-bottom: 0.5rem; font-weight: 700;">Payment Mode</p>
                     <p style="font-size: 1.1rem; font-weight: 700; color: rgba(15, 31, 62, 0.95); margin: 0;">{{ booking.payment_method }}</p>
                 </div>
-                <div style="padding: 1.2rem; background: rgba(255,255,255,0.85); border-radius: 18px;">
+                <div class="printable-sub-card" style="padding: 1.2rem; background: rgba(255,255,255,0.85); border-radius: 18px;">
                     <p style="font-size: 0.85rem; color: rgba(15, 31, 62, 0.7); text-transform: uppercase; margin-bottom: 0.5rem; font-weight: 700;">Booked On</p>
                     <p style="font-size: 1.1rem; font-weight: 700; color: rgba(15, 31, 62, 0.95); margin: 0;">{{ booking_created_at }}</p>
                 </div>

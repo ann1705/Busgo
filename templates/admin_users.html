@@ -20,20 +20,24 @@
             </a>
         </div>
         <main class="schedule-main">
-            <div class="schedule-container glass-card user-panel-page">
-                <header class="content-header" style="justify-content: flex-start;">
+            <div class="schedule-container glass-card user-panel-page" style="width: 95%; max-width: 1600px; padding: 2.5rem;">
+                <header class="content-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2.5rem; width: 100%; border-bottom: 2px solid rgba(16, 42, 67, 0.1); padding-bottom: 1.5rem;">
+                    <h2 class="section-heading" style="margin: 0; color: var(--dark-text); font-size: 1.8rem; font-weight: 800;">User Management</h2>
                     <div class="header-actions">
-                        <input id="userSearch" type="text" placeholder="Search users..." class="search-input">
-                        <button id="addUserBtn" class="add-bus-btn" type="button" aria-label="Add new user">
-                            <i class="fa-solid fa-plus"></i>
+                        <div class="search-wrapper" style="position: relative; margin: 0;">
+                            <input id="userSearch" type="text" placeholder="Search users..." class="search-input" style="padding: 12px 45px 12px 15px; width: 320px; border-radius: 12px; background: white; color: var(--dark-text); border: 1px solid rgba(16,42,67,0.2);">
+                            <i class="fa-solid fa-magnifying-glass" style="position: absolute; right: 15px; top: 50%; transform: translateY(-50%); color: var(--accent-dark); font-size: 1.1rem;"></i>
+                        </div>
+                        <button id="addUserBtn" class="add-bus-btn" type="button" aria-label="Add new user" style="border-radius: 12px; width: 48px; height: 48px; background: var(--accent-dark); margin-left: 0.5rem; border: none; color: white;">
+                            <i class="fa-solid fa-user-plus"></i>
                         </button>
                     </div>
                 </header>
 
                 <div id="addUserModal" class="modal">
-                    <div class="modal-content">
+                    <div class="modal-content" style="border-radius: 20px; padding: 2.5rem;">
                         <span class="close-modal">&times;</span>
-                        <h2>Add New User</h2>
+                        <h2 style="color: var(--dark-text); font-weight: 800; margin-bottom: 2rem;">Add New User</h2>
                         <form method="POST" class="add-user-form">
                             <div class="form-row">
                                 <label>Full Name</label>
@@ -63,26 +67,27 @@
                 </div>
 
                 <!-- USERS -->
-                <h2 class="section-heading">Users</h2>
                 <table class="admin-table" id="usersTable">
-                    <thead>
+                    <thead style="background: var(--dark-text);">
                         <tr>
-                            <th>ID</th>
-                            <th>Name</th>
-                            <th>Email</th>
-                            <th>Role</th>
-                            <th>Action</th>
+                            <th style="color: white; border-radius: 12px 0 0 0;">ID</th>
+                            <th style="color: white;">Name</th>
+                            <th style="color: white;">Email</th>
+                            <th style="color: white;">Role</th>
+                            <th style="color: white; border-radius: 0 12px 0 0;">Action</th>
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody style="background: rgba(255,255,255,0.4);">
                         {% for user in users %}
-                        <tr>
-                            <td>{{ user.id }}</td>
-                            <td>{{ user.fullname }}</td>
-                            <td>{{ user.email }}</td>
-                            <td>{{ user.role }}</td>
+                        <tr style="border-bottom: 1px solid rgba(16,42,67,0.1);">
+                            <td style="color: var(--dark-text); font-weight: 700;">#{{ user.id }}</td>
+                            <td style="color: var(--dark-text); font-weight: 700;">{{ user.fullname }}</td>
+                            <td style="color: var(--dark-text);">{{ user.email }}</td>
                             <td>
-                                <a href="{{ url_for('delete_user', user_id=user.id) }}" class="cancel-btn" onclick="return confirm('Are you sure you want to delete this user?')">Delete</a>
+                                <span class="status-available" style="padding: 4px 12px; border-radius: 20px; font-size: 0.85rem; text-transform: capitalize;">{{ user.role }}</span>
+                            </td>
+                            <td>
+                                <a href="{{ url_for('delete_user', user_id=user.id) }}" class="cancel-btn" style="padding: 8px 16px; border-radius: 8px; font-size: 0.85rem;" onclick="return confirm('Are you sure you want to delete this user?')">Delete</a>
                             </td>
                         </tr>
                         {% endfor %}
