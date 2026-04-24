@@ -79,6 +79,14 @@
         </nav>
     </header>
 
+    <div class="page-back-nav">
+        {% if request.endpoint != 'home' %}
+            <button type="button" class="print-btn back-btn" onclick="handleBackNavigation('{{ back_url|default(url_for('home')) }}')">
+                <i class="fa-solid fa-arrow-left"></i> Back
+            </button>
+        {% endif %}
+    </div>
+
     <div class="main-content">
         {% block content %}{% endblock %}
     </div>
@@ -206,6 +214,16 @@
     <script src="{{ url_for('static', filename='script.js') }}"></script>
 
     <script>
+        function handleBackNavigation(fallbackUrl) {
+            if (document.referrer && document.referrer !== '' && document.referrer.indexOf(window.location.hostname) !== -1) {
+                window.history.back();
+            } else if (fallbackUrl) {
+                window.location.href = fallbackUrl;
+            } else {
+                window.location.href = '{{ url_for('home') }}';
+            }
+        }
+
         document.addEventListener('DOMContentLoaded', () => {
             if (window.location.hash) {
                 const target = document.querySelector(window.location.hash);

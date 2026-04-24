@@ -27,6 +27,7 @@
                     <div class="tab-switcher">
                         <button id="activeBookingsTab" class="tab-btn active" type="button">Active</button>
                         <button id="historyBookingsTab" class="tab-btn" type="button">History</button>
+                        <button id="walkinBookingsTab" class="tab-btn" type="button">Walk-in</button>
                     </div>
                 </header>
 
@@ -34,12 +35,15 @@
                     <input id="bookingSearch" type="text" placeholder="Search bookings..." class="search-input">
                 </div>
 
-                {% set counts = namespace(active=0, history=0) %}
+                {% set counts = namespace(active=0, history=0, walkin=0) %}
                 {% for b in bookings %}
                     {% if b.status in ['paid', 'cancelled'] %}
                         {% set counts.history = counts.history + 1 %}
                     {% else %}
                         {% set counts.active = counts.active + 1 %}
+                    {% endif %}
+                    {% if b.booking_type == 'Walk-in' %}
+                        {% set counts.walkin = counts.walkin + 1 %}
                     {% endif %}
                 {% endfor %}
 
@@ -49,7 +53,7 @@
                     </div>
 
                     {% if counts.active > 0 %}
-                    <table class="admin-table">
+                    <table class="admin-table admin-bookings-table">
                     <thead>
                         <tr>
                             <th>ID</th>
@@ -57,6 +61,7 @@
                             <th>Bus No.</th>
                             <th>Route</th>
                             <th>Seat</th>
+                            <th>Created</th>
                             <th>Status</th>
                             <th>Action</th>
                         </tr>
@@ -69,9 +74,13 @@
                             <td>{{ b.bus_no }}</td>
                             <td>{{ b.route }}</td>
                             <td>{{ b.seat_number }}</td>
+                            <td>{{ b.created_date }} {{ b.created_time }}</td>
                             <td class="status-{{ b.status }}">{{ b.status|capitalize }}</td>
                             <td>
-                                <a href="{{ url_for('cancel_booking', booking_id=b.id) }}" class="cancel-btn">
+                                <a href="{{ url_for('admin_view_booking', booking_id=b.id) }}" class="book-now-btn" style="padding: 6px 12px; font-size: 0.85rem; margin-right: 0.5rem;">
+                                    View
+                                </a>
+                                <a href="{{ url_for('cancel_booking', booking_id=b.id) }}" class="cancel-btn" style="padding: 6px 12px; font-size: 0.85rem;">
                                     Cancel
                                 </a>
                             </td>
@@ -87,12 +96,10 @@
                 </div>
 
                 <div id="historyBookingsSection" class="booking-tab-section" style="margin-top: 2rem;">
-                    <div class="table-header" style="margin-bottom: 1rem;">
-                        <i class="fa-solid fa-history" style="margin-right: 0.5rem;"></i> Booking History
-                    </div>
+                    <div class="table-header" style="margin-bottom: 1rem;"><i class="fa-solid fa-history" style="margin-right: 0.5rem;"></i> Booking History</div>
 
                     {% if counts.history > 0 %}
-                    <table class="admin-table">
+                    <table class="admin-table admin-bookings-table">
                     <thead>
                         <tr>
                             <th>ID</th>
@@ -100,6 +107,7 @@
                             <th>Bus No.</th>
                             <th>Route</th>
                             <th>Seat</th>
+                            <th>Created</th>
                             <th>Status</th>
                             <th>Action</th>
                         </tr>
@@ -112,7 +120,8 @@
                             <td>{{ b.bus_no }}</td>
                             <td>{{ b.route }}</td>
                             <td>{{ b.seat_number }}</td>
-                            <td class="status-{{ b.status }}">{{ 'Completed' if b.status == 'paid' else b.status|capitalize }}</td>
+                            <td>{{ b.created_date }} {{ b.created_time }}</td>
+                            <td class="status-{{ b.status }}">{{ 'Completed' if b.status == 'paid' else 'Waiting for Payment' if b.status == 'waiting for payment' else b.status|capitalize }}</td>
                             <td>
                                 <a href="{{ url_for('admin_delete_booking', booking_id=b.id) }}" class="cancel-btn" onclick="return confirm('Delete this booking record?')">
                                     Delete
@@ -129,9 +138,74 @@
                 {% endif %}
                 </div>
 
+                <div id="walkinBookingsSection" class="booking-tab-section" style="margin-top: 2rem; display: none;">
+                    <div class="table-header" style="margin-bottom: 1rem;"><i class="fa-solid fa-person-walking" style="margin-right: 0.5rem;"></i> Walk-in Bookings</div>
+
+                    {% if counts.walkin > 0 %}
+                    <table class="admin-table admin-bookings-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Staff</th>
+                            <th>Bus No.</th>
+                            <th>Route</th>
+                            <th>Seat</th>
+                            <th>Created</th>
+                            <th>Status</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for b in bookings if b.booking_type == 'Walk-in' %}
+                        <tr>
+                            <td>{{ b.id }}</td>
+                            <td>{{ b.user }}</td>
+                            <td>{{ b.bus_no }}</td>
+                            <td>{{ b.route }}</td>
+                            <td>{{ b.seat_number }}</td>
+                            <td>{{ b.created_date }} {{ b.created_time }}</td>
+                            <td class="status-{{ b.status }}">{{ b.status|capitalize }}</td>
+                            <td>
+                                <a href="{{ url_for('admin_delete_booking', booking_id=b.id) }}" class="cancel-btn" onclick="return confirm('Delete this walk-in booking record?')">
+                                    Delete
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <div style="text-align: center; padding: 2rem; color: rgba(255,255,255,0.7);">
+                    No walk-in bookings available.
+                </div>
+                {% endif %}
+                </div>
+
             </div>
         </main>
     </div>
 
 </div>
+<script>
+    const adminTabButtons = document.querySelectorAll('.tab-switcher button');
+    const bookingSections = {
+        activeBookingsTab: 'activeBookingsSection',
+        historyBookingsTab: 'historyBookingsSection',
+        walkinBookingsTab: 'walkinBookingsSection'
+    };
+
+    adminTabButtons.forEach(button => {
+        button.addEventListener('click', () => {
+            adminTabButtons.forEach(btn => btn.classList.remove('active'));
+            Object.values(bookingSections).forEach(sectionId => {
+                const section = document.getElementById(sectionId);
+                if (section) section.style.display = 'none';
+            });
+
+            button.classList.add('active');
+            const activeSection = document.getElementById(bookingSections[button.id]);
+            if (activeSection) activeSection.style.display = 'block';
+        });
+    });
+</script>
 {% endblock %}

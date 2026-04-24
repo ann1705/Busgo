@@ -2,6 +2,7 @@ from flask import Flask, render_template, request, redirect, url_for, session
 import sqlite3
 import requests
 import datetime
+import urllib.parse
 from werkzeug.security import generate_password_hash, check_password_hash
 
 app = Flask(__name__)
@@ -50,7 +51,9 @@ def create_tables():
             passenger_name TEXT NOT NULL,
             contact TEXT NOT NULL,
             seat_number TEXT NOT NULL,
-            status TEXT NOT NULL DEFAULT 'confirmed',
+            status TEXT NOT NULL DEFAULT 'waiting for payment',
+            booking_type TEXT NOT NULL DEFAULT 'Online',
+            payment_method TEXT DEFAULT 'Online',
             created_at TEXT DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY(user_id) REFERENCES users(id),
             FOREIGN KEY(bus_id) REFERENCES buses(id)
@@ -68,6 +71,19 @@ def ensure_bookings_created_at_column():
         conn.execute("ALTER TABLE bookings ADD COLUMN created_at TEXT")
         conn.execute("UPDATE bookings SET created_at = CURRENT_TIMESTAMP WHERE created_at IS NULL")
         conn.commit()
+    conn.close()
+
+
+def ensure_bookings_ticket_columns():
+    conn = get_db_connection()
+    columns = [row['name'] for row in conn.execute("PRAGMA table_info(bookings)").fetchall()]
+    if 'booking_type' not in columns:
+        conn.execute("ALTER TABLE bookings ADD COLUMN booking_type TEXT DEFAULT 'Online'")
+        conn.execute("UPDATE bookings SET booking_type = 'Online' WHERE booking_type IS NULL")
+    if 'payment_method' not in columns:
+        conn.execute("ALTER TABLE bookings ADD COLUMN payment_method TEXT DEFAULT 'Online'")
+        conn.execute("UPDATE bookings SET payment_method = 'Online' WHERE payment_method IS NULL")
+    conn.commit()
     conn.close()
 
 
@@ -121,6 +137,7 @@ def create_default_admin():
 
 create_tables()
 ensure_bookings_created_at_column()
+ensure_bookings_ticket_columns()
 ensure_bus_status_column()
 ensure_users_created_at_column()
 ensure_buses_created_at_column()
@@ -170,7 +187,12 @@ def schedules():
         return redirect(url_for("home", login_required=1))
 
     conn = get_db_connection()
-    buses = conn.execute("SELECT * FROM buses").fetchall()
+    buses = conn.execute("""
+        SELECT b.*, COUNT(bo.id) AS booked_count
+        FROM buses b
+        LEFT JOIN bookings bo ON b.id = bo.bus_id
+        GROUP BY b.id
+    """).fetchall()
     conn.close()
     return render_template("schedules.html", buses=buses)
 
@@ -204,9 +226,17 @@ def booking(bus_id):
         (bus_id,)
     ).fetchall()
     booked_seat_numbers = [seat["seat_number"] for seat in booked_seats]
+    booked_count = len(booked_seat_numbers)
+    available_seats = max(0, 52 - booked_count)
 
     conn.close()
-    return render_template("booking.html", bus=bus, booked_seats=booked_seat_numbers)
+    return render_template(
+        "booking.html",
+        bus=bus,
+        booked_seats=booked_seat_numbers,
+        available_seats=available_seats,
+        back_url=url_for('schedules')
+    )
 
 
 @app.route("/user")
@@ -235,17 +265,37 @@ def view_booking(booking_id):
     conn = get_db_connection()
     booking = conn.execute("""
         SELECT b.id, b.passenger_name, b.contact, b.seat_number,
-               bs.bus_no, bs.route, bs.departure, bs.arrival, bs.price, b.status
+               b.booking_type, b.payment_method,
+               bs.bus_no, bs.route, bs.departure, bs.arrival, bs.price, b.status, b.bus_id, b.created_at
         FROM bookings b
         JOIN buses bs ON bs.id = b.bus_id
         WHERE b.id = ? AND b.user_id = ?
     """, (booking_id, session["user_id"])).fetchone()
-    conn.close()
-
+    
     if not booking:
+        conn.close()
         return redirect(url_for("user_dashboard"))
 
-    return render_template("status.html", booking=booking)
+    # Calculate available seats for this bus
+    booked_seats_count = conn.execute(
+        "SELECT COUNT(*) as count FROM bookings WHERE bus_id = ?",
+        (booking["bus_id"],)
+    ).fetchone()["count"]
+    
+    available_seats = 52 - booked_seats_count
+    
+    created_at_raw = booking['created_at'] if booking['created_at'] else None
+    formatted_created_at = created_at_raw
+    if created_at_raw:
+        try:
+            created_at_parsed = datetime.datetime.strptime(created_at_raw, '%Y-%m-%d %H:%M:%S')
+            formatted_created_at = created_at_parsed.strftime('%B %d, %Y %I:%M %p')
+        except Exception:
+            formatted_created_at = created_at_raw
+
+    conn.close()
+
+    return render_template("status.html", booking=booking, available_seats=available_seats, back_url=url_for('user_dashboard'), user_role='user', booking_created_at=formatted_created_at)
 
 @app.route("/pay/<int:booking_id>")
 def pay_booking(booking_id):
@@ -404,20 +454,29 @@ def staff_dashboard():
             conn.close()
             return redirect(url_for("staff_dashboard", error="That seat is already booked for the selected bus."))
 
+        payment_status = request.form.get("payment_status", "waiting for payment").strip() or "waiting for payment"
+        payment_method = request.form.get("payment_method", "Walk-in").capitalize()
         created_at = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        conn.execute(
-            "INSERT INTO bookings (user_id, bus_id, passenger_name, contact, seat_number, created_at) VALUES (?, ?, ?, ?, ?, ?)",
+        cur = conn.execute(
+            "INSERT INTO bookings (user_id, bus_id, passenger_name, contact, seat_number, status, booking_type, payment_method, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
             (
                 session["user_id"],
                 bus_id,
                 passenger_name,
                 contact,
                 seat_number,
+                payment_status,
+                "Walk-in",
+                payment_method,
                 created_at
             )
         )
+        booking_id = cur.lastrowid
         conn.commit()
         conn.close()
+
+        if payment_status == "paid":
+            return redirect(url_for("ticket", booking_id=booking_id))
 
         return redirect(url_for("staff_dashboard", success="Walk-in booking added successfully."))
 
@@ -437,7 +496,8 @@ def staff_dashboard():
         bus_key = str(row["bus_id"])
         booked_seats_by_bus.setdefault(bus_key, []).append(str(row["seat_number"]))
 
-    bookings_by_date = {}
+    active_bookings_by_date = {}
+    history_bookings_by_date = {}
     for row in bookings:
         created_at = row['created_at'] or ''
         try:
@@ -448,7 +508,7 @@ def staff_dashboard():
             date_key = 'Unknown Date'
             time_label = created_at
 
-        bookings_by_date.setdefault(date_key, []).append({
+        booking_item = {
             'id': row['id'],
             'passenger_name': row['passenger_name'],
             'contact': row['contact'],
@@ -459,8 +519,14 @@ def staff_dashboard():
             'departure': row['departure'],
             'arrival': row['arrival'],
             'price': row['price'],
-            'created_time': time_label
-        })
+            'created_time': time_label,
+            'created_date': date_key
+        }
+
+        if row['status'] in ('paid', 'cancelled'):
+            history_bookings_by_date.setdefault(date_key, []).append(booking_item)
+        else:
+            active_bookings_by_date.setdefault(date_key, []).append(booking_item)
 
     buses_json = [dict(bus) for bus in buses]
     conn.close()
@@ -469,10 +535,53 @@ def staff_dashboard():
         "staff_dashboard.html",
         buses=buses,
         bookings=bookings,
-        bookings_by_date=bookings_by_date,
+        active_bookings_by_date=active_bookings_by_date,
+        history_bookings_by_date=history_bookings_by_date,
         booked_seats_by_bus=booked_seats_by_bus,
         buses_json=buses_json,
     )
+
+
+@app.route("/staff/booking/<int:booking_id>")
+def staff_view_booking(booking_id):
+    if "user_id" not in session or session.get("role") != "staff":
+        return redirect(url_for("home"))
+
+    conn = get_db_connection()
+    booking = conn.execute("""
+        SELECT b.id, b.passenger_name, b.contact, b.seat_number,
+               bs.bus_no, bs.route, bs.departure, bs.arrival, bs.price, b.status, b.bus_id, b.created_at,
+               u.fullname AS user_name, u.email AS user_email
+        FROM bookings b
+        JOIN buses bs ON bs.id = b.bus_id
+        JOIN users u ON u.id = b.user_id
+        WHERE b.id = ? AND b.user_id = ?
+    """, (booking_id, session["user_id"])).fetchone()
+    
+    if not booking:
+        conn.close()
+        return redirect(url_for("staff_dashboard"))
+
+    # Calculate available seats for this bus
+    booked_seats_count = conn.execute(
+        "SELECT COUNT(*) as count FROM bookings WHERE bus_id = ?",
+        (booking["bus_id"],)
+    ).fetchone()["count"]
+    
+    available_seats = 52 - booked_seats_count
+    
+    created_at_raw = booking['created_at'] if booking['created_at'] else None
+    formatted_created_at = created_at_raw
+    if created_at_raw:
+        try:
+            created_at_parsed = datetime.datetime.strptime(created_at_raw, '%Y-%m-%d %H:%M:%S')
+            formatted_created_at = created_at_parsed.strftime('%B %d, %Y %I:%M %p')
+        except Exception:
+            formatted_created_at = created_at_raw
+
+    conn.close()
+
+    return render_template("status.html", booking=booking, available_seats=available_seats, back_url=url_for('staff_dashboard'), user_role='staff', booking_created_at=formatted_created_at)
 
 
 @app.route("/admin/buses", methods=["GET", "POST"])
@@ -528,6 +637,22 @@ def delete_bus(bus_id):
     return redirect(url_for("admin_buses"))
 
 
+@app.route("/admin/toggle_bus_status/<int:bus_id>")
+def toggle_bus_status(bus_id):
+    if "user_id" not in session or session.get("role") != "admin":
+        return redirect(url_for("home"))
+
+    conn = get_db_connection()
+    bus = conn.execute("SELECT status FROM buses WHERE id = ?", (bus_id,)).fetchone()
+    if bus:
+        new_status = 'available' if bus['status'] == 'under_maintenance' else 'under_maintenance'
+        conn.execute("UPDATE buses SET status = ? WHERE id = ?", (new_status, bus_id))
+        conn.commit()
+    conn.close()
+
+    return redirect(url_for("admin_buses"))
+
+
 @app.route("/admin/delete_user/<int:user_id>")
 def delete_user(user_id):
     if "user_id" not in session or session.get("role") != "admin":
@@ -547,21 +672,89 @@ def admin_bookings():
         return redirect(url_for("home"))
 
     conn = get_db_connection()
-    bookings = conn.execute("""
+    rows = conn.execute("""
         SELECT b.id,
                u.fullname AS user,
+               u.role AS user_role,
                bs.bus_no,
                bs.route,
                b.seat_number,
-               b.status
+               b.status,
+               b.created_at
         FROM bookings b
         JOIN users u ON u.id = b.user_id
         JOIN buses bs ON bs.id = b.bus_id
         ORDER BY b.id DESC
     """).fetchall()
+
+    bookings = []
+    for row in rows:
+        created_at_raw = row['created_at'] or ''
+        try:
+            parsed = datetime.datetime.strptime(created_at_raw, '%Y-%m-%d %H:%M:%S')
+            created_date = parsed.strftime('%B %d, %Y')
+            created_time = parsed.strftime('%I:%M %p')
+        except Exception:
+            created_date = created_at_raw
+            created_time = ''
+
+        bookings.append({
+            'id': row['id'],
+            'user': row['user'],
+            'user_role': row['user_role'],
+            'bus_no': row['bus_no'],
+            'route': row['route'],
+            'seat_number': row['seat_number'],
+            'status': row['status'],
+            'created_date': created_date,
+            'created_time': created_time,
+            'booking_type': 'Walk-in' if row['user_role'] == 'staff' else 'Online'
+        })
     conn.close()
 
     return render_template("admin_bookings.html", bookings=bookings)
+
+
+@app.route("/admin/booking/<int:booking_id>")
+def admin_view_booking(booking_id):
+    if "user_id" not in session or session.get("role") != "admin":
+        return redirect(url_for("home"))
+
+    conn = get_db_connection()
+    booking = conn.execute("""
+        SELECT b.id, b.passenger_name, b.contact, b.seat_number,
+               bs.bus_no, bs.route, bs.departure, bs.arrival, bs.price, b.status, b.bus_id, b.created_at,
+               u.fullname AS user_name, u.email AS user_email
+        FROM bookings b
+        JOIN buses bs ON bs.id = b.bus_id
+        JOIN users u ON u.id = b.user_id
+        WHERE b.id = ?
+    """, (booking_id,)).fetchone()
+    
+    if not booking:
+        conn.close()
+        return redirect(url_for("admin_bookings"))
+
+    # Calculate available seats for this bus
+    booked_seats_count = conn.execute(
+        "SELECT COUNT(*) as count FROM bookings WHERE bus_id = ?",
+        (booking["bus_id"],)
+    ).fetchone()["count"]
+    
+    available_seats = 52 - booked_seats_count
+    
+    created_at_raw = booking['created_at'] if booking['created_at'] else None
+    formatted_created_at = created_at_raw
+    if created_at_raw:
+        try:
+            created_at_parsed = datetime.datetime.strptime(created_at_raw, '%Y-%m-%d %H:%M:%S')
+            formatted_created_at = created_at_parsed.strftime('%B %d, %Y %I:%M %p')
+        except Exception:
+            formatted_created_at = created_at_raw
+
+    conn.close()
+
+    return render_template("status.html", booking=booking, available_seats=available_seats, back_url=url_for('admin_bookings'), user_role='admin', booking_created_at=formatted_created_at)
 
 
 @app.route("/admin/cancel_booking/<int:booking_id>")
@@ -606,11 +799,11 @@ def admin_delete_booking(booking_id):
 
     conn = get_db_connection()
     booking = conn.execute(
-        "SELECT status FROM bookings WHERE id = ?",
+        "SELECT b.status, u.role AS user_role FROM bookings b JOIN users u ON u.id = b.user_id WHERE b.id = ?",
         (booking_id,)
     ).fetchone()
 
-    if booking and booking["status"] in ("paid", "cancelled"):
+    if booking and (booking["status"] in ("paid", "cancelled") or booking["user_role"] == 'staff'):
         conn.execute("DELETE FROM bookings WHERE id = ?", (booking_id,))
         conn.commit()
 
@@ -675,13 +868,57 @@ def payment_success(booking_id):
 
     conn = get_db_connection()
     conn.execute(
-        "UPDATE bookings SET status = 'paid' WHERE id = ? AND user_id = ?",
+        "UPDATE bookings SET status = 'paid', payment_method = 'Online' WHERE id = ? AND user_id = ?",
         (booking_id, session["user_id"])
     )
     conn.commit()
     conn.close()
 
-    return redirect(url_for("view_booking", booking_id=booking_id))
+    return redirect(url_for("ticket", booking_id=booking_id))
+
+
+@app.route("/ticket/<int:booking_id>")
+def ticket(booking_id):
+    if "user_id" not in session:
+        return redirect(url_for("home"))
+
+    conn = get_db_connection()
+    booking = conn.execute("""
+        SELECT b.id, b.passenger_name, b.contact, b.seat_number,
+               b.booking_type, b.payment_method, b.status, b.created_at,
+               bs.bus_no, bs.route, bs.departure, bs.arrival, bs.price
+        FROM bookings b
+        JOIN buses bs ON bs.id = b.bus_id
+        WHERE b.id = ? AND b.user_id = ?
+    """, (booking_id, session["user_id"])).fetchone()
+
+    if not booking or booking["status"] != "paid":
+        conn.close()
+        return redirect(url_for("view_booking", booking_id=booking_id))
+
+    created_at_raw = booking['created_at'] if booking['created_at'] else None
+    formatted_created_at = created_at_raw
+    if created_at_raw:
+        try:
+            created_at_parsed = datetime.datetime.strptime(created_at_raw, '%Y-%m-%d %H:%M:%S')
+            formatted_created_at = created_at_parsed.strftime('%B %d, %Y %I:%M %p')
+        except Exception:
+            formatted_created_at = created_at_raw
+
+    qr_data = (
+        f"Ticket #{booking['id']}\n"
+        f"Passenger: {booking['passenger_name']}\n"
+        f"Booking Type: {booking['booking_type']}\n"
+        f"Bus No: {booking['bus_no']}\n"
+        f"Seat No: {booking['seat_number']}\n"
+        f"Departure: {booking['departure']}\n"
+        f"Arrival: {booking['arrival']}\n"
+        f"Payment Method: {booking['payment_method']}\n"
+    )
+    qr_url = "https://api.qrserver.com/v1/create-qr-code/?size=280x280&data=" + urllib.parse.quote(qr_data)
+
+    conn.close()
+    return render_template("booking_detail.html", booking=booking, booking_created_at=formatted_created_at, qr_url=qr_url)
 
 
 @app.route("/user/cancel/<int:booking_id>")

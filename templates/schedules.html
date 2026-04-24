@@ -10,12 +10,16 @@
         {% if buses %}
             <div class="buses-grid">
                 {% for bus in buses %}
+                {% set remaining_seats = 52 - bus.booked_count %}
+                {% set status_text = 'Under Maintenance' if bus.status == 'under_maintenance' else 'Fully Booked' if remaining_seats <= 0 else 'Available' %}
+                {% set status_class = 'under-maintenance' if bus.status == 'under_maintenance' else 'fully-booked' if remaining_seats <= 0 else 'available' %}
                 <div class="bus-card">
                     <div class="bus-card-header">
                         <div>
                             <div class="bus-number">Bus {{ bus.bus_no }}</div>
                             <div class="bus-route" style="margin-top: 0.8rem;">{{ bus.route }}</div>
                         </div>
+                        <span class="bus-status status-{{ status_class }}">{{ status_text }}</span>
                     </div>
                     
                     <div class="bus-times">
@@ -30,10 +34,19 @@
                     </div>
                     
                     <div class="bus-price">
-                        <div class="price">₱{{ "%.2f"|format(bus.price) }}</div>
-                        <a href="{{ url_for('booking', bus_id=bus.id) }}" class="book-now-btn">
-                            <i class="fa-solid fa-arrow-right"></i> Book Now
-                        </a>
+                        <div>
+                            <div class="price">₱{{ "%.2f"|format(bus.price) }}</div>
+                            <div class="seat-count">{{ remaining_seats if remaining_seats > 0 else 0 }} seats left</div>
+                        </div>
+                        {% if bus.status == 'under_maintenance' or remaining_seats <= 0 %}
+                            <span class="book-now-btn disabled">
+                                <i class="fa-solid fa-ban"></i> {{ 'Maintenance' if bus.status == 'under_maintenance' else 'Fully Booked' }}
+                            </span>
+                        {% else %}
+                            <a href="{{ url_for('booking', bus_id=bus.id) }}" class="book-now-btn">
+                                <i class="fa-solid fa-arrow-right"></i> Book Now
+                            </a>
+                        {% endif %}
                     </div>
                 </div>
                 {% endfor %}

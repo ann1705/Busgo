@@ -21,9 +21,9 @@
             </a>
         </div>
         <main class="schedule-main">
-            <div class="schedule-container glass-card">
+<div class="schedule-container glass-card bus-management-card">
 
-                <header class="content-header">
+                <header class="content-header" style="justify-content: space-between; align-items: center;">
                     <h1>Manage Bus</h1>
                     <div class="header-actions">
                         <input type="text" id="busSearch" placeholder="Search buses..." class="search-input">
@@ -81,7 +81,7 @@
                 </div>
 
                 <!-- BUS TABLE -->
-                <table class="admin-table">
+                <table class="admin-table admin-buses-table">
                     <thead>
                         <tr>
                             <th>ID</th>
@@ -118,6 +118,7 @@
                             <td>
                                 <div class="admin-action-group">
                                     <a href="{{ url_for('admin_buses', edit_id=bus.id) }}" class="auth-btn action-btn" style="margin-right: 0.5rem; padding: 0.7rem 1rem;">Edit</a>
+                                    <a href="{{ url_for('toggle_bus_status', bus_id=bus.id) }}" class="book-now-btn action-btn" style="margin-right: 0.5rem; padding: 0.7rem 1rem;">{{ 'Set Available' if bus.status == 'under_maintenance' else 'Set Maintenance' }}</a>
                                     <a href="{{ url_for('delete_bus', bus_id=bus.id) }}" class="cancel-btn action-btn" style="padding: 0.7rem 1rem;">Delete</a>
                                 </div>
                             </td>

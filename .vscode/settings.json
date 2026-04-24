@@ -1,0 +1,9 @@
+{
+    "geminicodeassist.agentDebugMode": true,
+    "geminicodeassist.agentYoloMode": true,
+    "github.copilot.chat.alternateGeminiModelFPrompt.enabled": true,
+    "chat.mcp.assisted.nuget.enabled": true,
+    "intelephense.codeLens.usages.enable": true,
+    "emmet.triggerExpansionOnTab": true,
+    "github.copilot.chat.copilotMemory.enabled": true
+}
