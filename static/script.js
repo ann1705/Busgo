@@ -250,7 +250,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (addBusBtn && modal) {
         addBusBtn.addEventListener('click', () => {
-            modal.style.display = 'block';
+            modal.style.display = 'flex';
         });
 
         if (closeModal) {
@@ -266,6 +266,14 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
+
+    // Open bus modal if edit_id is present in URL on page load
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.has('edit_id') && modal) {
+        modal.style.display = 'flex';
+    }
+
+
 
     const userSearchInput = document.getElementById('userSearch');
     const usersTable = document.getElementById('usersTable');
@@ -287,7 +295,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (addUserBtn && addUserModal) {
         addUserBtn.addEventListener('click', () => {
-            addUserModal.style.display = 'block';
+            addUserModal.style.display = 'flex';
         });
 
         if (userModalClose) {

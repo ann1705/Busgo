@@ -21,7 +21,7 @@
             </a>
         </div>
         <main class="schedule-main">
-            <div class="schedule-container glass-card bus-management-card" style="width: 95%; max-width: 1600px; padding: 2.5rem;">
+            <div class="schedule-container glass-card bus-management-card" style="width: 98%; max-width: 1800px; padding: 2.5rem;">
                 <header class="content-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2.5rem; width: 100%; border-bottom: 2px solid rgba(16, 42, 67, 0.1); padding-bottom: 1.5rem;">
                     <h2 class="section-heading" style="margin: 0; color: var(--dark-text); font-size: 1.8rem; font-weight: 800;">Manage Bus</h2>
                     <div class="header-actions">
@@ -109,19 +109,23 @@
                             <td>
                                 <span style="padding: 4px 12px; border-radius: 20px; font-size: 0.85rem; font-weight: 600;
                                     {% if bus.status == 'available' %}
-                                        background: rgba(118, 165, 255, 0.2); color: #76a5ff;
+                                        background: rgba(76, 175, 80, 0.2); color: #2e7d32;
+                                    {% elif bus.status == 'under_maintenance' %}
+                                        background: rgba(255, 193, 7, 0.2); color: #f57c00;
+                                    {% elif bus.status == 'fully_booked' %}
+                                        background: rgba(244, 67, 54, 0.2); color: #c62828;
                                     {% else %}
-                                        background: rgba(74, 123, 212, 0.2); color: #4a7bd4;
+                                        background: rgba(16, 42, 67, 0.1); color: var(--dark-text);
                                     {% endif %}
                                 ">
-                                    {{ 'Available' if bus.status == 'available' else 'Under Maintenance' }}
+                                    {{ 'Available' if bus.status == 'available' else 'Under Maintenance' if bus.status == 'under_maintenance' else 'Fully Booked' if bus.status == 'fully_booked' else bus.status|capitalize }}
                                 </span>
                             </td>
                             <td>
                                 <div class="admin-action-group">
-                                    <a href="{{ url_for('admin_buses', edit_id=bus.id) }}" class="auth-btn action-btn" style="margin-right: 0.5rem; padding: 0.7rem 1rem;">Edit</a>
-                                    <a href="{{ url_for('toggle_bus_status', bus_id=bus.id) }}" class="book-now-btn action-btn" style="margin-right: 0.5rem; padding: 0.7rem 1rem;">{{ 'Set Available' if bus.status == 'under_maintenance' else 'Set Maintenance' }}</a>
-                                    <a href="{{ url_for('delete_bus', bus_id=bus.id) }}" class="cancel-btn action-btn" style="padding: 0.7rem 1rem;">Delete</a>
+                                    <a href="{{ url_for('admin_buses', edit_id=bus.id) }}" class="auth-btn action-btn" style="text-decoration: none; margin-right: 0.5rem; padding: 0.7rem 1rem;">Edit</a>
+                                    <a href="{{ url_for('toggle_bus_status', bus_id=bus.id) }}" class="book-now-btn action-btn" style="text-decoration: none; margin-right: 0.5rem; padding: 0.7rem 1rem;">{{ 'Set Available' if bus.status == 'under_maintenance' else 'Set Maintenance' }}</a>
+                                    <a href="{{ url_for('delete_bus', bus_id=bus.id) }}" class="cancel-btn action-btn" style="text-decoration: none; padding: 0.7rem 1rem;">Delete</a>
                                 </div>
                             </td>
                         </tr>

@@ -20,7 +20,7 @@
                 <i class="fa-solid 
                     {% if booking.status == 'paid' %}fa-check-circle{% elif booking.status == 'cancelled' %}fa-times-circle{% else %}fa-clock{% endif %}"></i>
                 {% if booking.status == 'paid' %}
-                    CONFIRMED
+                    COMPLETED
                 {% elif booking.status == 'cancelled' %}
                     CANCELLED
                 {% else %}
@@ -48,7 +48,7 @@
                 </div>
                 <div style="text-align: right;">
                     <p style="font-size: 0.85rem; color: rgba(15, 31, 62, 0.7); text-transform: uppercase; margin-bottom: 0.3rem; font-weight: 600;">Status Updated</p>
-                    <p style="font-size: 1rem; font-weight: 700; color: rgba(15, 31, 62, 0.9);">{{ 'Confirmed' if booking.status == 'paid' else 'Waiting for payment' if booking.status == 'waiting for payment' else booking.status|capitalize }}</p>
+                    <p style="font-size: 1rem; font-weight: 700; color: rgba(15, 31, 62, 0.9);">{{ 'Completed' if booking.status == 'paid' else 'Waiting for payment' if booking.status == 'waiting for payment' else booking.status|capitalize }}</p>
                 </div>
             </div>
             <div style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid rgba(15, 31, 62, 0.12);">
@@ -69,34 +69,34 @@
 
         <!-- Trip Information -->
         <div class="booking-panel-blue" style="margin-bottom: 2rem; background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.2);">
-            <h3 style="margin-bottom: 1.5rem; color: rgba(0, 0, 0, 0.9);">Trip Information</h3>
+            <h3 style="margin-bottom: 1.5rem; color: var(--accent-dark);">Trip Information</h3>
             
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
                 <div>
                     <div style="margin-bottom: 1.5rem;">
-                        <p style="font-size: 0.85rem; color: rgba(15, 31, 62, 0.82); text-transform: uppercase; margin-bottom: 0.3rem; font-weight: 700;">Route</p>
-                        <p style="font-size: 1.2rem; font-weight: 700; color: rgba(15, 31, 62, 0.96);">{{ booking.route }}</p>
+                        <p style="font-size: 0.85rem; color: var(--dark-text); text-transform: uppercase; margin-bottom: 0.3rem; font-weight: 800; letter-spacing: 0.5px;">Route</p>
+                        <p style="font-size: 1.2rem; font-weight: 700; color: var(--dark-text);">{{ booking.route }}</p>
                     </div>
                     <div style="margin-bottom: 1.5rem;">
-                        <p style="font-size: 0.85rem; color: rgba(15, 31, 62, 0.82); text-transform: uppercase; margin-bottom: 0.3rem; font-weight: 700;">Bus Number</p>
-                        <p style="font-size: 1rem; font-weight: 700; color: rgba(15, 31, 62, 0.96);">{{ booking.bus_no }}</p>
+                        <p style="font-size: 0.85rem; color: var(--dark-text); text-transform: uppercase; margin-bottom: 0.3rem; font-weight: 800; letter-spacing: 0.5px;">Bus Number</p>
+                        <p style="font-size: 1rem; font-weight: 700; color: var(--dark-text);">{{ booking.bus_no }}</p>
                     </div>
                 </div>
                 
                 <div>
                     <div style="margin-bottom: 1.5rem;">
-                        <p style="font-size: 0.85rem; color: rgba(15, 31, 62, 0.82); text-transform: uppercase; margin-bottom: 0.3rem; font-weight: 700;">Departure</p>
-                        <p style="font-size: 1.2rem; font-weight: 700; color: rgba(15, 31, 62, 0.96);">{{ booking.departure }}</p>
+                        <p style="font-size: 0.85rem; color: var(--dark-text); text-transform: uppercase; margin-bottom: 0.3rem; font-weight: 800; letter-spacing: 0.5px;">Departure</p>
+                        <p style="font-size: 1.2rem; font-weight: 700; color: var(--dark-text);">{{ booking.departure }}</p>
                     </div>
                     <div style="margin-bottom: 1.5rem;">
-                        <p style="font-size: 0.85rem; color: rgba(15, 31, 62, 0.82); text-transform: uppercase; margin-bottom: 0.3rem; font-weight: 700;">Arrival</p>
-                        <p style="font-size: 1.2rem; font-weight: 700; color: rgba(15, 31, 62, 0.96);">{{ booking.arrival }}</p>
+                        <p style="font-size: 0.85rem; color: var(--dark-text); text-transform: uppercase; margin-bottom: 0.3rem; font-weight: 800; letter-spacing: 0.5px;">Arrival</p>
+                        <p style="font-size: 1.2rem; font-weight: 700; color: var(--dark-text);">{{ booking.arrival }}</p>
                     </div>
                 </div>
             </div>
-            <div style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid rgba(0, 0, 0, 0.1);">
-                <p style="font-size: 0.85rem; color: rgba(0, 0, 0, 0.7); text-transform: uppercase; margin-bottom: 0.3rem; font-weight: 600;">Available Seats</p>
-                <p style="font-size: 1.1rem; font-weight: 700; color: rgba(0, 0, 0, 0.9);">
+            <div style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid rgba(16, 42, 67, 0.15);">
+                <p style="font-size: 0.85rem; color: var(--dark-text); text-transform: uppercase; margin-bottom: 0.3rem; font-weight: 800;">Available Seats</p>
+                <p style="font-size: 1.1rem; font-weight: 700; color: var(--dark-text);">
                     <i class="fa-solid fa-chair" style="margin-right: 0.5rem;"></i>
                     {{ available_seats }} seats available
                 </p>
@@ -105,21 +105,21 @@
 
         <!-- Passenger Information -->
         <div class="booking-panel-blue" style="margin-bottom: 2rem; background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.2);">
-            <h3 style="margin-bottom: 1.5rem; color: rgba(0, 0, 0, 0.9);">Passenger Information</h3>
+            <h3 style="margin-bottom: 1.5rem; color: var(--accent-dark);">Passenger Information</h3>
             
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
                 <div>
-                    <p style="font-size: 0.85rem; color: rgba(0, 0, 0, 0.7); text-transform: uppercase; margin-bottom: 0.3rem; font-weight: 600;">Passenger Name</p>
-                    <p style="font-size: 1.1rem; font-weight: 700; color: rgba(0, 0, 0, 0.9);">{{ booking.passenger_name }}</p>
+                    <p style="font-size: 0.85rem; color: var(--dark-text); text-transform: uppercase; margin-bottom: 0.3rem; font-weight: 800;">Passenger Name</p>
+                    <p style="font-size: 1.1rem; font-weight: 700; color: var(--dark-text);">{{ booking.passenger_name }}</p>
                 </div>
                 <div>
-                    <p style="font-size: 0.85rem; color: rgba(0, 0, 0, 0.7); text-transform: uppercase; margin-bottom: 0.3rem; font-weight: 600;">Contact</p>
-                    <p style="font-size: 1.1rem; font-weight: 700; color: rgba(0, 0, 0, 0.9);">{{ booking.contact }}</p>
+                    <p style="font-size: 0.85rem; color: var(--dark-text); text-transform: uppercase; margin-bottom: 0.3rem; font-weight: 800;">Contact</p>
+                    <p style="font-size: 1.1rem; font-weight: 700; color: var(--dark-text);">{{ booking.contact }}</p>
                 </div>
             </div>
             
             <div style="margin-top: 1.5rem;">
-                <p style="font-size: 0.85rem; color: rgba(0, 0, 0, 0.7); text-transform: uppercase; margin-bottom: 0.3rem; font-weight: 600;">Seat Number</p>
+                <p style="font-size: 0.85rem; color: var(--dark-text); text-transform: uppercase; margin-bottom: 0.3rem; font-weight: 800;">Seat Number</p>
                 <p style="display: inline-block; background: linear-gradient(135deg, var(--yellow), var(--yellow-dark)); color: #000; padding: 12px 28px; border-radius: 50px; font-weight: 700; font-size: 1.3rem;">{{ booking.seat_number }}</p>
             </div>
         </div>

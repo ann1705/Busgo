@@ -454,13 +454,13 @@ body {
 .glass-content {
     max-width: 920px;
     margin: 0 auto;
-    background: rgba(255, 255, 255, 0.22);
+    background: rgba(255, 255, 255, 0.22); /* Restored transparency for glassmorphism effect */
     padding: 3.5rem;
     border-radius: 32px;
-    border: 1px solid rgba(255, 255, 255, 0.45);
+    border: 1px solid var(--white);
     text-align: center;
     color: var(--dark-text);
-    box-shadow: 0 28px 90px rgba(16, 42, 67, 0.18);
+    box-shadow: var(--shadow-large);
     backdrop-filter: blur(24px);
     position: relative;
 }
@@ -476,14 +476,14 @@ body {
 .glass-content h3 {
     font-size: 1.35rem;
     margin-bottom: 1rem;
-    color: var(--accent);
+    color: var(--accent-dark); /* Darker blue for better visibility */
 }
 
 .glass-content p {
     font-size: 1.15rem;
-    line-height: 1.9;
-    opacity: 0.98;
-    color: rgba(15, 33, 68, 0.95);
+    line-height: 1.8;
+    color: var(--dark-text);
+    margin-bottom: 1.5rem;
 }
 
 .glass-content ul {
@@ -491,7 +491,7 @@ body {
     padding-left: 1.6rem;
     margin-top: 1rem;
     text-align: left;
-    color: rgba(15, 33, 68, 0.95);
+    color: var(--dark-text);
 }
 
 .glass-content li {
@@ -920,21 +920,21 @@ body {
 }
 
 .status-available {
-    color: #1f4d3d;
-    background: rgba(107, 185, 120, 0.16);
-    border: 1px solid rgba(107, 185, 120, 0.35);
+    color: #1b5e20;
+    background: rgba(76, 175, 80, 0.2);
+    border: 1px solid rgba(76, 175, 80, 0.4);
 }
 
 .status-fully-booked {
-    color: #581f1f;
-    background: rgba(245, 101, 101, 0.14);
-    border: 1px solid rgba(245, 101, 101, 0.3);
+    color: #b71c1c;
+    background: rgba(244, 67, 54, 0.2);
+    border: 1px solid rgba(244, 67, 54, 0.4);
 }
 
 .status-under-maintenance {
-    color: #3f2764;
-    background: rgba(159, 132, 255, 0.16);
-    border: 1px solid rgba(159, 132, 255, 0.3);
+    color: #e65100;
+    background: rgba(255, 193, 7, 0.2);
+    border: 1px solid rgba(255, 193, 7, 0.4);
 }
 
 .time-value {
@@ -981,15 +981,17 @@ body {
 
 .time-label {
     font-size: 0.8rem;
-    color: rgba(255, 255, 255, 0.6);
+    color: var(--dark-text);
+    opacity: 0.7;
     text-transform: uppercase;
     margin-bottom: 0.3rem;
+    font-weight: 700;
 }
 
 .time-value {
     font-size: 1.3rem;
     font-weight: 700;
-    color: var(--accent);
+    color: var(--dark-text);
 }
 
 .bus-price {
@@ -1587,12 +1589,13 @@ body {
 
 .admin-table {
     width: 100%;
-    border-collapse: collapse;
+    border-collapse: separate;
+    border-spacing: 0;
     table-layout: auto;
 }
 
 .admin-table th {
-    text-align: left;
+    text-align: left !important;
     padding: 15px 20px;
     background: rgba(132, 180, 255, 0.15);
     border-bottom: 1px solid rgba(132, 180, 255, 0.3);
@@ -1603,6 +1606,7 @@ body {
 }
 
 .admin-table td {
+    text-align: left !important;
     padding: 15px 20px;
     border-bottom: 1px solid rgba(132, 180, 255, 0.1);
     color: rgba(255, 255, 255, 0.9);
@@ -2375,7 +2379,7 @@ body {
 
 /* Modal Styles */
 .modal {
-    display: flex;
+    display: none;
     align-items: center;
     justify-content: center;
     position: fixed;

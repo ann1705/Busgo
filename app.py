@@ -209,10 +209,12 @@ def booking(bus_id):
         passenger_name = request.form["passenger_name"]
         contact = request.form["contact"]
         seat_number = request.form["seat_number"]
+        # Explicitly set the creation time and initial status
+        created_at = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
         cur = conn.execute(
-            "INSERT INTO bookings (user_id, bus_id, passenger_name, contact, seat_number) VALUES (?, ?, ?, ?, ?)",
-            (session["user_id"], bus_id, passenger_name, contact, seat_number)
+            "INSERT INTO bookings (user_id, bus_id, passenger_name, contact, seat_number, status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+            (session["user_id"], bus_id, passenger_name, contact, seat_number, 'waiting for payment', created_at)
         )
         conn.commit()
         booking_id = cur.lastrowid
@@ -245,13 +247,32 @@ def user_dashboard():
         return redirect(url_for("home", login_required=1))
 
     conn = get_db_connection()
-    bookings = conn.execute("""
-        SELECT b.id, bs.bus_no, bs.route, bs.departure, bs.arrival, bs.price, b.status
+    rows = conn.execute("""
+        SELECT b.id, bs.bus_no, bs.route, bs.departure, bs.arrival, bs.price, b.status, b.created_at
         FROM bookings b
         JOIN buses bs ON bs.id = b.bus_id
         WHERE b.user_id = ?
         ORDER BY b.id DESC
     """, (session["user_id"],)).fetchall()
+
+    bookings = []
+    for row in rows:
+        created_at_raw = row['created_at'] or ''
+        try:
+            parsed = datetime.datetime.strptime(created_at_raw, '%Y-%m-%d %H:%M:%S')
+            booked_on = parsed.strftime('%b %d, %I:%M %p')
+        except Exception:
+            booked_on = created_at_raw
+            
+        bookings.append({
+            'id': row['id'],
+            'bus_no': row['bus_no'],
+            'route': row['route'],
+            'departure': row['departure'],
+            'price': row['price'],
+            'status': row['status'],
+            'booked_on': booked_on
+        })
     conn.close()
 
     return render_template("user_dashboard.html", bookings=bookings)

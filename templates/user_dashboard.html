@@ -31,30 +31,30 @@
             {% endfor %}
 
             {% if counts.active > 0 %}
-                <table class="admin-table">
-                    <thead>
+                <table class="admin-table admin-bookings-table">
+                    <thead style="background: var(--dark-text);">
                         <tr>
-                            <th>Ticket ID</th>
-                            <th>Bus</th>
-                            <th>Route</th>
-                            <th>Departure</th>
-                            <th>Price</th>
-                            <th>Status</th>
-                            <th>Actions</th>
+                            <th style="color: white; border-radius: 12px 0 0 0;">Ticket ID</th>
+                            <th style="color: white;">Bus</th>
+                            <th style="color: white;">Route</th>
+                            <th style="color: white;">Departure</th>
+                            <th style="color: white;">Booked On</th>
+                            <th style="color: white;">Price</th>
+                            <th style="color: white;">Status</th>
+                            <th style="color: white; border-radius: 0 12px 0 0;">Actions</th>
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody style="background: rgba(255,255,255,0.4);">
                         {% for booking in bookings if booking.status not in ['paid', 'cancelled'] %}
-                        <tr>
-                            <td><strong>#{{ booking.id }}</strong></td>
-                            <td>{{ booking.bus_no }}</td>
-                            <td>{{ booking.route }}</td>
-                            <td><strong>{{ booking.departure }}</strong></td>
-                            <td><strong style="color: var(--yellow);">₱{{ "%.2f"|format(booking.price) }}</strong></td>
-                            <td>
-                                <span class="status-{{ booking.status.lower() }}">
-                                    {{ booking.status|capitalize }}
-                                </span>
+                        <tr style="border-bottom: 1px solid rgba(16,42,67,0.1);">
+                            <td style="color: var(--dark-text); font-weight: 700;">#{{ booking.id }}</td>
+                            <td style="color: var(--dark-text);">{{ booking.bus_no }}</td>
+                            <td style="color: var(--dark-text);">{{ booking.route }}</td>
+                            <td style="color: var(--dark-text); font-weight: 700;">{{ booking.departure }}</td>
+                            <td style="color: var(--dark-text);">{{ booking.booked_on }}</td>
+                            <td style="color: var(--dark-text); font-weight: 700;">₱{{ "%.2f"|format(booking.price) }}</td>
+                            <td class="status-{{ booking.status.lower() }}" style="font-weight: 700;">
+                                {{ 'Completed' if booking.status == 'paid' else 'Waiting for Payment' if booking.status == 'waiting for payment' else booking.status|capitalize }}
                             </td>
                             <td>
                                 <a href="{{ url_for('view_booking', booking_id=booking.id) }}" class="book-now-btn" style="padding: 8px 14px; font-size: 0.9rem;">
@@ -84,30 +84,30 @@
             </div>
 
             {% if counts.history > 0 %}
-                <table class="admin-table">
-                    <thead>
+                <table class="admin-table admin-bookings-table">
+                    <thead style="background: var(--dark-text);">
                         <tr>
-                            <th>Ticket ID</th>
-                            <th>Bus</th>
-                            <th>Route</th>
-                            <th>Departure</th>
-                            <th>Price</th>
-                            <th>Status</th>
-                            <th>Actions</th>
+                            <th style="color: white; border-radius: 12px 0 0 0;">Ticket ID</th>
+                            <th style="color: white;">Bus</th>
+                            <th style="color: white;">Route</th>
+                            <th style="color: white;">Departure</th>
+                            <th style="color: white;">Booked On</th>
+                            <th style="color: white;">Price</th>
+                            <th style="color: white;">Status</th>
+                            <th style="color: white; border-radius: 0 12px 0 0;">Actions</th>
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody style="background: rgba(255,255,255,0.4);">
                         {% for booking in bookings if booking.status in ['paid', 'cancelled'] %}
-                        <tr>
-                            <td><strong>#{{ booking.id }}</strong></td>
-                            <td>{{ booking.bus_no }}</td>
-                            <td>{{ booking.route }}</td>
-                            <td><strong>{{ booking.departure }}</strong></td>
-                            <td><strong style="color: var(--yellow);">₱{{ "%.2f"|format(booking.price) }}</strong></td>
-                            <td>
-                                <span class="status-{{ booking.status.lower() }}">
-                                    {{ 'Completed' if booking.status == 'paid' else 'Waiting for Payment' if booking.status == 'waiting for payment' else booking.status|capitalize }}
-                                </span>
+                        <tr style="border-bottom: 1px solid rgba(16,42,67,0.1);">
+                            <td style="color: var(--dark-text); font-weight: 700;">#{{ booking.id }}</td>
+                            <td style="color: var(--dark-text);">{{ booking.bus_no }}</td>
+                            <td style="color: var(--dark-text);">{{ booking.route }}</td>
+                            <td style="color: var(--dark-text); font-weight: 700;">{{ booking.departure }}</td>
+                            <td style="color: var(--dark-text);">{{ booking.booked_on }}</td>
+                            <td style="color: var(--dark-text); font-weight: 700;">₱{{ "%.2f"|format(booking.price) }}</td>
+                            <td class="status-{{ booking.status.lower() }}" style="font-weight: 700;">
+                                {{ 'Completed' if booking.status == 'paid' else 'Waiting for Payment' if booking.status == 'waiting for payment' else booking.status|capitalize }}
                             </td>
                             <td>
                                 <a href="{{ url_for('view_booking', booking_id=booking.id) }}" class="book-now-btn" style="padding: 8px 14px; font-size: 0.9rem;">

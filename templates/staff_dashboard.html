@@ -100,7 +100,7 @@
         </div>
 
         <!-- Payment Modal -->
-        <div id="payment-modal" class="modal hidden">
+        <div id="payment-modal" class="modal">
             <div class="modal-content">
                 <span class="close">&times;</span>
                 <h3>Complete Payment</h3>
@@ -147,38 +147,38 @@
                         {% for date, items in active_bookings_by_date.items() %}
                             <div class="date-group">
                                 <h3>{{ date }} <small>({{ items|length }} active bookings)</small></h3>
-                                <table class="admin-table">
-                                    <thead>
+                                <table class="admin-table admin-bookings-table">
+                                    <thead style="background: var(--dark-text);">
                                         <tr>
-                                            <th>ID</th>
-                                            <th>Time</th>
-                                            <th>Passenger</th>
-                                            <th>Contact</th>
-                                            <th>Bus</th>
-                                            <th>Route</th>
-                                            <th>Departure</th>
-                                            <th>Seat</th>
-                                            <th>Status</th>
-                                            <th>Actions</th>
+                                            <th style="color: white; border-radius: 12px 0 0 0;">ID</th>
+                                            <th style="color: white;">Time</th>
+                                            <th style="color: white;">Passenger</th>
+                                            <th style="color: white;">Contact</th>
+                                            <th style="color: white;">Bus</th>
+                                            <th style="color: white;">Route</th>
+                                            <th style="color: white;">Departure</th>
+                                            <th style="color: white;">Seat</th>
+                                            <th style="color: white;">Status</th>
+                                            <th style="color: white; border-radius: 0 12px 0 0;">Actions</th>
                                         </tr>
                                     </thead>
-                                    <tbody>
+                                    <tbody style="background: rgba(255,255,255,0.4);">
                                         {% for booking in items %}
-                                            <tr>
-                                                <td><strong>#{{ booking.id }}</strong></td>
-                                                <td>{{ booking.created_time }}</td>
-                                                <td>{{ booking.passenger_name }}</td>
-                                                <td>{{ booking.contact }}</td>
-                                                <td>{{ booking.bus_no }}</td>
-                                                <td>{{ booking.route }}</td>
-                                                <td>{{ booking.departure }}</td>
-                                                <td>{{ booking.seat_number }}</td>
-                                                <td><span class="status-{{ booking.status.lower() }}">{{ booking.status|capitalize }}</span></td>
+                                            <tr style="border-bottom: 1px solid rgba(16,42,67,0.1);">
+                                                <td style="color: var(--dark-text); font-weight: 700;">#{{ booking.id }}</td>
+                                                <td style="color: var(--dark-text);">{{ booking.created_time }}</td>
+                                                <td style="color: var(--dark-text); font-weight: 700;">{{ booking.passenger_name }}</td>
+                                                <td style="color: var(--dark-text);">{{ booking.contact }}</td>
+                                                <td style="color: var(--dark-text);">{{ booking.bus_no }}</td>
+                                                <td style="color: var(--dark-text);">{{ booking.route }}</td>
+                                                <td style="color: var(--dark-text);">{{ booking.departure }}</td>
+                                                <td style="color: var(--dark-text);">{{ booking.seat_number }}</td>
+                                                <td class="status-{{ booking.status.lower() }}" style="font-weight: 700;">{{ 'Completed' if booking.status == 'paid' else 'Waiting for Payment' if booking.status == 'waiting for payment' else booking.status|capitalize }}</td>
                                                 <td>
                                                     {% if booking.status == 'paid' %}
                                                     <a href="{{ url_for('ticket', booking_id=booking.id) }}" class="receipt-btn-sm">Receipt</a>
                                                     {% else %}
-                                                    <span style="color: gray; font-size: 0.8rem;">No Receipt</span>
+                                                    <span style="color: #627d98; font-size: 0.8rem; font-weight: 600;">No Receipt</span>
                                                     {% endif %}
                                                 </td>
                                             </tr>
@@ -201,38 +201,38 @@
                         {% for date, items in history_bookings_by_date.items() %}
                             <div class="date-group">
                                 <h3>{{ date }} <small>({{ items|length }} history bookings)</small></h3>
-                                <table class="admin-table">
-                                    <thead>
+                                <table class="admin-table admin-bookings-table">
+                                    <thead style="background: var(--dark-text);">
                                         <tr>
-                                            <th>ID</th>
-                                            <th>Time</th>
-                                            <th>Passenger</th>
-                                            <th>Contact</th>
-                                            <th>Bus</th>
-                                            <th>Route</th>
-                                            <th>Departure</th>
-                                            <th>Seat</th>
-                                            <th>Status</th>
-                                            <th>Actions</th>
+                                            <th style="color: white; border-radius: 12px 0 0 0;">ID</th>
+                                            <th style="color: white;">Time</th>
+                                            <th style="color: white;">Passenger</th>
+                                            <th style="color: white;">Contact</th>
+                                            <th style="color: white;">Bus</th>
+                                            <th style="color: white;">Route</th>
+                                            <th style="color: white;">Departure</th>
+                                            <th style="color: white;">Seat</th>
+                                            <th style="color: white;">Status</th>
+                                            <th style="color: white; border-radius: 0 12px 0 0;">Actions</th>
                                         </tr>
                                     </thead>
-                                    <tbody>
+                                    <tbody style="background: rgba(255,255,255,0.4);">
                                         {% for booking in items %}
-                                            <tr>
-                                                <td><strong>#{{ booking.id }}</strong></td>
-                                                <td>{{ booking.created_time }}</td>
-                                                <td>{{ booking.passenger_name }}</td>
-                                                <td>{{ booking.contact }}</td>
-                                                <td>{{ booking.bus_no }}</td>
-                                                <td>{{ booking.route }}</td>
-                                                <td>{{ booking.departure }}</td>
-                                                <td>{{ booking.seat_number }}</td>
-                                                <td><span class="status-{{ booking.status.lower() }}">{{ booking.status|capitalize }}</span></td>
+                                            <tr style="border-bottom: 1px solid rgba(16,42,67,0.1);">
+                                                <td style="color: var(--dark-text); font-weight: 700;">#{{ booking.id }}</td>
+                                                <td style="color: var(--dark-text);">{{ booking.created_time }}</td>
+                                                <td style="color: var(--dark-text); font-weight: 700;">{{ booking.passenger_name }}</td>
+                                                <td style="color: var(--dark-text);">{{ booking.contact }}</td>
+                                                <td style="color: var(--dark-text);">{{ booking.bus_no }}</td>
+                                                <td style="color: var(--dark-text);">{{ booking.route }}</td>
+                                                <td style="color: var(--dark-text);">{{ booking.departure }}</td>
+                                                <td style="color: var(--dark-text);">{{ booking.seat_number }}</td>
+                                                <td class="status-{{ booking.status.lower() }}" style="font-weight: 700;">{{ 'Completed' if booking.status == 'paid' else 'Waiting for Payment' if booking.status == 'waiting for payment' else booking.status|capitalize }}</td>
                                                 <td>
                                                     {% if booking.status == 'paid' %}
                                                     <a href="{{ url_for('ticket', booking_id=booking.id) }}" class="receipt-btn-sm">Receipt</a>
                                                     {% else %}
-                                                    <span style="color: gray; font-size: 0.8rem;">No Receipt</span>
+                                                    <span style="color: #627d98; font-size: 0.8rem; font-weight: 600;">No Receipt</span>
                                                     {% endif %}
                                                 </td>
                                             </tr>
@@ -416,11 +416,11 @@
             alert('Please select a seat before proceeding to payment.');
             return;
         }
-        paymentModal.classList.remove('hidden');
+        paymentModal.style.display = 'flex';
     });
 
     closeModal.addEventListener('click', function () {
-        paymentModal.classList.add('hidden');
+        paymentModal.style.display = 'none';
     });
 
     paymentMethodRadios.forEach(radio => {
