@@ -152,12 +152,23 @@
         <!-- Actions -->
         <div style="display: flex; gap: 1.5rem; justify-content: center; flex-wrap: wrap;">
             {% if booking.status != 'paid' and booking.status != 'cancelled' %}
-                <a href="{{ url_for('pay_booking', booking_id=booking.id) }}" class="book-now-btn">
-                    <i class="fa-solid fa-credit-card"></i> Pay Online
-                </a>
+
+                {% if user_role == 'admin' and booking.status == 'verifying payment' %}
+                    <a href="{{ url_for('confirm_payment', booking_id=booking.id) }}" class="book-now-btn" style="background: green; color: white;">
+                        <i class="fa-solid fa-check"></i> Confirm Payment
+                    </a>
+
+                {% elif user_role == 'user' and booking.status == 'waiting for payment' %}
+                    <a href="{{ url_for('pay_booking', booking_id=booking.id) }}" class="book-now-btn">
+                        <i class="fa-solid fa-credit-card"></i> Pay Online
+                    </a>
+
+                {% endif %}
+
                 <a href="{{ url_for('user_cancel_booking', booking_id=booking.id) }}" class="cancel-btn" onclick="return confirm('Are you sure you want to cancel this booking?')">
                     <i class="fa-solid fa-times"></i> Cancel Booking
                 </a>
+
             {% else %}
                 <a href="{{ url_for('ticket', booking_id=booking.id) }}" class="book-now-btn">
                     <i class="fa-solid fa-ticket"></i> View Ticket

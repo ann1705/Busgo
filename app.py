@@ -337,46 +337,38 @@ def pay_booking(booking_id):
 
     amount = int(float(booking["price"]) * 100)
 
-    url = "https://api.paymongo.com/v1/checkout_sessions"
+    url = "https://api.paymongo.com/v1/sources"
 
     payload = {
-        "data": {
-            "attributes": {
-                "send_email_receipt": False,
-                "show_description": True,
-                "show_line_items": True,
-                "line_items": [{
-                    "currency": "PHP",
-                    "amount": amount,
-                    "name": "BusGo Ticket Payment",
-                    "quantity": 1
-                }],
-                "payment_method_types": ["gcash", "card"],
-                "success_url": url_for("payment_success", booking_id=booking_id, _external=True),
-                "cancel_url": url_for("view_booking", booking_id=booking_id, _external=True)
-            }
+    "data": {
+        "attributes": {
+            "amount": amount,
+            "redirect": {
+                "success": url_for("payment_success", booking_id=booking_id, _external=True),
+                "failed": url_for("view_booking", booking_id=booking_id, _external=True)
+            },
+            "type": "gcash",
+            "currency": "PHP"
         }
     }
+}
 
     response = requests.post(
         url,
         json=payload,
-        headers={
-            "Content-Type": "application/json"
-        },
+        headers={"Content-Type": "application/json"},
         auth=(PAYMONGO_SECRET_KEY, "")
     )
 
-    # SAFETY CHECK
     if response.status_code != 200:
         return f"PayMongo Error: {response.text}"
 
-    response_data = response.json()
+    data = response.json()
 
-    if "data" not in response_data:
-        return f"PayMongo Error: {response_data}"
+    if "data" not in data:
+        return f"PayMongo Error: {data}"
 
-    checkout_url = response_data["data"]["attributes"]["checkout_url"]
+    checkout_url = data["data"]["attributes"]["redirect"]["checkout_url"]
 
     return redirect(checkout_url)
 
@@ -888,15 +880,33 @@ def payment_success(booking_id):
         return redirect(url_for("home"))
 
     conn = get_db_connection()
+
     conn.execute(
-        "UPDATE bookings SET status = 'paid', payment_method = 'Online' WHERE id = ? AND user_id = ?",
+        "UPDATE bookings SET status = 'verifying payment', payment_method = 'Online' WHERE id = ? AND user_id = ?",
         (booking_id, session["user_id"])
     )
+
     conn.commit()
     conn.close()
 
-    return redirect(url_for("ticket", booking_id=booking_id))
+    return redirect(url_for("view_booking", booking_id=booking_id))
 
+@app.route("/admin/confirm_payment/<int:booking_id>")
+def confirm_payment(booking_id):
+    if "user_id" not in session or session.get("role") != "admin":
+        return redirect(url_for("home"))
+
+    conn = get_db_connection()
+
+    conn.execute(
+        "UPDATE bookings SET status = 'paid' WHERE id = ?",
+        (booking_id,)
+    )
+
+    conn.commit()
+    conn.close()
+
+    return redirect(url_for("admin_bookings"))
 
 @app.route("/ticket/<int:booking_id>")
 def ticket(booking_id):
