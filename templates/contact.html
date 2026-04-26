@@ -4,6 +4,11 @@
 
 {% block content %}
 <main class="info-section">
+    <div class="page-back-nav" style="max-width: 920px; margin: 0 auto 1.5rem auto; text-align: left;">
+        <a href="{{ url_for('home') }}" class="back-btn" style="background: rgba(16, 42, 67, 0.1); color: var(--dark-text);">
+            <i class="fa-solid fa-arrow-left"></i> Back to Home
+        </a>
+    </div>
     <div class="glass-content">
         <h1>Contact BusGo</h1>
         <p>Have a question, need help with a booking, or want to learn more about our services? Our support team is here to help.</p>
@@ -11,37 +16,37 @@
         <div class="contact-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 3rem; margin-top: 3.5rem; text-align: left;">
             <!-- Contact Information -->
             <div class="contact-info">
-                <h3 style="color: var(--accent-dark);">Get in Touch</h3>
-                <p style="font-size: 1rem; margin-bottom: 2.5rem; color: var(--dark-text); font-weight: 500;">Reach out to us via any of these channels. Our team is available to assist you with bookings and travel inquiries.</p>
+                <h3>Get in Touch</h3>
+                <p style="font-size: 1rem; margin-bottom: 2.5rem; font-weight: 500;">Reach out to us via any of these channels. Our team is available to assist you with bookings and travel inquiries.</p>
                 
                 <div class="contact-details" style="display: grid; gap: 2rem;">
                     <div style="display: flex; align-items: center; gap: 1.2rem;">
-                        <div style="width: 52px; height: 52px; background: rgba(132, 180, 255, 0.15); border-radius: 14px; display: flex; align-items: center; justify-content: center; color: var(--accent-dark); font-size: 1.3rem; border: 1px solid rgba(132, 180, 255, 0.2);">
+                        <div style="width: 52px; height: 52px; background: rgba(132, 180, 255, 0.15); border-radius: 14px; display: flex; align-items: center; justify-content: center; color: #0a2540; font-size: 1.3rem; border: 1px solid rgba(132, 180, 255, 0.2);">
                             <i class="fa-solid fa-envelope"></i>
                         </div>
                         <div>
-                            <span style="display: block; font-size: 0.75rem; font-weight: 800; color: var(--accent-dark); text-transform: uppercase; letter-spacing: 1px;">Email Us</span>
-                            <a href="mailto:support@busgo.com" style="font-size: 1.1rem; color: var(--dark-text); font-weight: 600;">support@busgo.com</a>
+                            <span style="display: block; font-size: 0.75rem; font-weight: 800; color: #0a2540; text-transform: uppercase; letter-spacing: 1px;">Email Us</span>
+                            <a href="mailto:support@busgo.com" style="font-size: 1.1rem; color: #081321; font-weight: 600;">support@busgo.com</a>
                         </div>
                     </div>
 
                     <div style="display: flex; align-items: center; gap: 1.2rem;">
-                        <div style="width: 52px; height: 52px; background: rgba(132, 180, 255, 0.15); border-radius: 14px; display: flex; align-items: center; justify-content: center; color: var(--accent-dark); font-size: 1.3rem; border: 1px solid rgba(132, 180, 255, 0.2);">
+                        <div style="width: 52px; height: 52px; background: rgba(132, 180, 255, 0.15); border-radius: 14px; display: flex; align-items: center; justify-content: center; color: #0a2540; font-size: 1.3rem; border: 1px solid rgba(132, 180, 255, 0.2);">
                             <i class="fa-solid fa-phone"></i>
                         </div>
                         <div>
-                            <span style="display: block; font-size: 0.75rem; font-weight: 800; color: var(--accent-dark); text-transform: uppercase; letter-spacing: 1px;">Call Us</span>
-                            <a href="tel:+1234567890" style="font-size: 1.1rem; color: var(--dark-text); font-weight: 600;">+1 (234) 567-890</a>
+                            <span style="display: block; font-size: 0.75rem; font-weight: 800; color: #0a2540; text-transform: uppercase; letter-spacing: 1px;">Call Us</span>
+                            <a href="tel:+1234567890" style="font-size: 1.1rem; color: #081321; font-weight: 600;">+1 (234) 567-890</a>
                         </div>
                     </div>
 
                     <div style="display: flex; align-items: center; gap: 1.2rem;">
-                        <div style="width: 52px; height: 52px; background: rgba(132, 180, 255, 0.15); border-radius: 14px; display: flex; align-items: center; justify-content: center; color: var(--accent-dark); font-size: 1.3rem; border: 1px solid rgba(132, 180, 255, 0.2);">
+                        <div style="width: 52px; height: 52px; background: rgba(132, 180, 255, 0.15); border-radius: 14px; display: flex; align-items: center; justify-content: center; color: #0a2540; font-size: 1.3rem; border: 1px solid rgba(132, 180, 255, 0.2);">
                             <i class="fa-solid fa-map-marker-alt"></i>
                         </div>
                         <div>
-                            <span style="display: block; font-size: 0.75rem; font-weight: 800; color: var(--accent-dark); text-transform: uppercase; letter-spacing: 1px;">Office</span>
-                            <p style="font-size: 1.1rem; margin: 0; color: var(--dark-text); font-weight: 600;">123 Travel Street, AC 12345</p>
+                            <span style="display: block; font-size: 0.75rem; font-weight: 800; color: #0a2540; text-transform: uppercase; letter-spacing: 1px;">Office</span>
+                            <p style="font-size: 1.1rem; margin: 0; color: #081321; font-weight: 600;">123 Travel Street, AC 12345</p>
                         </div>
                     </div>
                 </div>
@@ -51,9 +56,9 @@
             <div class="contact-form-container">
                 <h3>Send us a message</h3>
                 <form class="auth-form" style="margin-top: 1.5rem; gap: 1.2rem;">
-                    <input type="text" placeholder="Your Name" style="width: 100%; padding: 14px 18px; border-radius: 12px; border: 1px solid var(--border-gray); background: rgba(255, 255, 255, 0.4); color: var(--dark-text); font-size: 1rem; outline: none;" required />
-                    <input type="email" placeholder="Your Email" style="width: 100%; padding: 14px 18px; border-radius: 12px; border: 1px solid var(--border-gray); background: rgba(255, 255, 255, 0.4); color: var(--dark-text); font-size: 1rem; outline: none;" required />
-                    <textarea placeholder="How can we help you?" rows="5" style="width: 100%; padding: 14px 18px; border-radius: 12px; border: 1px solid var(--border-gray); background: rgba(255, 255, 255, 0.4); color: var(--dark-text); font-size: 1rem; outline: none; resize: none;" required></textarea>
+                    <input type="text" placeholder="Your Name" style="width: 100%; padding: 14px 18px; border-radius: 12px; border: 1px solid var(--border-gray); background: rgba(255, 255, 255, 0.4); color: #081321; font-size: 1rem; outline: none;" required />
+                    <input type="email" placeholder="Your Email" style="width: 100%; padding: 14px 18px; border-radius: 12px; border: 1px solid var(--border-gray); background: rgba(255, 255, 255, 0.4); color: #081321; font-size: 1rem; outline: none;" required />
+                    <textarea placeholder="How can we help you?" rows="5" style="width: 100%; padding: 14px 18px; border-radius: 12px; border: 1px solid var(--border-gray); background: rgba(255, 255, 255, 0.4); color: #081321; font-size: 1rem; outline: none; resize: none;" required></textarea>
                     <button type="submit" class="auth-btn" style="width: 100%; padding: 14px; font-size: 1rem; margin-top: 0.5rem;">Send Message</button>
                 </form>
             </div>

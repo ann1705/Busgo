@@ -3,7 +3,12 @@
 {% block title %}BusGo | Complete Your Booking{% endblock %}
 
 {% block content %}
-<div class="schedule-main">
+<div class="schedule-main" style="flex-direction: column; align-items: center;">
+    <div class="page-back-nav" style="width: 100%; max-width: 1800px; margin: 0 auto 1.5rem auto;">
+        <a href="{{ back_url }}" class="back-btn" style="background: rgba(16, 42, 67, 0.1); color: var(--dark-text);">
+            <i class="fa-solid fa-arrow-left"></i> Back to Schedules
+        </a>
+    </div>
     <div class="schedule-container glass-booking-card">
         <h1 class="schedule-title">Booking Details</h1>
 
@@ -25,7 +30,7 @@
 
                 <div class="booking-input-group">
                     <label><i class="fa-solid fa-phone" style="color: var(--accent); margin-right: 0.5rem;"></i>Contact Number</label>
-                    <input type="text" name="contact" placeholder="Enter your phone number" required>
+                    <input type="text" name="contact" placeholder="Enter your phone number" required maxlength="11" pattern="[0-9]{11}" title="Contact number must be an 11-digit number" oninput="this.value = this.value.replace(/[^0-9]/g, '');">
                 </div>
             </div>
 

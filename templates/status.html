@@ -3,7 +3,12 @@
 {% block title %}BusGo | Booking Status{% endblock %}
 
 {% block content %}
-<main class="schedule-main">
+<main class="schedule-main" style="flex-direction: column; align-items: center;">
+    <div class="page-back-nav" style="width: 100%; max-width: 1800px; margin: 0 auto 1.5rem auto;">
+        <a href="{{ back_url }}" class="back-btn" style="background: rgba(16, 42, 67, 0.1); color: var(--dark-text);">
+            <i class="fa-solid fa-arrow-left"></i> Back to Dashboard
+        </a>
+    </div>
     <div class="schedule-container glass-booking-card">
         <h1 class="schedule-title">Booking Details</h1>
 
@@ -124,44 +129,19 @@
             </div>
         </div>
 
-        {% if booking.status != 'paid' and booking.status != 'cancelled' %}
-            <div id="payment-section" class="booking-panel-blue" style="margin-bottom: 2rem;">
-                <div style="display: flex; flex-direction: column; gap: 1.2rem;">
-                    <div>
-                        <h3 style="margin-bottom: 0.5rem; color: #0f1f3e;">Complete Payment with GCash</h3>
-                        <p style="color: #0f1f3e; line-height: 1.6;">Scan the QR code below or use the payment details to transfer the exact amount.</p>
-                    </div>
-
-                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1.5rem; align-items: center;">
-                        <div style="display: grid; gap: 0.85rem;">
-                            <p style="margin: 0; font-weight: 700; color: #0f1f3e;">Amount</p>
-                            <p style="margin: 0; color: #4a7fdd; font-size: 1.6rem; font-weight: 800;">₱{{ "%.2f"|format(booking.price) }}</p>
-                            <p style="margin: 0.5rem 0 0; color: #0f1f3e;"><strong>GCash Number:</strong> <span style="color: #0f1f3e;">0917-123-4567</span></p>
-                            <p style="margin: 0; color: #0f1f3e;"><strong>Reference:</strong> <span style="color: #0f1f3e;">BusGo Booking #{{ booking.id }}</span></p>
-                            <p style="margin: 0; color: #0f1f3e; line-height: 1.6;">Open your GCash app and scan the QR code below, or manually enter the amount and reference.</p>
-                        </div>
-                        <div style="background: rgba(200, 220, 255, 0.4); border-radius: 16px; padding: 1rem; text-align: center; border: 1px solid rgba(124, 163, 255, 0.3);">
-                            <img id="gcash-qr" src="" alt="GCash QR Code" style="max-width: 100%; border-radius: 14px; box-shadow: 0 16px 32px rgba(16, 42, 67, 0.08);" />
-                            <p style="margin: 1rem 0 0; color: #0f1f3e; font-weight: 600;">Scan to pay with GCash</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        {% endif %}
-
         <!-- Actions -->
         <div style="display: flex; gap: 1.5rem; justify-content: center; flex-wrap: wrap;">
             {% if booking.status != 'paid' and booking.status != 'cancelled' %}
 
-                {% if user_role == 'admin' and booking.status == 'verifying payment' %}
-                    <a href="{{ url_for('confirm_payment', booking_id=booking.id) }}" class="book-now-btn" style="background: green; color: white;">
-                        <i class="fa-solid fa-check"></i> Confirm Payment
+                {% if user_role == 'admin' %}
+                    <a href="{{ url_for('confirm_payment', booking_id=booking.id) }}" class="book-now-btn" style="background: #2e7d32; color: white;">
+                        <i class="fa-solid fa-check"></i> Approve Booking
                     </a>
 
                 {% elif user_role == 'user' and booking.status == 'waiting for payment' %}
-                    <a href="{{ url_for('pay_booking', booking_id=booking.id) }}" class="book-now-btn">
+                    <button type="button" class="book-now-btn" onclick="toggleGcashPayment(this)">
                         <i class="fa-solid fa-credit-card"></i> Pay Online
-                    </a>
+                    </button>
 
                 {% endif %}
 
@@ -187,18 +167,4 @@
         </div>
     </div>
 </main>
-
-{% if booking.status != 'paid' and booking.status != 'cancelled' %}
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const qrImage = document.getElementById('gcash-qr');
-        if (!qrImage) return;
-
-        const amountValue = '{{ "%.2f"|format(booking.price) }}';
-        const bookingRef = 'BusGo Booking #{{ booking.id }}';
-        const qrData = `GCash Payment\nPay to: 0917-123-4567\nAmount: ₱${amountValue}\nReference: ${bookingRef}`;
-        qrImage.src = `https://api.qrserver.com/v1/create-qr-code/?size=280x280&data=${encodeURIComponent(qrData)}`;
-    });
-</script>
-{% endif %}
 {% endblock %}

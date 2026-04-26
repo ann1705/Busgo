@@ -3,7 +3,12 @@
 {% block title %}BusGo | My Bookings{% endblock %}
 
 {% block content %}
-<section class="schedule-main">
+<section class="schedule-main" style="flex-direction: column; align-items: center;">
+    <div class="page-back-nav" style="width: 100%; max-width: 1800px; margin: 0 auto 1.5rem auto;">
+        <a href="{{ url_for('home') }}" class="back-btn" style="background: rgba(16, 42, 67, 0.1); color: var(--dark-text);">
+            <i class="fa-solid fa-arrow-left"></i> Back to Home
+        </a>
+    </div>
     <div class="schedule-container glass-booking-card dashboard-page">
         <div class="dashboard-header">
             <h1>Welcome back, <span style="color: var(--yellow);">{{ session['fullname'] }}</span>! 👋</h1>

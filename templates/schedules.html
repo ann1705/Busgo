@@ -3,7 +3,12 @@
 {% block title %}BusGo | Book Your Trip{% endblock %}
 
 {% block content %}
-<div class="schedule-main">
+<div class="schedule-main" style="flex-direction: column; align-items: center;">
+    <div class="page-back-nav" style="width: 100%; max-width: 1800px; margin: 0 auto 1.5rem auto;">
+        <a href="{{ url_for('home') }}" class="back-btn" style="background: rgba(16, 42, 67, 0.1); color: var(--dark-text);">
+            <i class="fa-solid fa-arrow-left"></i> Back to Home
+        </a>
+    </div>
     <div class="schedule-container">
         <h1 class="schedule-title">Available Buses</h1>
         
@@ -11,8 +16,8 @@
             <div class="buses-grid">
                 {% for bus in buses %}
                 {% set remaining_seats = 52 - bus.booked_count %}
-                {% set status_text = 'Under Maintenance' if bus.status == 'under_maintenance' else 'Fully Booked' if remaining_seats <= 0 else 'Available' %}
-                {% set status_class = 'under-maintenance' if bus.status == 'under_maintenance' else 'fully-booked' if remaining_seats <= 0 else 'available' %}
+                {% set status_text = 'Under Maintenance' if bus.status == 'under_maintenance' else 'Fully Booked' if (bus.status == 'fully_booked' or remaining_seats <= 0) else 'Available' %}
+                {% set status_class = 'under-maintenance' if bus.status == 'under_maintenance' else 'fully-booked' if (bus.status == 'fully_booked' or remaining_seats <= 0) else 'available' %}
                 <div class="bus-card">
                     <div class="bus-card-header">
                         <div>
@@ -38,7 +43,7 @@
                             <div class="price">₱{{ "%.2f"|format(bus.price) }}</div>
                             <div class="seat-count">{{ remaining_seats if remaining_seats > 0 else 0 }} seats left</div>
                         </div>
-                        {% if bus.status == 'under_maintenance' or remaining_seats <= 0 %}
+                        {% if bus.status == 'under_maintenance' or bus.status == 'fully_booked' or remaining_seats <= 0 %}
                             <span class="book-now-btn disabled">
                                 <i class="fa-solid fa-ban"></i> {{ 'Maintenance' if bus.status == 'under_maintenance' else 'Fully Booked' }}
                             </span>
@@ -52,7 +57,7 @@
                 {% endfor %}
             </div>
         {% else %}
-            <div style="text-align: center; padding: 3rem; color: var(--dark-text);">
+            <div style="text-align: center; padding: 3rem; color: #0a2540;">
                 <i class="fa-solid fa-inbox" style="font-size: 3rem; margin-bottom: 1rem; display: block; color: var(--yellow);\"></i>
                 <p style="font-weight: 600;">No buses available at the moment. Please check back later.</p>
             </div>

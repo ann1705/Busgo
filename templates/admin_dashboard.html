@@ -5,17 +5,17 @@
 {% block content %}
 <div class="admin-wrapper">
     <div class="admin-content">
-        <div class="admin-topnav" style="display: flex; gap: 1rem; margin-bottom: 2.5rem; background: rgba(255,255,255,0.1); padding: 0.8rem; border-radius: 15px; border: 1px solid rgba(255,255,255,0.2); backdrop-filter: blur(10px);">
-            <a href="{{ url_for('admin_dashboard') }}" style="text-decoration: none; color: var(--dark-text); display: flex; align-items: center; gap: 0.6rem; font-weight: 800;" class="{% if request.endpoint == 'admin_dashboard' %}active{% endif %}">
+        <div class="admin-topnav">
+            <a href="{{ url_for('admin_dashboard') }}" class="{% if request.endpoint == 'admin_dashboard' %}active{% endif %}">
                 <i class="fa-solid fa-chart-pie"></i> Dashboard
             </a>
-            <a href="{{ url_for('admin_users') }}" style="text-decoration: none; color: var(--dark-text); display: flex; align-items: center; gap: 0.6rem; font-weight: 800;" class="{% if request.endpoint == 'admin_users' %}active{% endif %}">
+            <a href="{{ url_for('admin_users') }}" class="{% if request.endpoint == 'admin_users' %}active{% endif %}">
                 <i class="fa-solid fa-users"></i> Users
             </a>
-            <a href="{{ url_for('admin_buses') }}" style="text-decoration: none; color: var(--dark-text); display: flex; align-items: center; gap: 0.6rem; font-weight: 800;" class="{% if request.endpoint == 'admin_buses' %}active{% endif %}">
+            <a href="{{ url_for('admin_buses') }}" class="{% if request.endpoint == 'admin_buses' %}active{% endif %}">
                 <i class="fa-solid fa-bus"></i> Manage Bus
             </a>
-            <a href="{{ url_for('admin_bookings') }}" style="text-decoration: none; color: var(--dark-text); display: flex; align-items: center; gap: 0.6rem; font-weight: 800;" class="{% if request.endpoint == 'admin_bookings' %}active{% endif %}">
+            <a href="{{ url_for('admin_bookings') }}" class="{% if request.endpoint == 'admin_bookings' %}active{% endif %}">
                 <i class="fa-solid fa-ticket"></i> Bookings
             </a>
         </div>

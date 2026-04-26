@@ -3,7 +3,12 @@
 {% block title %}BusGo | Staff Dashboard{% endblock %}
 
 {% block content %}
-<section class="schedule-main">
+<section class="schedule-main" style="flex-direction: column; align-items: center;">
+    <div class="page-back-nav" style="width: 100%; max-width: 1800px; margin: 0 auto 1.5rem auto;">
+        <a href="{{ url_for('home') }}" class="back-btn" style="background: rgba(16, 42, 67, 0.1); color: var(--dark-text);">
+            <i class="fa-solid fa-arrow-left"></i> Back to Home
+        </a>
+    </div>
     <div class="schedule-container glass-booking-card dashboard-page">
         <div class="dashboard-header">
             <h1>Staff Walk-In Booking</h1>
@@ -45,7 +50,7 @@
 
                     <div class="input-group">
                         <label for="contact">Contact Number</label>
-                        <input type="text" name="contact" id="contact" placeholder="Enter contact details" required />
+                        <input type="text" name="contact" id="contact" placeholder="Enter contact details" required maxlength="11" pattern="[0-9]{11}" title="Contact number must be an 11-digit number" oninput="this.value = this.value.replace(/[^0-9]/g, '');" />
                     </div>
 
                     <div class="seat-selection-wrapper">
@@ -122,12 +127,10 @@
 
                 <div id="gcash-fields" class="payment-fields hidden">
                     <div class="payment-summary">
-                        <p style="margin: 0 0 1rem; font-weight: 700;">Scan the QR code below to pay the exact amount.</p>
-                        <img id="gcash-qr" src="" alt="GCash QR Code" />
-                        <p style="margin: 0.75rem 0 0;">GCash Number: <strong>0917-123-4567</strong></p>
-                        <p style="margin: 0.3rem 0 0;">Reference: <strong>BusGo Walk-in</strong></p>
-                        <p style="margin: 0.75rem 0 0; font-weight: 700;">Amount: <strong id="gcash-amount">₱0.00</strong></p>
-                        <p class="qr-note">The amount is fixed. The customer only needs to scan the QR code.</p>
+                        <i class="fa-solid fa-circle-info" style="font-size: 2.5rem; color: var(--accent); margin-bottom: 1rem;"></i>
+                        <p style="margin: 0 0 1rem; font-weight: 700;">Online GCash Integration</p>
+                        <p>You will be redirected to the secure GCash payment gateway to complete the transaction for <strong id="gcash-amount">₱0.00</strong>.</p>
+                        <p class="qr-note" style="margin-top: 1rem; color: #102a43;">This ensures the payment is verified automatically via PayMongo.</p>
                     </div>
                 </div>
 
@@ -175,6 +178,8 @@
                                                 <td style="color: var(--dark-text);">{{ booking.seat_number }}</td>
                                                 <td class="status-{{ booking.status.lower() }}" style="font-weight: 700;">{{ 'Completed' if booking.status == 'paid' else 'Waiting for Payment' if booking.status == 'waiting for payment' else booking.status|capitalize }}</td>
                                                 <td>
+                                                    <a href="{{ url_for('staff_view_booking', booking_id=booking.id) }}" class="book-now-btn" style="padding: 6px 10px; font-size: 0.8rem; margin-right: 0.3rem;">View</a>
+                                                    <a href="{{ url_for('staff_view_booking', booking_id=booking.id) }}" class="book-now-btn" style="padding: 6px 10px; font-size: 0.8rem; margin-right: 0.3rem;">View</a>
                                                     {% if booking.status == 'paid' %}
                                                     <a href="{{ url_for('ticket', booking_id=booking.id) }}" class="receipt-btn-sm">Receipt</a>
                                                     {% else %}
@@ -239,15 +244,14 @@
                                         {% endfor %}
                                     </tbody>
                                 </table>
-                            </div>
-                        {% endfor %}
-                    {% else %}
-                        <div style="text-align: center; padding: 3rem; color: rgba(255, 255, 255, 0.7);">
-                            <i class="fa-solid fa-inbox" style="font-size: 3rem; margin-bottom: 1rem; color: var(--accent);"></i>
-                            <p style="font-size: 1.1rem;">No history walk-in records yet.</p>
                         </div>
-                    {% endif %}
-                </div>
+                    {% endfor %}
+                {% else %}
+                    <div style="text-align: center; padding: 3rem; color: rgba(16, 42, 67, 0.6);">
+                        <i class="fa-solid fa-history" style="font-size: 3rem; margin-bottom: 1rem; color: var(--accent);"></i>
+                        <p style="font-size: 1.1rem;">No history walk-in records found.</p>
+                    </div>
+                {% endif %}
             </div>
         </div>
     </div>
@@ -338,7 +342,6 @@
         totalAmountEl.textContent = `₱${priceValue}`;
         gcashAmountEl.textContent = `₱${priceValue}`;
         paymentAmountInput.value = priceValue;
-        updateGcashQr(priceValue);
 
         seatRows.forEach((rowGroups) => {
             const rowEl = document.createElement('div');
@@ -394,11 +397,6 @@
         });
     }
 
-    function updateGcashQr(amount) {
-        const qrData = `GCash Payment\nPay to: 0917-123-4567\nAmount: ₱${amount}\nReference: BusGo Walk-in`;
-        gcashQr.src = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(qrData)}`;
-    }
-
     function updateCashChange() {
         const cashGiven = parseFloat(cashGivenInput.value) || 0;
         const total = parseFloat(paymentAmountInput.value) || 0;
@@ -445,6 +443,12 @@
             paymentModal.classList.add('hidden');
             return;
         }
+        // Additional client-side validation for contact number
+        const contactInput = form.querySelector('input[name="contact"]');
+        if (contactInput && (!contactInput.value || !/^[0-9]{11}$/.test(contactInput.value))) {
+            alert('Contact number must be an 11-digit number.');
+            return;
+        }
 
         const selectedMethod = document.querySelector('input[name="modal_payment_method"]:checked').value;
         // Capitalize for consistency (cash -> Cash, gcash -> GCash)
@@ -461,7 +465,7 @@
             paymentStatusInput.value = 'paid';
         } else {
             cashGivenFormInput.value = '';
-            paymentStatusInput.value = 'paid';
+            paymentStatusInput.value = 'waiting for payment';
         }
 
         // Submit the form

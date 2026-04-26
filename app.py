@@ -1,4 +1,5 @@
-from flask import Flask, render_template, request, redirect, url_for, session
+import os
+from flask import Flask, render_template, request, redirect, url_for, session, flash
 import sqlite3
 import requests
 import datetime
@@ -7,7 +8,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 
 app = Flask(__name__)
 app.secret_key = "busgo_secret_key"
-PAYMONGO_SECRET_KEY = "sk_test_XXXXXXXXXXXXXXXX"
+PAYMONGO_SECRET_KEY = os.environ.get("PAYMONGO_SECRET_KEY", "sk_test_2Qq7gVeyLzRf1eB7xYyMUTUF")
 DATABASE = "busgo.db"
 
 
@@ -39,7 +40,8 @@ def create_tables():
             departure TEXT NOT NULL,
             arrival TEXT NOT NULL,
             price REAL NOT NULL,
-            created_at TEXT DEFAULT CURRENT_TIMESTAMP
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            updated_at TEXT DEFAULT CURRENT_TIMESTAMP
         )
     """)
 
@@ -116,6 +118,16 @@ def ensure_buses_created_at_column():
     conn.close()
 
 
+def ensure_buses_updated_at_column():
+    conn = get_db_connection()
+    columns = [row['name'] for row in conn.execute("PRAGMA table_info(buses)").fetchall()]
+    if 'updated_at' not in columns:
+        conn.execute("ALTER TABLE buses ADD COLUMN updated_at TEXT")
+        conn.execute("UPDATE buses SET updated_at = created_at WHERE updated_at IS NULL")
+        conn.commit()
+    conn.close()
+
+
 def create_default_admin():
     conn = get_db_connection()
     admin = conn.execute("SELECT * FROM users WHERE role='admin'").fetchone()
@@ -141,6 +153,7 @@ ensure_bookings_ticket_columns()
 ensure_bus_status_column()
 ensure_users_created_at_column()
 ensure_buses_created_at_column()
+ensure_buses_updated_at_column()
 create_default_admin()
 
 def create_default_staff():
@@ -205,9 +218,19 @@ def booking(bus_id):
     conn = get_db_connection()
     bus = conn.execute("SELECT * FROM buses WHERE id = ?", (bus_id,)).fetchone()
 
+    if not bus or bus['status'] != 'available':
+        conn.close()
+        flash(f"Booking failed: This bus is currently {bus['status'].replace('_', ' ') if bus else 'unavailable'}.")
+        return redirect(url_for('schedules'))
+
     if request.method == "POST":
         passenger_name = request.form["passenger_name"]
         contact = request.form["contact"]
+
+        if not contact.isdigit() or len(contact) != 11:
+            conn.close()
+            return redirect(url_for("booking", bus_id=bus_id))
+
         seat_number = request.form["seat_number"]
         # Explicitly set the creation time and initial status
         created_at = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -352,25 +375,67 @@ def pay_booking(booking_id):
         }
     }
 }
+    
+    try:
+        response = requests.post(
+            url,
+            json=payload,
+            headers={"Content-Type": "application/json"},
+            auth=(PAYMONGO_SECRET_KEY, "")
+        )
+        response.raise_for_status()
+        data = response.json()
+        checkout_url = data["data"]["attributes"]["redirect"]["checkout_url"]
+        return redirect(checkout_url)
+    except requests.exceptions.RequestException as e:
+        print(f"PayMongo API Error: {e}")
+        flash("Could not initiate payment. Please check your API keys or connection.")
+        role = session.get("role")
+        if role == "admin":
+            return redirect(url_for("admin_view_booking", booking_id=booking_id))
+        elif role == "staff":
+            return redirect(url_for("staff_view_booking", booking_id=booking_id))
+        else:
+            return redirect(url_for("view_booking", booking_id=booking_id))
 
-    response = requests.post(
-        url,
-        json=payload,
-        headers={"Content-Type": "application/json"},
-        auth=(PAYMONGO_SECRET_KEY, "")
-    )
+@app.route("/paymongo/webhook", methods=["POST"])
+def paymongo_webhook():
+    # PayMongo sends a POST request with the event data
+    data = request.json
+    event_type = data.get("data", {}).get("attributes", {}).get("type")
 
-    if response.status_code != 200:
-        return f"PayMongo Error: {response.text}"
+    # 'source.chargeable' means the user has scanned the QR and authorized the payment
+    if event_type == "source.chargeable":
+        source_id = data["data"]["attributes"]["data"]["id"]
+        amount = data["data"]["attributes"]["data"]["attributes"]["amount"]
+        
+        # Extract the booking ID from the success URL we provided earlier
+        success_url = data["data"]["attributes"]["data"]["attributes"]["redirect"]["success"]
+        booking_id = success_url.split("/")[-1]
 
-    data = response.json()
+        # Step 2: Create a Payment using the Source ID to actually capture the funds
+        payment_url = "https://api.paymongo.com/v1/payments"
+        payment_payload = {
+            "data": {
+                "attributes": {
+                    "amount": amount,
+                    "source": {"id": source_id, "type": "source"},
+                    "currency": "PHP",
+                    "description": f"BusGo Payment for Booking #{booking_id}"
+                }
+            }
+        }
 
-    if "data" not in data:
-        return f"PayMongo Error: {data}"
+        capture_res = requests.post(payment_url, json=payment_payload, auth=(PAYMONGO_SECRET_KEY, ""))
+        
+        if capture_res.status_code == 200:
+            # Success! Update the database
+            conn = get_db_connection()
+            conn.execute("UPDATE bookings SET status = 'paid' WHERE id = ?", (booking_id,))
+            conn.commit()
+            conn.close()
 
-    checkout_url = data["data"]["attributes"]["redirect"]["checkout_url"]
-
-    return redirect(checkout_url)
+    return "", 200
 
 @app.route("/admin", methods=["GET", "POST"])
 def admin_dashboard():
@@ -421,13 +486,15 @@ def admin_users():
             conn.close()
             return redirect(url_for("admin_users", error="That email is already registered."))
 
+        created_at = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         conn.execute(
-            "INSERT INTO users (fullname, email, password, role) VALUES (?, ?, ?, ?)",
+            "INSERT INTO users (fullname, email, password, role, created_at) VALUES (?, ?, ?, ?, ?)",
             (
                 fullname,
                 email,
                 generate_password_hash(password),
-                role
+                role,
+                created_at
             )
         )
         conn.commit()
@@ -457,6 +524,15 @@ def staff_dashboard():
         if not bus_id or not passenger_name or not contact or not seat_number:
             conn.close()
             return redirect(url_for("staff_dashboard", error="All fields are required."))
+
+        bus = conn.execute("SELECT status FROM buses WHERE id = ?", (bus_id,)).fetchone()
+        if not bus or bus['status'] != 'available':
+            conn.close()
+            return redirect(url_for('staff_dashboard', error=f"Booking failed: Selected bus is {bus['status'].replace('_', ' ') if bus else 'unavailable'}."))
+
+        if not contact.isdigit() or len(contact) != 11:
+            conn.close()
+            return redirect(url_for("staff_dashboard", error="Contact number must be exactly 11 digits."))
 
         existing_seat = conn.execute(
             "SELECT 1 FROM bookings WHERE bus_id = ? AND seat_number = ?",
@@ -491,6 +567,9 @@ def staff_dashboard():
         if payment_status == "paid":
             return redirect(url_for("ticket", booking_id=booking_id))
 
+        if payment_method == "Gcash":
+            return redirect(url_for("pay_booking", booking_id=booking_id))
+
         return redirect(url_for("staff_dashboard", success="Walk-in booking added successfully."))
 
     buses = conn.execute("SELECT * FROM buses").fetchall()
@@ -511,6 +590,7 @@ def staff_dashboard():
 
     active_bookings_by_date = {}
     history_bookings_by_date = {}
+    today_str = datetime.datetime.now().strftime('%B %d, %Y')
     for row in bookings:
         created_at = row['created_at'] or ''
         try:
@@ -536,10 +616,10 @@ def staff_dashboard():
             'created_date': date_key
         }
 
-        if row['status'] in ('paid', 'cancelled'):
-            history_bookings_by_date.setdefault(date_key, []).append(booking_item)
-        else:
+        if date_key == today_str:
             active_bookings_by_date.setdefault(date_key, []).append(booking_item)
+        else:
+            history_bookings_by_date.setdefault(date_key, []).append(booking_item)
 
     buses_json = [dict(bus) for bus in buses]
     conn.close()
@@ -614,15 +694,17 @@ def admin_buses():
         price = request.form["price"]
         status = request.form.get("status", "available")
 
+        updated_at = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
         if bus_id:
             conn.execute(
-                "UPDATE buses SET bus_no = ?, route = ?, departure = ?, arrival = ?, price = ?, status = ? WHERE id = ?",
-                (bus_no, route, departure, arrival, price, status, bus_id)
+                "UPDATE buses SET bus_no = ?, route = ?, departure = ?, arrival = ?, price = ?, status = ?, updated_at = ? WHERE id = ?",
+                (bus_no, route, departure, arrival, price, status, updated_at, bus_id)
             )
         else:
             conn.execute(
-                "INSERT INTO buses (bus_no, route, departure, arrival, price, status) VALUES (?, ?, ?, ?, ?, ?)",
-                (bus_no, route, departure, arrival, price, status)
+                "INSERT INTO buses (bus_no, route, departure, arrival, price, status, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                (bus_no, route, departure, arrival, price, status, updated_at)
             )
         conn.commit()
         conn.close()
@@ -659,7 +741,8 @@ def toggle_bus_status(bus_id):
     bus = conn.execute("SELECT status FROM buses WHERE id = ?", (bus_id,)).fetchone()
     if bus:
         new_status = 'available' if bus['status'] == 'under_maintenance' else 'under_maintenance'
-        conn.execute("UPDATE buses SET status = ? WHERE id = ?", (new_status, bus_id))
+        updated_at = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        conn.execute("UPDATE buses SET status = ?, updated_at = ? WHERE id = ?", (new_status, updated_at, bus_id))
         conn.commit()
     conn.close()
 
@@ -700,7 +783,11 @@ def admin_bookings():
         ORDER BY b.id DESC
     """).fetchall()
 
-    bookings = []
+    today_str = datetime.datetime.now().strftime('%B %d, %Y')
+    today_bookings = []
+    history_bookings_by_date = {}
+    walkin_bookings_by_date = {}
+
     for row in rows:
         created_at_raw = row['created_at'] or ''
         try:
@@ -711,7 +798,7 @@ def admin_bookings():
             created_date = created_at_raw
             created_time = ''
 
-        bookings.append({
+        booking_item = {
             'id': row['id'],
             'user': row['user'],
             'user_role': row['user_role'],
@@ -722,10 +809,23 @@ def admin_bookings():
             'created_date': created_date,
             'created_time': created_time,
             'booking_type': 'Walk-in' if row['user_role'] == 'staff' else 'Online'
-        })
+        }
+
+        if booking_item['booking_type'] == 'Walk-in':
+            walkin_bookings_by_date.setdefault(created_date, []).append(booking_item)
+
+        if created_date == today_str:
+            today_bookings.append(booking_item)
+        else:
+            history_bookings_by_date.setdefault(created_date, []).append(booking_item)
+
     conn.close()
 
-    return render_template("admin_bookings.html", bookings=bookings)
+    return render_template("admin_bookings.html", 
+                           today_bookings=today_bookings,
+                           history_bookings_by_date=history_bookings_by_date,
+                           walkin_bookings_by_date=walkin_bookings_by_date,
+                           today_str=today_str)
 
 
 @app.route("/admin/booking/<int:booking_id>")
@@ -855,13 +955,15 @@ def register():
             return redirect(url_for("home", error="Email already registered. Please login or use a different email."))
         
         # Register new user
+        created_at = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         conn.execute(
-            "INSERT INTO users (fullname, email, password, role) VALUES (?, ?, ?, ?)",
+            "INSERT INTO users (fullname, email, password, role, created_at) VALUES (?, ?, ?, ?, ?)",
             (
                 fullname,
                 email,
                 generate_password_hash(password),
-                "user"
+                "user",
+                created_at
             )
         )
         conn.commit()
@@ -889,7 +991,13 @@ def payment_success(booking_id):
     conn.commit()
     conn.close()
 
-    return redirect(url_for("view_booking", booking_id=booking_id))
+    role = session.get("role")
+    if role == "admin":
+        return redirect(url_for("admin_view_booking", booking_id=booking_id))
+    elif role == "staff":
+        return redirect(url_for("staff_view_booking", booking_id=booking_id))
+    else:
+        return redirect(url_for("view_booking", booking_id=booking_id))
 
 @app.route("/admin/confirm_payment/<int:booking_id>")
 def confirm_payment(booking_id):
@@ -925,7 +1033,13 @@ def ticket(booking_id):
 
     if not booking or booking["status"] != "paid":
         conn.close()
-        return redirect(url_for("view_booking", booking_id=booking_id))
+        role = session.get("role")
+        if role == "admin":
+            return redirect(url_for("admin_view_booking", booking_id=booking_id))
+        elif role == "staff":
+            return redirect(url_for("staff_view_booking", booking_id=booking_id))
+        else:
+            return redirect(url_for("view_booking", booking_id=booking_id))
 
     created_at_raw = booking['created_at'] if booking['created_at'] else None
     formatted_created_at = created_at_raw
@@ -948,8 +1062,16 @@ def ticket(booking_id):
     )
     qr_url = "https://api.qrserver.com/v1/create-qr-code/?size=280x280&data=" + urllib.parse.quote(qr_data)
 
+    user_role = session.get("role")
+    if user_role == "admin":
+        back_url = url_for("admin_dashboard")
+    elif user_role == "staff":
+        back_url = url_for("staff_dashboard")
+    else:
+        back_url = url_for("user_dashboard")
+
     conn.close()
-    return render_template("booking_detail.html", booking=booking, booking_created_at=formatted_created_at, qr_url=qr_url)
+    return render_template("booking_detail.html", booking=booking, booking_created_at=formatted_created_at, qr_url=qr_url, back_url=back_url)
 
 
 @app.route("/user/cancel/<int:booking_id>")
@@ -965,7 +1087,13 @@ def user_cancel_booking(booking_id):
     conn.commit()
     conn.close()
 
-    return redirect(url_for("view_booking", booking_id=booking_id))
+    role = session.get("role")
+    if role == "admin":
+        return redirect(url_for("admin_view_booking", booking_id=booking_id))
+    elif role == "staff":
+        return redirect(url_for("staff_view_booking", booking_id=booking_id))
+    else:
+        return redirect(url_for("view_booking", booking_id=booking_id))
 
 
 @app.route("/login", methods=["POST"])
