@@ -1,0 +1,384 @@
+{% extends "base.html" %}
+
+{% block title %}BusGo | Payment{% endblock %}
+
+{% block content %}
+<main class="payment-main" style="flex-direction: column; align-items: center; padding: 2rem;">
+    <div class="page-back-nav" style="width: 100%; max-width: 1200px; margin: 0 auto 1.5rem auto;">
+        <a href="{{ back_url }}" class="back-btn" style="background: rgba(16, 42, 67, 0.1); color: var(--dark-text);">
+            <i class="fa-solid fa-arrow-left"></i> Back to Booking
+        </a>
+    </div>
+
+    <div class="payment-container" style="max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
+        
+        <!-- LEFT COLUMN - Booking Summary -->
+        <div class="booking-summary" style="background: white; border-radius: 24px; padding: 2rem; box-shadow: 0 4px 20px rgba(0,0,0,0.08); border: 1px solid #e0e0e0;">
+            <h2 style="color: #0f1f3e; margin-bottom: 1.5rem; font-weight: 700;">Booking Your Date</h2>
+            
+            <!-- Route Info -->
+            <div class="route-info" style="margin-bottom: 2rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                    <div style="flex: 1;">
+                        <p style="font-size: 0.85rem; color: #666; text-transform: uppercase; margin-bottom: 0.3rem;">From</p>
+                        <p style="font-size: 1.5rem; font-weight: 700; color: #0f1f3e;">{{ booking.origin or booking.route.split(' → ')[0] }}</p>
+                    </div>
+                    <i class="fa-solid fa-arrow-right" style="font-size: 1.5rem; color: #999; margin: 0 1rem;"></i>
+                    <div style="flex: 1; text-align: right;">
+                        <p style="font-size: 0.85rem; color: #666; text-transform: uppercase; margin-bottom: 0.3rem;">To</p>
+                        <p style="font-size: 1.5rem; font-weight: 700; color: #0f1f3e;">{{ booking.destination or booking.route.split(' → ')[1] }}</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Trip Details -->
+            <div class="trip-details" style="margin-bottom: 2rem;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 1rem;">
+                    <div>
+                        <p style="font-size: 0.85rem; color: #666;">Departure</p>
+                        <p style="font-weight: 600; color: #0f1f3e;">{{ booking.departure }}</p>
+                    </div>
+                    <div>
+                        <p style="font-size: 0.85rem; color: #666;">Arrival</p>
+                        <p style="font-weight: 600; color: #0f1f3e;">{{ booking.arrival }}</p>
+                    </div>
+                </div>
+                <div>
+                    <p style="font-size: 0.85rem; color: #666;">Bus Number</p>
+                    <p style="font-weight: 600; color: #0f1f3e;">{{ booking.bus_no }}</p>
+                </div>
+            </div>
+
+            <hr style="border-color: #e0e0e0; margin: 1rem 0;">
+
+            <!-- Passenger Info -->
+            <div class="passenger-info" style="margin: 1rem 0;">
+                <p style="font-size: 0.85rem; color: #666;">Passenger</p>
+                <p style="font-weight: 600; color: #0f1f3e;">{{ booking.passenger_name }}</p>
+                <p style="font-size: 0.85rem; margin-top: 0.5rem; color: #666;">Seat: <strong style="color: #0f1f3e;">{{ booking.seat_number }}</strong></p>
+            </div>
+
+            <hr style="border-color: #e0e0e0; margin: 1rem 0;">
+
+            <!-- Price -->
+            <div class="price-summary" style="margin-top: 1rem;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem; color: #666;">
+                    <span>Subtotal</span>
+                    <span>₱{{ "%.2f"|format(booking.price) }}</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; font-weight: 700; font-size: 1.2rem; margin-top: 0.5rem; color: #0f1f3e;">
+                    <span>Total</span>
+                    <span style="color: #f27523;">₱{{ "%.2f"|format(booking.price) }}</span>
+                </div>
+            </div>
+
+            <!-- Review Badge -->
+            <div style="margin-top: 2rem; display: flex; align-items: center; gap: 0.5rem; color: #666;">
+                <i class="fa-solid fa-star" style="color: #FFD700;"></i>
+                <span>4.9</span>
+                <span style="color: #999;">(2k Reviews)</span>
+            </div>
+        </div>
+
+        <!-- RIGHT COLUMN - Payment Form -->
+        <div class="payment-form" style="background: white; border-radius: 24px; padding: 2rem; box-shadow: 0 4px 20px rgba(0,0,0,0.08); border: 1px solid #e0e0e0;">
+            <h2 style="color: #0f1f3e; margin-bottom: 1rem;">Payment Details</h2>
+            <p style="color: #666; margin-bottom: 1.5rem;">Complete your booking by selecting a payment method</p>
+
+            <!-- Payment Status Messages -->
+            {% if payment_status == 'processing' %}
+            <div style="background: rgba(255, 193, 7, 0.1); border: 1px solid rgba(255, 193, 7, 0.3); border-radius: 12px; padding: 1rem; margin-bottom: 1.5rem; text-align: center;">
+                <i class="fa-solid fa-spinner fa-spin" style="font-size: 1.5rem; color: #f57c00;"></i>
+                <p style="margin-top: 0.5rem; font-weight: 600; color: #f57c00;">Payment In Progress</p>
+                <p style="font-size: 0.85rem; color: #666;">Please complete the payment in the next window</p>
+            </div>
+            {% elif payment_status == 'success' %}
+            <div style="background: rgba(76, 175, 80, 0.1); border: 1px solid rgba(76, 175, 80, 0.3); border-radius: 12px; padding: 1rem; margin-bottom: 1.5rem; text-align: center;">
+                <i class="fa-solid fa-check-circle" style="font-size: 1.5rem; color: #2e7d32;"></i>
+                <p style="margin-top: 0.5rem; font-weight: 600; color: #2e7d32;">Payment Successful!</p>
+                <p style="font-size: 0.85rem; color: #666;">Your booking has been confirmed</p>
+            </div>
+            {% elif payment_status == 'failed' %}
+            <div style="background: rgba(244, 67, 54, 0.1); border: 1px solid rgba(244, 67, 54, 0.3); border-radius: 12px; padding: 1rem; margin-bottom: 1.5rem; text-align: center;">
+                <i class="fa-solid fa-times-circle" style="font-size: 1.5rem; color: #c62828;"></i>
+                <p style="margin-top: 0.5rem; font-weight: 600; color: #c62828;">Payment Failed</p>
+                <p style="font-size: 0.85rem; color: #666;">Please try again or use another payment method</p>
+            </div>
+            {% endif %}
+
+            <!-- Payment Method Selection -->
+            <div class="payment-methods" style="margin-bottom: 2rem;">
+                <h3 style="font-size: 1rem; margin-bottom: 1rem; color: #0f1f3e;">Payment Method</h3>
+                
+                <div class="method-option" onclick="selectPaymentMethod('gcash')" id="method-gcash" style="border: 2px solid #e0e0e0; border-radius: 12px; padding: 1rem; margin-bottom: 0.75rem; cursor: pointer; transition: all 0.3s ease; display: flex; align-items: center; gap: 1rem;">
+                    <div class="method-radio">
+                        <div class="custom-radio" style="width: 20px; height: 20px; border: 2px solid #ccc; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                            <div class="radio-inner" style="width: 10px; height: 10px; border-radius: 50%; background: transparent;"></div>
+                        </div>
+                    </div>
+                    <div class="method-icon" style="width: 48px; height: 48px; background: #0078FF; border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+                        <i class="fa-brands fa-google" style="color: white; font-size: 1.5rem;"></i>
+                    </div>
+                    <div class="method-info" style="flex: 1;">
+                        <p style="font-weight: 700; color: #0f1f3e;">GCash</p>
+                        <p style="font-size: 0.8rem; color: #666;">Pay using your GCash wallet</p>
+                    </div>
+                </div>
+
+                <div class="method-option" onclick="selectPaymentMethod('card')" id="method-card" style="border: 2px solid #e0e0e0; border-radius: 12px; padding: 1rem; margin-bottom: 0.75rem; cursor: pointer; transition: all 0.3s ease; display: flex; align-items: center; gap: 1rem;">
+                    <div class="method-radio">
+                        <div class="custom-radio" style="width: 20px; height: 20px; border: 2px solid #ccc; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                            <div class="radio-inner" style="width: 10px; height: 10px; border-radius: 50%; background: transparent;"></div>
+                        </div>
+                    </div>
+                    <div class="method-icon" style="width: 48px; height: 48px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+                        <i class="fa-solid fa-credit-card" style="color: white; font-size: 1.5rem;"></i>
+                    </div>
+                    <div class="method-info" style="flex: 1;">
+                        <p style="font-weight: 700; color: #0f1f3e;">Credit / Debit Card</p>
+                        <p style="font-size: 0.8rem; color: #666;">Visa, Mastercard, etc.</p>
+                    </div>
+                </div>
+
+                <div class="method-option" onclick="selectPaymentMethod('bank')" id="method-bank" style="border: 2px solid #e0e0e0; border-radius: 12px; padding: 1rem; cursor: pointer; transition: all 0.3s ease; display: flex; align-items: center; gap: 1rem;">
+                    <div class="method-radio">
+                        <div class="custom-radio" style="width: 20px; height: 20px; border: 2px solid #ccc; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                            <div class="radio-inner" style="width: 10px; height: 10px; border-radius: 50%; background: transparent;"></div>
+                        </div>
+                    </div>
+                    <div class="method-icon" style="width: 48px; height: 48px; background: #28a745; border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+                        <i class="fa-solid fa-building-columns" style="color: white; font-size: 1.5rem;"></i>
+                    </div>
+                    <div class="method-info" style="flex: 1;">
+                        <p style="font-weight: 700; color: #0f1f3e;">Bank Transfer</p>
+                        <p style="font-size: 0.8rem; color: #666;">Direct bank transfer</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card Details Form (Hidden by default) -->
+            <div id="card-details" style="display: none; margin-bottom: 2rem;">
+                <div style="background: #f8f9fa; border-radius: 12px; padding: 1.5rem; border: 1px solid #e0e0e0;">
+                    <h3 style="font-size: 1rem; margin-bottom: 1rem; color: #0f1f3e;">Card Information</h3>
+                    <div style="margin-bottom: 1rem;">
+                        <label style="display: block; margin-bottom: 0.5rem; font-size: 0.85rem; font-weight: 600; color: #0f1f3e;">Card Number</label>
+                        <input type="text" id="card-number" class="input-field" placeholder="1234 5678 9012 3456" style="width: 100%; padding: 0.75rem; border: 1px solid #ddd; border-radius: 8px;">
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                        <div>
+                            <label style="display: block; margin-bottom: 0.5rem; font-size: 0.85rem; font-weight: 600; color: #0f1f3e;">Expiry Date</label>
+                            <input type="text" id="card-expiry" class="input-field" placeholder="MM/YY" style="width: 100%; padding: 0.75rem; border: 1px solid #ddd; border-radius: 8px;">
+                        </div>
+                        <div>
+                            <label style="display: block; margin-bottom: 0.5rem; font-size: 0.85rem; font-weight: 600; color: #0f1f3e;">CVV</label>
+                            <input type="password" id="card-cvv" class="input-field" placeholder="123" style="width: 100%; padding: 0.75rem; border: 1px solid #ddd; border-radius: 8px;">
+                        </div>
+                    </div>
+                    <div class="card-icons" style="margin-top: 1rem; display: flex; gap: 0.5rem;">
+                        <i class="fa-brands fa-cc-visa" style="font-size: 2rem; color: #1a1f71;"></i>
+                        <i class="fa-brands fa-cc-mastercard" style="font-size: 2rem; color: #eb001b;"></i>
+                        <i class="fa-brands fa-cc-amex" style="font-size: 2rem; color: #006fcf;"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Payment Summary -->
+            <div class="payment-summary" style="background: #f8f9fa; border-radius: 12px; padding: 1rem; margin-bottom: 1.5rem; border: 1px solid #e0e0e0;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem; color: #666;">
+                    <span>Subtotal</span>
+                    <span>₱{{ "%.2f"|format(booking.price) }}</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; font-weight: 700; font-size: 1.1rem; padding-top: 0.5rem; border-top: 1px solid #ddd;">
+                    <span style="color: #0f1f3e;">Total</span>
+                    <span style="color: #f27523;">₱{{ "%.2f"|format(booking.price) }}</span>
+                </div>
+            </div>
+
+            <!-- Payment Info -->
+            <div class="payment-info" style="margin-bottom: 1.5rem; font-size: 0.85rem; color: #666;">
+                <p><i class="fa-regular fa-circle-check"></i> Secure payment powered by PayMongo</p>
+                <p><i class="fa-regular fa-clock"></i> Payment timeout: 15 minutes</p>
+            </div>
+
+            <!-- Action Buttons -->
+            <div style="display: flex; gap: 1rem; flex-direction: column;">
+                <button id="pay-now-btn" class="book-now-btn" style="width: 100%; cursor: pointer;" onclick="processPayment()">
+                    <i class="fa-solid fa-lock"></i> Pay Now
+                </button>
+                <a href="{{ back_url }}" class="print-btn" style="text-align: center; background: rgba(0, 0, 0, 0.05); text-decoration: none; display: block;">
+                    <i class="fa-solid fa-arrow-left"></i> Back
+                </a>
+            </div>
+        </div>
+    </div>
+</main>
+
+<script>
+    let selectedMethod = null;
+
+    function selectPaymentMethod(method) {
+        selectedMethod = method;
+        
+        // Reset all method styles
+        document.querySelectorAll('.method-option').forEach(opt => {
+            opt.style.borderColor = '#e0e0e0';
+            opt.style.background = 'transparent';
+            const radioInner = opt.querySelector('.radio-inner');
+            if (radioInner) radioInner.style.background = 'transparent';
+        });
+        
+        // Highlight selected method
+        const selectedElement = document.getElementById(`method-${method}`);
+        if (selectedElement) {
+            selectedElement.style.borderColor = '#f27523';
+            selectedElement.style.background = 'rgba(242, 117, 35, 0.05)';
+            const radioInner = selectedElement.querySelector('.radio-inner');
+            if (radioInner) radioInner.style.background = '#f27523';
+        }
+        
+        // Show/hide card details form
+        const cardDetails = document.getElementById('card-details');
+        if (cardDetails) {
+            if (method === 'card') {
+                cardDetails.style.display = 'block';
+            } else {
+                cardDetails.style.display = 'none';
+            }
+        }
+    }
+
+    async function processPayment() {
+        if (!selectedMethod) {
+            alert('Please select a payment method');
+            return;
+        }
+
+        const payBtn = document.getElementById('pay-now-btn');
+        payBtn.disabled = true;
+        payBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Processing...';
+
+        try {
+            if (selectedMethod === 'gcash') {
+                window.location.href = "{{ url_for('pay_booking', booking_id=booking.id) }}";
+                return;
+            } 
+            else if (selectedMethod === 'card') {
+                const cardNumber = document.getElementById('card-number')?.value;
+                const expiry = document.getElementById('card-expiry')?.value;
+                const cvv = document.getElementById('card-cvv')?.value;
+                
+                if (!cardNumber || !expiry || !cvv) {
+                    alert('Please fill in all card details');
+                    payBtn.disabled = false;
+                    payBtn.innerHTML = '<i class="fa-solid fa-lock"></i> Pay Now';
+                    return;
+                }
+                
+                alert('Card payments coming soon. Please use GCash for now.');
+                payBtn.disabled = false;
+                payBtn.innerHTML = '<i class="fa-solid fa-lock"></i> Pay Now';
+                return;
+            }
+            else if (selectedMethod === 'bank') {
+                showBankTransferInstructions();
+                payBtn.disabled = false;
+                payBtn.innerHTML = '<i class="fa-solid fa-lock"></i> Pay Now';
+                return;
+            }
+        } catch (error) {
+            console.error('Payment error:', error);
+            alert('Payment processing failed. Please try again.');
+        }
+        
+        payBtn.disabled = false;
+        payBtn.innerHTML = '<i class="fa-solid fa-lock"></i> Pay Now';
+    }
+
+    function showBankTransferInstructions() {
+        const modal = document.createElement('div');
+        modal.style.position = 'fixed';
+        modal.style.top = '0';
+        modal.style.left = '0';
+        modal.style.width = '100%';
+        modal.style.height = '100%';
+        modal.style.background = 'rgba(0,0,0,0.5)';
+        modal.style.display = 'flex';
+        modal.style.alignItems = 'center';
+        modal.style.justifyContent = 'center';
+        modal.style.zIndex = '1000';
+        
+        modal.innerHTML = `
+            <div style="background: white; border-radius: 16px; padding: 2rem; max-width: 400px; width: 90%;">
+                <h3 style="margin-bottom: 1rem; color: #0f1f3e;">Bank Transfer Details</h3>
+                <div style="margin-bottom: 1rem;">
+                    <p style="font-weight: 600; color: #0f1f3e;">Bank: BDO</p>
+                    <p style="color: #666;">Account Name: BusGo Transport Inc.</p>
+                    <p style="color: #666;">Account Number: 1234-5678-9012</p>
+                </div>
+                <div style="margin-bottom: 1rem;">
+                    <p style="font-weight: 600; color: #0f1f3e;">Amount to Pay:</p>
+                    <p style="font-size: 1.5rem; color: #f27523;">₱{{ "%.2f"|format(booking.price) }}</p>
+                </div>
+                <div style="background: #f8f9fa; padding: 0.75rem; border-radius: 8px; margin-bottom: 1rem; border: 1px solid #e0e0e0;">
+                    <p style="font-size: 0.85rem; color: #666;">Reference Number: <strong style="color: #0f1f3e;">BUS-{{ booking.id }}-{{ range(10000,99999)|random }}</strong></p>
+                </div>
+                <button onclick="this.parentElement.parentElement.remove()" class="book-now-btn" style="width: 100%; cursor: pointer;">
+                    I Understand
+                </button>
+            </div>
+        `;
+        
+        document.body.appendChild(modal);
+    }
+
+    // Auto-select GCash as default when page loads
+    document.addEventListener('DOMContentLoaded', function() {
+        selectPaymentMethod('gcash');
+    });
+</script>
+
+<style>
+    .payment-container {
+        animation: fadeIn 0.5s ease;
+    }
+    
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    .method-option {
+        cursor: pointer;
+    }
+    
+    .method-option:hover {
+        border-color: #f27523 !important;
+        transform: translateX(5px);
+    }
+    
+    @media (max-width: 768px) {
+        .payment-container {
+            grid-template-columns: 1fr;
+        }
+    }
+    
+    @media print {
+        .page-back-nav,
+        .payment-form .book-now-btn,
+        .payment-form .print-btn,
+        .method-option,
+        #pay-now-btn {
+            display: none !important;
+        }
+        .payment-container {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+{% endblock %}

@@ -51,7 +51,11 @@
                             </div>
 
                             <div class="input-group">
-                                <input type="text" name="route" placeholder="Route" value="{{ edit_bus.route if edit_bus else '' }}" required>
+                                <input type="text" name="origin" placeholder="Origin" value="{{ edit_bus.origin if edit_bus else '' }}" required>
+                            </div>
+
+                            <div class="input-group">
+                                <input type="text" name="destination" placeholder="Destination" value="{{ edit_bus.destination if edit_bus else '' }}" required>
                             </div>
 
                             <div class="input-group">
@@ -85,7 +89,7 @@
                     </div>
                 </div>
 
-                <!-- BUS TABLE -->
+                <!-- BUS TABLE - ONLY CHANGED TBODY BACKGROUND TO WHITE -->
                 <table class="admin-table admin-buses-table">
                     <thead style="background: var(--dark-text);">
                         <tr>
@@ -100,7 +104,7 @@
                         </tr>
                     </thead>
 
-                    <tbody style="background: rgba(255,255,255,0.4);">
+                    <tbody style="background: white;">
                         {% for bus in buses %}
                         <tr style="border-bottom: 1px solid rgba(16,42,67,0.1);">
                             <td style="color: var(--dark-text); font-weight: 700;">#{{ bus.id }}</td>
@@ -141,4 +145,6 @@
     </div>
 
 </div>
+
+
 {% endblock %}

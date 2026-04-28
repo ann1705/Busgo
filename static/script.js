@@ -1,208 +1,20 @@
 /* =========================================
    1. NAVIGATION & UI LOGIC
-   ========================================= */
+========================================= */
 
 // Sticky Header Effect
 window.addEventListener('scroll', () => {
     const nav = document.getElementById('mainNav');
-    if (window.scrollY > 50) {
-        nav.classList.add('scrolled');
-    } else {
-        nav.classList.remove('scrolled');
-    }
+    if (!nav) return;
+
+    nav.classList.toggle('scrolled', window.scrollY > 50);
 });
 
-// Modal Toggle (Login/Register)
-function toggleModal() {
-    const modal = document.getElementById('loginModal');
-    modal.style.display = (modal.style.display === "flex") ? "none" : "flex";
-}
-
-// Switch between Login and Register Forms
-function switchAuth(isRegister) {
-    const loginForm = document.getElementById('loginForm');
-    const registerForm = document.getElementById('registerForm');
-    
-    if (isRegister) {
-        loginForm.style.display = "none";
-        registerForm.style.display = "block";
-    } else {
-        loginForm.style.display = "block";
-        registerForm.style.display = "none";
-    }
-}
-
-/* =========================================
-   2. AUTHENTICATION (Login & Role Direction)
-   ========================================= */
-
-// Front‑end authentication utilities.  The server will create
-// `window.Auth` in a small inline script so the client code can
-// inspect the current session without additional requests.
-//
-// `window.Auth` fields: userId, role, fullname (all may be null).
-
-// if the login form is present we disable the button after submit
-// to prevent double‑submits and optionally show a loader.
-document.addEventListener('DOMContentLoaded', () => {
-    const loginForm = document.querySelector('#loginForm form');
-    if (loginForm) {
-        loginForm.addEventListener('submit', () => {
-            const btn = loginForm.querySelector('button[type=submit]');
-            if (btn) {
-                btn.disabled = true;
-                btn.textContent = 'Signing in...';
-            }
-        });
-    }
-
-    const regForm = document.querySelector('#registerForm form');
-    if (regForm) {
-        regForm.addEventListener('submit', (e) => {
-            const password = document.getElementById('regPass').value;
-            const confirmPassword = document.getElementById('confirmPass').value;
-            
-            // Validate passwords match
-            if (password !== confirmPassword) {
-                e.preventDefault();
-                alert('⚠️ Passwords do not match. Please try again.');
-                return;
-            }
-            
-            // Validate password length
-            if (password.length < 6) {
-                e.preventDefault();
-                alert('⚠️ Password must be at least 6 characters long.');
-                return;
-            }
-            
-            const btn = regForm.querySelector('button[type=submit]');
-            if (btn) {
-                btn.disabled = true;
-                btn.textContent = 'Registering...';
-            }
-        });
-    }
-
-    // If the server flashed a message about needing to login, open
-    // the modal automatically so the user can sign in quickly.
-    const msgElem = document.getElementById('flash-message');
-    if (msgElem && msgElem.textContent.toLowerCase().includes('please login')) {
-        toggleModal();
-    }
-});
-
-
-
-/* =========================================
-   3. PASSWORD FUNCTIONALITY (Show/Hide & Strength)
-   ========================================= */
-
-// Toggle Password Visibility
-function togglePasswordVisibility(inputId, iconElement) {
-    const passwordInput = document.getElementById(inputId);
-    
-    if (passwordInput.type === "password") {
-        passwordInput.type = "text";
-        iconElement.classList.remove("fa-eye");
-        iconElement.classList.add("fa-eye-slash");
-    } else {
-        passwordInput.type = "password";
-        iconElement.classList.remove("fa-eye-slash");
-        iconElement.classList.add("fa-eye");
-    }
-}
-
-// Password Strength Meter
-function checkStrength(password) {
-    const bar = document.getElementById('strength-bar');
-    let strength = 0;
-
-    if (password.length > 5) strength += 25;
-    if (password.match(/[a-z]/) && password.match(/[A-Z]/)) strength += 25;
-    if (password.match(/[0-9]/)) strength += 25;
-    if (password.match(/[^a-zA-Z0-9]/)) strength += 25;
-
-    bar.style.width = strength + "%";
-
-    // Change color based on strength
-    if (strength <= 25) bar.style.backgroundColor = "#ff4d4d"; // Weak
-    else if (strength <= 75) bar.style.backgroundColor = "#ffad33"; // Medium
-    else bar.style.backgroundColor = "#2eb82e"; // Strong
-}
-
-/* =========================================
-   4. FORM VALIDATION
-   ========================================= */
-
-// Validate Registration Form (Password Match)
-document.addEventListener('DOMContentLoaded', () => {
-    const regForm = document.querySelector('#registerForm form');
-    if (regForm) {
-        regForm.addEventListener('submit', function(e) {
-            const pass = document.getElementById('regPass').value;
-            const confirm = document.getElementById('confirmPass').value;
-
-            if (pass !== confirm) {
-                e.preventDefault();
-                alert("Passwords do not match! Please verify your password confirmation.");
-            }
-        });
-    }
-});
-
-/* =========================================
-   5. STATUS HELPERS
-   ========================================= */
-
-function handleCancel() {
-    if (confirm("Are you sure you want to cancel this ticket?")) {
-        alert("Ticket cancelled successfully.");
-        window.location.href = 'index.html';
-    }
-}
-
-// placeholder for booking confirmation - currently client side only
-function confirmFinalBooking() {
-    if (confirm("Confirm booking with the provided details?")) {
-        alert("Booking confirmed! Redirecting to status.");
-        window.location.href = '/status';
-    }
-}
-
-function confirmLogout(event) {
-    event.preventDefault();
-
-    if (confirm("Are you sure you want to logout?")) {
-        window.location.href = "/logout";
-    }
-}
-
-// Schedule filtering helper for the schedules page
-function filterSchedules() {
-    const input = document.getElementById('scheduleSearch');
-    const filter = input.value.toLowerCase();
-    const table = document.getElementById('busTable');
-    const tr = table.getElementsByTagName('tr');
-
-    for (let i = 1; i < tr.length; i++) { // skip header row
-        const td = tr[i].getElementsByTagName('td')[1];
-        if (td) {
-            const txtValue = td.textContent || td.innerText;
-            tr[i].style.display = txtValue.toLowerCase().indexOf(filter) > -1 ? '' : 'none';
-        }
-    }
-}
-
-// Back to top button behaviour
+// Back to Top Button
 window.addEventListener('scroll', () => {
     const btn = document.getElementById('backToTop');
     if (!btn) return;
-    if (window.scrollY > 200) {
-        btn.style.display = 'block';
-    } else {
-        btn.style.display = 'none';
-    }
+    btn.style.display = window.scrollY > 200 ? 'block' : 'none';
 });
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -214,138 +26,295 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
+// Modal Toggle (Login/Register)
+function toggleModal() {
+    const modal = document.getElementById('loginModal');
+    if (!modal) return;
+
+    modal.style.display = modal.style.display === "flex" ? "none" : "flex";
+}
+
+// Switch Auth Forms
+function switchAuth(isRegister) {
+    const loginForm = document.getElementById('loginForm');
+    const registerForm = document.getElementById('registerForm');
+
+    if (!loginForm || !registerForm) return;
+
+    loginForm.style.display = isRegister ? "none" : "block";
+    registerForm.style.display = isRegister ? "block" : "none";
+}
+
+
 /* =========================================
-   ADMIN BUS MANAGEMENT
-   ========================================= */
+   2. AUTHENTICATION
+========================================= */
 
-// Realtime search for buses
 document.addEventListener('DOMContentLoaded', () => {
-    const searchInput = document.getElementById('busSearch');
-    const tableBody = document.querySelector('.admin-table tbody');
 
-    if (searchInput && tableBody) {
-        searchInput.addEventListener('input', function() {
-            const searchTerm = this.value.toLowerCase();
-            const rows = tableBody.querySelectorAll('tr');
+    const loginForm = document.querySelector('#loginForm form');
+    const regForm = document.querySelector('#registerForm form');
 
-            rows.forEach(row => {
-                const cells = row.querySelectorAll('td');
-                let match = false;
-
-                cells.forEach(cell => {
-                    if (cell.textContent.toLowerCase().includes(searchTerm)) {
-                        match = true;
-                    }
-                });
-
-                row.style.display = match ? '' : 'none';
-            });
-        });
-    }
-
-    // Add Bus Modal
-    const addBusBtn = document.getElementById('addBusBtn');
-    const modal = document.getElementById('addBusModal');
-    const closeModal = document.querySelector('.close-modal');
-
-    if (addBusBtn && modal) {
-        addBusBtn.addEventListener('click', () => {
-            modal.style.display = 'flex';
-        });
-
-        if (closeModal) {
-            closeModal.addEventListener('click', () => {
-                modal.style.display = 'none';
-            });
-        }
-
-        // Close modal when clicking outside
-        window.addEventListener('click', (event) => {
-            if (event.target === modal) {
-                modal.style.display = 'none';
+    // Login submit
+    if (loginForm) {
+        loginForm.addEventListener('submit', () => {
+            const btn = loginForm.querySelector('button[type=submit]');
+            if (btn) {
+                btn.disabled = true;
+                btn.textContent = 'Signing in...';
             }
         });
     }
 
-    // Open bus modal if edit_id is present in URL on page load
-    const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.has('edit_id') && modal) {
-        modal.style.display = 'flex';
+    // Register submit + validation
+    if (regForm) {
+        regForm.addEventListener('submit', (e) => {
+            const pass = document.getElementById('regPass')?.value;
+            const confirm = document.getElementById('confirmPass')?.value;
+
+            if (pass !== confirm) {
+                e.preventDefault();
+                alert('⚠️ Passwords do not match.');
+                return;
+            }
+
+            if (pass.length < 6) {
+                e.preventDefault();
+                alert('⚠️ Password must be at least 6 characters.');
+                return;
+            }
+
+            const btn = regForm.querySelector('button[type=submit]');
+            if (btn) {
+                btn.disabled = true;
+                btn.textContent = 'Registering...';
+            }
+        });
     }
 
+    // Auto-open modal if needed
+    const msgElem = document.getElementById('flash-message');
+    if (msgElem && msgElem.textContent.toLowerCase().includes('please login')) {
+        toggleModal();
+    }
+});
 
 
-    const userSearchInput = document.getElementById('userSearch');
+/* =========================================
+   3. PASSWORD FEATURES
+========================================= */
+
+// Toggle Password Visibility
+function togglePasswordVisibility(inputId, icon) {
+    const input = document.getElementById(inputId);
+    if (!input) return;
+
+    if (input.type === "password") {
+        input.type = "text";
+        icon.classList.replace("fa-eye", "fa-eye-slash");
+    } else {
+        input.type = "password";
+        icon.classList.replace("fa-eye-slash", "fa-eye");
+    }
+}
+
+// Password Strength
+function checkStrength(password) {
+    const bar = document.getElementById('strength-bar');
+    if (!bar) return;
+
+    let strength = 0;
+
+    if (password.length > 5) strength += 25;
+    if (/[a-z]/.test(password) && /[A-Z]/.test(password)) strength += 25;
+    if (/[0-9]/.test(password)) strength += 25;
+    if (/[^a-zA-Z0-9]/.test(password)) strength += 25;
+
+    bar.style.width = strength + "%";
+
+    if (strength <= 25) bar.style.backgroundColor = "#ff4d4d";
+    else if (strength <= 75) bar.style.backgroundColor = "#ffad33";
+    else bar.style.backgroundColor = "#2eb82e";
+}
+
+
+/* =========================================
+   4. STATUS / ACTION HELPERS
+========================================= */
+
+function handleCancel() {
+    if (confirm("Are you sure you want to cancel this ticket?")) {
+        alert("Ticket cancelled successfully.");
+        window.location.href = "index.html";
+    }
+}
+
+function confirmFinalBooking() {
+    if (confirm("Confirm booking?")) {
+        alert("Booking confirmed!");
+        window.location.href = "/status";
+    }
+}
+
+function confirmLogout(event) {
+    event.preventDefault();
+    if (confirm("Are you sure you want to logout?")) {
+        window.location.href = "/logout";
+    }
+}
+
+
+/* =========================================
+   5. SCHEDULE FILTER
+========================================= */
+
+function filterSchedules() {
+    const input = document.getElementById('scheduleSearch');
+    const table = document.getElementById('busTable');
+    if (!input || !table) return;
+
+    const filter = input.value.toLowerCase();
+    const rows = table.getElementsByTagName('tr');
+
+    for (let i = 1; i < rows.length; i++) {
+        const td = rows[i].getElementsByTagName('td')[1];
+        if (!td) continue;
+
+        const text = td.textContent.toLowerCase();
+        rows[i].style.display = text.includes(filter) ? '' : 'none';
+    }
+}
+
+
+/* =========================================
+   6. SEAT MAP SYSTEM
+========================================= */
+
+const TOTAL_SEATS = 52;
+
+function getBookedSeats(tripId) {
+    fetch(`/api/booked-seats/${tripId}`)
+        .then(res => res.json())
+        .then(data => renderSeats(data))
+        .catch(console.error);
+}
+
+function renderSeats(bookedSeats) {
+    const container = document.getElementById('seatContainer');
+    if (!container) return;
+
+    container.innerHTML = "";
+
+    for (let i = 1; i <= TOTAL_SEATS; i++) {
+        const seat = document.createElement('div');
+        seat.classList.add('seat');
+        seat.textContent = i;
+
+        if (bookedSeats.includes(String(i))) {
+            seat.classList.add('booked');
+        } else {
+            seat.addEventListener('click', () => selectSeat(seat, i));
+        }
+
+        container.appendChild(seat);
+    }
+}
+
+function selectSeat(element, seatNumber) {
+    document.querySelectorAll('.seat.selected')
+        .forEach(s => s.classList.remove('selected'));
+
+    element.classList.add('selected');
+
+    const input = document.getElementById('seat_number');
+    if (input) input.value = seatNumber;
+}
+
+
+/* =========================================
+   7. ADMIN FEATURES
+========================================= */
+
+document.addEventListener('DOMContentLoaded', () => {
+
+    // Bus search
+    const busSearch = document.getElementById('busSearch');
+    const busTable = document.querySelector('.admin-table tbody');
+
+    if (busSearch && busTable) {
+        busSearch.addEventListener('input', function () {
+            const term = this.value.toLowerCase();
+
+            busTable.querySelectorAll('tr').forEach(row => {
+                row.style.display =
+                    row.textContent.toLowerCase().includes(term) ? '' : 'none';
+            });
+        });
+    }
+
+    // User search
+    const userSearch = document.getElementById('userSearch');
     const usersTable = document.getElementById('usersTable');
+
+    if (userSearch && usersTable) {
+        userSearch.addEventListener('input', function () {
+            const term = this.value.toLowerCase();
+
+            usersTable.querySelectorAll('tbody tr').forEach(row => {
+                row.style.display =
+                    row.textContent.toLowerCase().includes(term) ? '' : 'none';
+            });
+        });
+    }
+
+    // Modal controls (Bus/User)
+    const addBusBtn = document.getElementById('addBusBtn');
+    const addBusModal = document.getElementById('addBusModal');
+    const closeBusModal = document.querySelector('#addBusModal .close-modal');
+
+    if (addBusBtn && addBusModal) {
+        addBusBtn.addEventListener('click', () => addBusModal.style.display = 'flex');
+
+        closeBusModal?.addEventListener('click', () => addBusModal.style.display = 'none');
+
+        window.addEventListener('click', (e) => {
+            if (e.target === addBusModal) addBusModal.style.display = 'none';
+        });
+    }
+
     const addUserBtn = document.getElementById('addUserBtn');
     const addUserModal = document.getElementById('addUserModal');
-    const userModalClose = document.querySelector('#addUserModal .close-modal');
-
-    if (userSearchInput && usersTable) {
-        userSearchInput.addEventListener('input', function() {
-            const filter = this.value.trim().toLowerCase();
-            const rows = usersTable.querySelectorAll('tbody tr');
-
-            rows.forEach(row => {
-                const rowText = row.textContent.toLowerCase();
-                row.style.display = rowText.includes(filter) ? '' : 'none';
-            });
-        });
-    }
+    const closeUserModal = document.querySelector('#addUserModal .close-modal');
 
     if (addUserBtn && addUserModal) {
-        addUserBtn.addEventListener('click', () => {
-            addUserModal.style.display = 'flex';
-        });
+        addUserBtn.addEventListener('click', () => addUserModal.style.display = 'flex');
 
-        if (userModalClose) {
-            userModalClose.addEventListener('click', () => {
-                addUserModal.style.display = 'none';
-            });
-        }
+        closeUserModal?.addEventListener('click', () => addUserModal.style.display = 'none');
 
-        window.addEventListener('click', (event) => {
-            if (event.target === addUserModal) {
-                addUserModal.style.display = 'none';
-            }
+        window.addEventListener('click', (e) => {
+            if (e.target === addUserModal) addUserModal.style.display = 'none';
         });
     }
 
-    const activeBookingsTab = document.getElementById('activeBookingsTab');
-    const historyBookingsTab = document.getElementById('historyBookingsTab');
-    const activeBookingsSection = document.getElementById('activeBookingsSection');
-    const historyBookingsSection = document.getElementById('historyBookingsSection');
+    // Booking tabs
+    const activeTab = document.getElementById('activeBookingsTab');
+    const historyTab = document.getElementById('historyBookingsTab');
+    const activeSection = document.getElementById('activeBookingsSection');
+    const historySection = document.getElementById('historyBookingsSection');
 
-    if (activeBookingsTab && historyBookingsTab && activeBookingsSection && historyBookingsSection) {
-        activeBookingsTab.addEventListener('click', () => {
-            activeBookingsTab.classList.add('active');
-            historyBookingsTab.classList.remove('active');
-            activeBookingsSection.classList.add('active');
-            historyBookingsSection.classList.remove('active');
+    if (activeTab && historyTab) {
+        activeTab.addEventListener('click', () => {
+            activeTab.classList.add('active');
+            historyTab.classList.remove('active');
+            activeSection?.classList.add('active');
+            historySection?.classList.remove('active');
         });
 
-        historyBookingsTab.addEventListener('click', () => {
-            historyBookingsTab.classList.add('active');
-            activeBookingsTab.classList.remove('active');
-            historyBookingsSection.classList.add('active');
-            activeBookingsSection.classList.remove('active');
-        });
-    }
-
-    const bookingSearchInput = document.getElementById('bookingSearch');
-    const bookingTables = document.querySelectorAll('#activeBookingsSection table.admin-table tbody, #historyBookingsSection table.admin-table tbody');
-
-    if (bookingSearchInput && bookingTables.length) {
-        bookingSearchInput.addEventListener('input', function() {
-            const searchTerm = this.value.trim().toLowerCase();
-
-            bookingTables.forEach(tbody => {
-                const rows = tbody.querySelectorAll('tr');
-                rows.forEach(row => {
-                    const rowText = row.textContent.toLowerCase();
-                    row.style.display = rowText.includes(searchTerm) ? '' : 'none';
-                });
-            });
+        historyTab.addEventListener('click', () => {
+            historyTab.classList.add('active');
+            activeTab.classList.remove('active');
+            historySection?.classList.add('active');
+            activeSection?.classList.remove('active');
         });
     }
 });

@@ -54,7 +54,7 @@
                         <tr style="border-bottom: 1px solid rgba(16,42,67,0.1);">
                             <td style="color: var(--dark-text); font-weight: 700;">#{{ booking.id }}</td>
                             <td style="color: var(--dark-text);">{{ booking.bus_no }}</td>
-                            <td style="color: var(--dark-text);">{{ booking.route }}</td>
+                            <td style="color: var(--dark-text);">{{ booking.origin }} → {{ booking.destination }}</td>
                             <td style="color: var(--dark-text); font-weight: 700;">{{ booking.departure }}</td>
                             <td style="color: var(--dark-text);">{{ booking.booked_on }}</td>
                             <td style="color: var(--dark-text); font-weight: 700;">₱{{ "%.2f"|format(booking.price) }}</td>

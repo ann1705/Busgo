@@ -139,9 +139,10 @@
                     </a>
 
                 {% elif user_role == 'user' and booking.status == 'waiting for payment' %}
-                    <button type="button" class="book-now-btn" onclick="toggleGcashPayment(this)">
+                    <!-- CHANGE THIS - Link to payment_page first, NOT directly to pay_booking -->
+                    <a href="/payment/{{ booking.id }}" class="book-now-btn">
                         <i class="fa-solid fa-credit-card"></i> Pay Online
-                    </button>
+                    </a>
 
                 {% endif %}
 

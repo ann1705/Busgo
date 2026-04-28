@@ -26,230 +26,246 @@
             <button type="button" class="tab-btn" data-tab="booking-records-tab">Walk-in Records</button>
         </div>
 
+        <!-- New Walk-in Booking Tab -->
         <div id="new-booking-tab" class="tab-panel active">
-                <div class="table-header">
-                    <i class="fa-solid fa-person-walking" style="margin-right: 0.5rem;"></i>
-                    Walk-in Booking
+            <div class="table-header">
+                <i class="fa-solid fa-person-walking" style="margin-right: 0.5rem;"></i>
+                Walk-in Booking
+            </div>
+
+            <form method="POST" class="dashboard-form">
+                <div class="input-group">
+                    <label for="trip_id">Select Trip</label>
+                    <select name="trip_id" id="trip_id" required>
+                        <option value="">Choose a trip</option>
+                        {% for trip in trips %}
+                            <option value="{{ trip.id }}">{{ trip.bus_no }} — {{ trip.origin }} → {{ trip.destination }} ({{ trip.departure }} → {{ trip.arrival }})</option>
+                        {% endfor %}
+                    </select>
                 </div>
 
-                <form method="POST" class="dashboard-form">
-                    <div class="input-group">
-                        <label for="bus_id">Select Bus</label>
-                        <select name="bus_id" id="bus_id" required>
-                            <option value="">Choose a bus</option>
-                            {% for bus in buses %}
-                                <option value="{{ bus.id }}">{{ bus.bus_no }} — {{ bus.route }} ({{ bus.departure }} → {{ bus.arrival }})</option>
-                            {% endfor %}
-                        </select>
-                    </div>
+                <div class="input-group">
+                    <label for="passenger_name">Passenger Name</label>
+                    <input type="text" name="passenger_name" id="passenger_name" placeholder="Enter passenger name" required />
+                </div>
 
-                    <div class="input-group">
-                        <label for="passenger_name">Passenger Name</label>
-                        <input type="text" name="passenger_name" id="passenger_name" placeholder="Enter passenger name" required />
-                    </div>
+                <div class="input-group">
+                    <label for="contact">Contact Number</label>
+                    <input type="text" name="contact" id="contact" placeholder="Enter contact details" required maxlength="11" pattern="[0-9]{11}" title="Contact number must be an 11-digit number" oninput="this.value = this.value.replace(/[^0-9]/g, '');" />
+                </div>
 
-                    <div class="input-group">
-                        <label for="contact">Contact Number</label>
-                        <input type="text" name="contact" id="contact" placeholder="Enter contact details" required maxlength="11" pattern="[0-9]{11}" title="Contact number must be an 11-digit number" oninput="this.value = this.value.replace(/[^0-9]/g, '');" />
-                    </div>
+                <div class="seat-selection-wrapper">
+                    <h3 class="selection-subtitle">Select Your Seat</h3>
+                    <p style="color: #102a43; font-size: 0.95rem; margin-bottom: 1rem; font-weight: 600;">
+                        <span style="display: inline-block; margin-right: 2rem;"><span class="seat-legend available"></span> Available</span>
+                        <span style="display: inline-block; margin-right: 2rem;"><span class="seat-legend booked"></span> Booked</span>
+                        <span id="staff-available-count" style="display: inline-block; font-weight: 700; color: #102a43;">52 seats available</span>
+                    </p>
 
-                    <div class="seat-selection-wrapper">
-                        <h3 class="selection-subtitle">Select Your Seat</h3>
-                        <p style="color: #102a43; font-size: 0.95rem; margin-bottom: 1rem; font-weight: 600;">
-                            <span style="display: inline-block; margin-right: 2rem;"><span class="seat-legend available"></span> Available</span>
-                            <span style="display: inline-block; margin-right: 2rem;"><span class="seat-legend booked"></span> Booked</span>
-                            <span id="staff-available-count" style="display: inline-block; font-weight: 700; color: #102a43;">52 seats available</span>
-                        </p>
-
-                        <div class="bus-layout" id="staff-seat-map"></div>
-                        <div class="booking-summary-panel" id="staff-booking-summary">
-                            <h3 class="selection-subtitle">Booking Summary</h3>
-                            <div class="booking-summary-grid">
-                                <div class="booking-summary-item">
-                                    <label>Seat</label>
-                                    <span class="value" id="staff-summary-seat">None</span>
-                                </div>
-                                <div class="booking-summary-item">
-                                    <label>Route</label>
-                                    <span class="value" id="staff-summary-route">—</span>
-                                </div>
-                                <div class="booking-summary-item">
-                                    <label>Departure</label>
-                                    <span class="value" id="staff-summary-departure">—</span>
-                                </div>
-                                <div class="booking-summary-item">
-                                    <label>Arrival</label>
-                                    <span class="value" id="staff-summary-arrival">—</span>
-                                </div>
-                                <div class="booking-summary-item">
-                                    <label>Price</label>
-                                    <span class="value" id="staff-summary-price">—</span>
-                                </div>
-                                <div class="booking-summary-item">
-                                    <label>Status</label>
-                                    <span class="value" id="staff-summary-status">Walk-in</span>
-                                </div>
+                    <div class="bus-layout" id="staff-seat-map"></div>
+                    <div class="booking-summary-panel" id="staff-booking-summary">
+                        <h3 class="selection-subtitle">Booking Summary</h3>
+                        <div class="booking-summary-grid">
+                            <div class="booking-summary-item">
+                                <label>Seat</label>
+                                <span class="value" id="staff-summary-seat">None</span>
+                            </div>
+                            <div class="booking-summary-item">
+                                <label>Route</label>
+                                <span class="value" id="staff-summary-route">—</span>
+                            </div>
+                            <div class="booking-summary-item">
+                                <label>Departure</label>
+                                <span class="value" id="staff-summary-departure">—</span>
+                            </div>
+                            <div class="booking-summary-item">
+                                <label>Arrival</label>
+                                <span class="value" id="staff-summary-arrival">—</span>
+                            </div>
+                            <div class="booking-summary-item">
+                                <label>Price</label>
+                                <span class="value" id="staff-summary-price">—</span>
+                            </div>
+                            <div class="booking-summary-item">
+                                <label>Status</label>
+                                <span class="value" id="staff-summary-status">Walk-in</span>
                             </div>
                         </div>
-
                     </div>
+                </div>
 
-                    <input type="hidden" id="seat_number" name="seat_number">
-                    <input type="hidden" id="payment_method" name="payment_method" value="">
-                    <input type="hidden" id="payment_status" name="payment_status" value="waiting for payment">
-                    <input type="hidden" id="cash_given" name="cash_given" value="">
-                    <input type="hidden" id="payment_amount" name="payment_amount" value="">
+                <input type="hidden" id="seat_number" name="seat_number">
+                <input type="hidden" id="payment_method" name="payment_method" value="">
+                <input type="hidden" id="payment_status" name="payment_status" value="waiting for payment">
+                <input type="hidden" id="cash_given" name="cash_given" value="">
+                <input type="hidden" id="payment_amount" name="payment_amount" value="">
 
-                    <button type="button" id="proceed-payment-btn" class="book-now-btn">Proceed Payment</button>
-                </form>
+                <button type="button" id="proceed-payment-btn" class="book-now-btn">Proceed Payment</button>
+            </form>
         </div>
 
         <!-- Payment Modal -->
         <div id="payment-modal" class="modal">
-            <div class="modal-content">
-                <span class="close">&times;</span>
-                <h3>Complete Payment</h3>
-                <div class="payment-options">
-                    <label><input type="radio" name="modal_payment_method" value="cash" checked> Cash</label>
-                    <label><input type="radio" name="modal_payment_method" value="gcash"> GCash</label>
+            <div class="modal-content" style="max-width: 500px; border-radius: 24px; padding: 0; overflow: hidden;">
+                <div style="padding: 1.5rem; border-bottom: 1px solid #e0e0e0; display: flex; justify-content: space-between; align-items: center;">
+                    <h3 style="margin: 0; color: #0f1f3e;">Complete Payment</h3>
+                    <span class="close" style="font-size: 28px; cursor: pointer; color: #999;">&times;</span>
                 </div>
-
-                <div id="cash-fields" class="payment-fields">
-                    <div class="input-group">
-                        <label for="modal_cash_given">Cash Given</label>
-                        <input type="number" step="0.01" min="0" id="modal_cash_given" placeholder="Enter cash received" style="color: black;" />
+                
+                <div style="padding: 1.5rem;">
+                    <div style="background: linear-gradient(135deg, #0f1f3e 0%, #1a2a4a 100%); border-radius: 16px; padding: 1rem; margin-bottom: 1.5rem; color: white;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                            <span>Total Amount Due</span>
+                            <span id="modal-total-amount" style="font-size: 1.5rem; font-weight: 700;">₱0.00</span>
+                        </div>
+                        <div style="font-size: 0.8rem; opacity: 0.8;">
+                            <i class="fa-regular fa-clock"></i> Payment timeout: 15 minutes
+                        </div>
                     </div>
-                    <div class="payment-summary">
-                        <p style="margin: 0 0 0.5rem; font-weight: 700;">Total: <strong id="total-amount">₱0.00</strong></p>
-                        <p style="margin: 0;">Change: <strong id="cash-change">₱0.00</strong></p>
+
+                    <h4 style="margin-bottom: 1rem; color: #0f1f3e;">Select Payment Method</h4>
+                    
+                    <div class="payment-methods-modal">
+                        <div class="method-option-modal" onclick="selectModalPaymentMethod('cash')" id="modal-method-cash" style="border: 2px solid #e0e0e0; border-radius: 12px; padding: 1rem; margin-bottom: 0.75rem; cursor: pointer; transition: all 0.3s ease; display: flex; align-items: center; gap: 1rem;">
+                            <div class="method-radio-modal">
+                                <div class="custom-radio-modal" style="width: 20px; height: 20px; border: 2px solid #ccc; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                                    <div class="radio-inner-modal" style="width: 10px; height: 10px; border-radius: 50%; background: transparent;"></div>
+                                </div>
+                            </div>
+                            <div class="method-icon-modal" style="width: 48px; height: 48px; background: #4CAF50; border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+                                <i class="fa-solid fa-money-bill-wave" style="color: white; font-size: 1.5rem;"></i>
+                            </div>
+                            <div class="method-info-modal" style="flex: 1;">
+                                <p style="font-weight: 700; margin: 0; color: #0f1f3e;">Cash</p>
+                                <p style="font-size: 0.8rem; margin: 0; color: #666;">Pay with cash at the counter</p>
+                            </div>
+                        </div>
+
+                        <div class="method-option-modal" onclick="selectModalPaymentMethod('gcash')" id="modal-method-gcash" style="border: 2px solid #e0e0e0; border-radius: 12px; padding: 1rem; cursor: pointer; transition: all 0.3s ease; display: flex; align-items: center; gap: 1rem;">
+                            <div class="method-radio-modal">
+                                <div class="custom-radio-modal" style="width: 20px; height: 20px; border: 2px solid #ccc; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                                    <div class="radio-inner-modal" style="width: 10px; height: 10px; border-radius: 50%; background: transparent;"></div>
+                                </div>
+                            </div>
+                            <div class="method-icon-modal" style="width: 48px; height: 48px; background: #0078FF; border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+                                <i class="fa-brands fa-google" style="color: white; font-size: 1.5rem;"></i>
+                            </div>
+                            <div class="method-info-modal" style="flex: 1;">
+                                <p style="font-weight: 700; margin: 0; color: #0f1f3e;">GCash</p>
+                                <p style="font-size: 0.8rem; margin: 0; color: #666;">Pay using GCash wallet</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="modal-cash-fields" class="payment-fields-modal" style="margin-top: 1.5rem;">
+                        <div class="input-group" style="margin-bottom: 1rem;">
+                            <label for="modal_cash_given" style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Cash Given</label>
+                            <input type="number" step="0.01" min="0" id="modal_cash_given" placeholder="Enter cash received" style="width: 100%; padding: 0.75rem; border: 1px solid #ddd; border-radius: 8px;" />
+                        </div>
+                        <div class="payment-summary-modal" style="background: #f8f9fa; border-radius: 12px; padding: 1rem; border: 1px solid #e0e0e0;">
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                                <span>Total Amount:</span>
+                                <strong id="cash-total-display">₱0.00</strong>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                                <span>Cash Given:</span>
+                                <span id="cash-given-display">₱0.00</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; padding-top: 0.5rem; border-top: 1px solid #000000; font-weight: 700;">
+                                <span>Change:</span>
+                                <span id="cash-change-display" style="color: #2e7d32;">₱0.00</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="modal-gcash-fields" class="payment-fields-modal hidden" style="margin-top: 1.5rem;">
+                        <div style="background: #f8f9fa; border-radius: 12px; padding: 1rem; text-align: center; border: 1px solid #e0e0e0;">
+                            <i class="fa-solid fa-circle-info" style="font-size: 2.5rem; color: #0078FF; margin-bottom: 0.5rem;"></i>
+                            <p style="margin: 0 0 0.5rem;">You will be redirected to the secure GCash payment gateway to complete the transaction.</p>
+                            <p style="font-size: 0.85rem; color: #666;">Payment will be verified automatically via PayMongo.</p>
+                        </div>
+                    </div>
+
+                    <div style="display: flex; gap: 1rem; margin-top: 1.5rem;">
+                        <button id="confirm-payment-btn" class="book-now-btn" style="flex: 1;">
+                            <i class="fa-solid fa-check"></i> Confirm Payment
+                        </button>
+                        <button type="button" class="cancel-btn" onclick="closeModal()" style="flex: 1; text-align: center;">
+                            Cancel
+                        </button>
                     </div>
                 </div>
-
-                <div id="gcash-fields" class="payment-fields hidden">
-                    <div class="payment-summary">
-                        <i class="fa-solid fa-circle-info" style="font-size: 2.5rem; color: var(--accent); margin-bottom: 1rem;"></i>
-                        <p style="margin: 0 0 1rem; font-weight: 700;">Online GCash Integration</p>
-                        <p>You will be redirected to the secure GCash payment gateway to complete the transaction for <strong id="gcash-amount">₱0.00</strong>.</p>
-                        <p class="qr-note" style="margin-top: 1rem; color: #102a43;">This ensures the payment is verified automatically via PayMongo.</p>
-                    </div>
-                </div>
-
-                <button id="confirm-payment-btn" class="book-now-btn">Confirm Payment</button>
             </div>
         </div>
 
+        <!-- Walk-in Records Tab Panel -->
         <div id="booking-records-tab" class="tab-panel">
-            <div class="table-container">
-                <div class="record-tabs" style="display: flex; gap: 1rem; margin-bottom: 1rem; flex-wrap: wrap;">
-                    <button id="activeRecordsTab" type="button" class="book-now-btn active" style="padding: 0.75rem 1.2rem; font-size: 0.95rem;">Active</button>
-                    <button id="historyRecordsTab" type="button" class="book-now-btn" style="padding: 0.75rem 1.2rem; font-size: 0.95rem;">History</button>
-                </div>
+            <h3 style="margin: 0 0 1.5rem 0; font-weight: 700; color: var(--dark-text);">
+                Walk-in Records
+            </h3>
 
-                <div id="activeRecordsSection" class="record-section active">
-                    {% if active_bookings_by_date %}
-                        {% for date, items in active_bookings_by_date.items() %}
-                            <div class="date-group">
-                                <h3>{{ date }} <small>({{ items|length }} active bookings)</small></h3>
-                                <table class="admin-table admin-bookings-table">
-                                    <thead style="background: var(--dark-text);">
-                                        <tr>
-                                            <th style="color: white; border-radius: 12px 0 0 0;">ID</th>
-                                            <th style="color: white;">Time</th>
-                                            <th style="color: white;">Passenger</th>
-                                            <th style="color: white;">Contact</th>
-                                            <th style="color: white;">Bus</th>
-                                            <th style="color: white;">Route</th>
-                                            <th style="color: white;">Departure</th>
-                                            <th style="color: white;">Seat</th>
-                                            <th style="color: white;">Status</th>
-                                            <th style="color: white; border-radius: 0 12px 0 0;">Actions</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody style="background: rgba(255,255,255,0.4);">
-                                        {% for booking in items %}
-                                            <tr style="border-bottom: 1px solid rgba(16,42,67,0.1);">
-                                                <td style="color: var(--dark-text); font-weight: 700;">#{{ booking.id }}</td>
-                                                <td style="color: var(--dark-text);">{{ booking.created_time }}</td>
-                                                <td style="color: var(--dark-text); font-weight: 700;">{{ booking.passenger_name }}</td>
-                                                <td style="color: var(--dark-text);">{{ booking.contact }}</td>
-                                                <td style="color: var(--dark-text);">{{ booking.bus_no }}</td>
-                                                <td style="color: var(--dark-text);">{{ booking.route }}</td>
-                                                <td style="color: var(--dark-text);">{{ booking.departure }}</td>
-                                                <td style="color: var(--dark-text);">{{ booking.seat_number }}</td>
-                                                <td class="status-{{ booking.status.lower() }}" style="font-weight: 700;">{{ 'Completed' if booking.status == 'paid' else 'Waiting for Payment' if booking.status == 'waiting for payment' else booking.status|capitalize }}</td>
-                                                <td>
-                                                    <a href="{{ url_for('staff_view_booking', booking_id=booking.id) }}" class="book-now-btn" style="padding: 6px 10px; font-size: 0.8rem; margin-right: 0.3rem;">View</a>
-                                                    <a href="{{ url_for('staff_view_booking', booking_id=booking.id) }}" class="book-now-btn" style="padding: 6px 10px; font-size: 0.8rem; margin-right: 0.3rem;">View</a>
-                                                    {% if booking.status == 'paid' %}
-                                                    <a href="{{ url_for('ticket', booking_id=booking.id) }}" class="receipt-btn-sm">Receipt</a>
-                                                    {% else %}
-                                                    <span style="color: #627d98; font-size: 0.8rem; font-weight: 600;">No Receipt</span>
-                                                    {% endif %}
-                                                </td>
-                                            </tr>
-                                        {% endfor %}
-                                    </tbody>
-                                </table>
-                            </div>
-                        {% endfor %}
-                    {% else %}
-                        <div style="text-align: center; padding: 3rem; color: rgba(255, 255, 255, 0.7);">
-                            <i class="fa-solid fa-inbox" style="font-size: 3rem; margin-bottom: 1rem; color: var(--accent);"></i>
-                            <p style="font-size: 1.1rem;">No active walk-in records yet.</p>
-                            <p style="margin-top: 1rem;"><a href="javascript:void(0)" onclick="document.querySelector('[data-tab=\'new-booking-tab\']').click()" style="color: var(--accent); text-decoration: none; font-weight: 600;">Create a new walk-in booking.</a></p>
+            <div class="table-container" style="width: 100%; overflow-x: auto;">
+                {% if active_bookings_by_date %}
+                    {% for date, items in active_bookings_by_date.items() %}
+                    
+                    <div style="margin-bottom: 2rem; width: 100%;">
+                        <div class="table-header" style="background: rgba(138, 184, 255, 0.25); border-bottom: 1px solid rgba(16,42,67,0.1); padding: 10px;">
+                            <i class="fa-solid fa-calendar-day"></i>
+                            {{ date }}
+                            <small style="margin-left: 0.5rem;">({{ items|length }} bookings)</small>
                         </div>
-                    {% endif %}
-                </div>
 
-                <div id="historyRecordsSection" class="record-section">
-                    {% if history_bookings_by_date %}
-                        {% for date, items in history_bookings_by_date.items() %}
-                            <div class="date-group">
-                                <h3>{{ date }} <small>({{ items|length }} history bookings)</small></h3>
-                                <table class="admin-table admin-bookings-table">
-                                    <thead style="background: var(--dark-text);">
-                                        <tr>
-                                            <th style="color: white; border-radius: 12px 0 0 0;">ID</th>
-                                            <th style="color: white;">Time</th>
-                                            <th style="color: white;">Passenger</th>
-                                            <th style="color: white;">Contact</th>
-                                            <th style="color: white;">Bus</th>
-                                            <th style="color: white;">Route</th>
-                                            <th style="color: white;">Departure</th>
-                                            <th style="color: white;">Seat</th>
-                                            <th style="color: white;">Status</th>
-                                            <th style="color: white; border-radius: 0 12px 0 0;">Actions</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody style="background: rgba(255,255,255,0.4);">
-                                        {% for booking in items %}
-                                            <tr style="border-bottom: 1px solid rgba(16,42,67,0.1);">
-                                                <td style="color: var(--dark-text); font-weight: 700;">#{{ booking.id }}</td>
-                                                <td style="color: var(--dark-text);">{{ booking.created_time }}</td>
-                                                <td style="color: var(--dark-text); font-weight: 700;">{{ booking.passenger_name }}</td>
-                                                <td style="color: var(--dark-text);">{{ booking.contact }}</td>
-                                                <td style="color: var(--dark-text);">{{ booking.bus_no }}</td>
-                                                <td style="color: var(--dark-text);">{{ booking.route }}</td>
-                                                <td style="color: var(--dark-text);">{{ booking.departure }}</td>
-                                                <td style="color: var(--dark-text);">{{ booking.seat_number }}</td>
-                                                <td class="status-{{ booking.status.lower() }}" style="font-weight: 700;">{{ 'Completed' if booking.status == 'paid' else 'Waiting for Payment' if booking.status == 'waiting for payment' else booking.status|capitalize }}</td>
-                                                <td>
-                                                    {% if booking.status == 'paid' %}
-                                                    <a href="{{ url_for('ticket', booking_id=booking.id) }}" class="receipt-btn-sm">Receipt</a>
-                                                    {% else %}
-                                                    <span style="color: #627d98; font-size: 0.8rem; font-weight: 600;">No Receipt</span>
-                                                    {% endif %}
-                                                </td>
-                                            </tr>
-                                        {% endfor %}
-                                    </tbody>
-                                </table>
-                        </div>
+                        <table class="admin-table admin-bookings-table" style="width: 100%; border-collapse: collapse;">
+                            <thead style="background: #0f1f3e;">
+                                <tr>
+                                    <th style="color:white; padding: 12px; text-align: left;">ID</th>
+                                    <th style="color:white; padding: 12px; text-align: left;">Time</th>
+                                    <th style="color:white; padding: 12px; text-align: left;">Passenger</th>
+                                    <th style="color:white; padding: 12px; text-align: left;">Contact</th>
+                                    <th style="color:white; padding: 12px; text-align: left;">Bus</th>
+                                    <th style="color:white; padding: 12px; text-align: left;">Route</th>
+                                    <th style="color:white; padding: 12px; text-align: left;">Departure</th>
+                                    <th style="color:white; padding: 12px; text-align: left;">Seat</th>
+                                    <th style="color:white; padding: 12px; text-align: left;">Status</th>
+                                    <th style="color:white; padding: 12px; text-align: left;">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody style="background: white;">
+                                {% for booking in items %}
+                                <tr style="border-bottom: 1px solid rgba(16,42,67,0.1);">
+                                    <td style="padding: 10px;"><strong>#{{ booking.id }}</strong></td>
+                                    <td style="padding: 10px;">{{ booking.created_time }}</td>
+                                    <td style="padding: 10px;"><strong>{{ booking.passenger_name }}</strong></td>
+                                    <td style="padding: 10px;">{{ booking.contact }}</td>
+                                    <td style="padding: 10px;">{{ booking.bus_no }}</td>
+                                    <td style="padding: 10px;">{{ booking.route }}</td>
+                                    <td style="padding: 10px;">{{ booking.departure }}</td>
+                                    <td style="padding: 10px;">{{ booking.seat_number }}</td>
+                                    <td class="status-{{ booking.status.lower() }}" style="padding: 10px;">
+                                        {{ 'Completed' if booking.status == 'paid' else 'Waiting for Payment' if booking.status == 'waiting for payment' else booking.status|capitalize }}
+                                    </td>
+                                    <td style="padding: 10px;">
+                                        <a href="{{ url_for('staff_view_booking', booking_id=booking.id) }}" class="book-now-btn" style="padding:5px 10px; display: inline-block; margin-right: 5px; font-size: 0.8rem;">
+                                            View
+                                        </a>
+                                        {% if booking.status == 'paid' %}
+                                        <a href="{{ url_for('ticket', booking_id=booking.id) }}" class="receipt-btn-sm" style="padding:5px 10px; background: #4CAF50; color: white; border-radius: 5px; text-decoration: none; font-size: 0.8rem; display: inline-block;">
+                                            Receipt
+                                        </a>
+                                        {% else %}
+                                        <span style="font-size:0.75rem; color:#627d98;">No Receipt</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
                     {% endfor %}
                 {% else %}
-                    <div style="text-align: center; padding: 3rem; color: rgba(16, 42, 67, 0.6);">
-                        <i class="fa-solid fa-history" style="font-size: 3rem; margin-bottom: 1rem; color: var(--accent);"></i>
-                        <p style="font-size: 1.1rem;">No history walk-in records found.</p>
+                    <div style="text-align:center; padding:3rem; color: rgba(16, 42, 67, 0.6);">
+                        <i class="fa-solid fa-inbox" style="font-size:2.5rem; margin-bottom:1rem;"></i>
+                        <p style="font-size:1.1rem;">No walk-in records yet.</p>
                     </div>
                 {% endif %}
             </div>
@@ -257,39 +273,119 @@
     </div>
 </section>
 
+<style>
+    .tab-panel {
+        display: none;
+    }
+    
+    .tab-panel.active {
+        display: block;
+    }
+    
+    .hidden {
+        display: none;
+    }
+    
+    .table-container {
+        width: 100%;
+        overflow-x: auto;
+    }
+    
+    .admin-bookings-table {
+        width: 100%;
+        min-width: 100%;
+        border-collapse: collapse;
+    }
+    
+    @media (max-width: 1200px) {
+        .admin-bookings-table {
+            min-width: 1000px;
+        }
+    }
+</style>
+
 <script>
-    const bookedSeatsByBus = {{ booked_seats_by_bus | tojson }};
-    const busData = {{ buses_json | tojson }};
-    const busSelect = document.getElementById('bus_id');
-    const seatMap = document.getElementById('staff-seat-map');
-    const seatInput = document.getElementById('seat_number');
-    const summarySeat = document.getElementById('staff-summary-seat');
-    const summaryRoute = document.getElementById('staff-summary-route');
-    const summaryDeparture = document.getElementById('staff-summary-departure');
-    const summaryArrival = document.getElementById('staff-summary-arrival');
-    const summaryPrice = document.getElementById('staff-summary-price');
-    const summaryStatus = document.getElementById('staff-summary-status');
-    const availableCount = document.getElementById('staff-available-count');
+document.addEventListener("DOMContentLoaded", function () {
 
-    // Payment modal elements
-    const proceedBtn = document.getElementById('proceed-payment-btn');
-    const paymentModal = document.getElementById('payment-modal');
-    const closeModal = paymentModal.querySelector('.close');
-    const paymentMethodRadios = document.querySelectorAll('input[name="modal_payment_method"]');
-    const cashFields = document.getElementById('cash-fields');
-    const gcashFields = document.getElementById('gcash-fields');
-    const cashGivenInput = document.getElementById('modal_cash_given');
-    const totalAmountEl = document.getElementById('total-amount');
-    const cashChangeEl = document.getElementById('cash-change');
-    const gcashAmountEl = document.getElementById('gcash-amount');
-    const gcashQr = document.getElementById('gcash-qr');
-    const confirmBtn = document.getElementById('confirm-payment-btn');
+const bookedSeatsByTrip = {{ booked_seats_by_bus | tojson }};
+const trips = {{ trips_json | tojson }};
 
-    // Hidden form inputs
-    const paymentMethodInput = document.getElementById('payment_method');
-    const paymentStatusInput = document.getElementById('payment_status');
-    const cashGivenFormInput = document.getElementById('cash_given');
-    const paymentAmountInput = document.getElementById('payment_amount');
+const tripSelect = document.getElementById('trip_id');
+const seatMap = document.getElementById('staff-seat-map');
+const seatInput = document.getElementById('seat_number');
+
+const summarySeat = document.getElementById('staff-summary-seat');
+const summaryRoute = document.getElementById('staff-summary-route');
+const summaryDeparture = document.getElementById('staff-summary-departure');
+const summaryArrival = document.getElementById('staff-summary-arrival');
+const summaryPrice = document.getElementById('staff-summary-price');
+const availableCount = document.getElementById('staff-available-count');
+const paymentAmount = document.getElementById('payment_amount');
+
+const modal = document.getElementById("payment-modal");
+const proceedBtn = document.getElementById("proceed-payment-btn");
+const confirmBtn = document.getElementById("confirm-payment-btn");
+
+const cashInput = document.getElementById("modal_cash_given");
+let selectedModalMethod = "cash";
+
+const modalTotalAmount = document.getElementById("modal-total-amount");
+const cashTotalDisplay = document.getElementById("cash-total-display");
+const cashGivenDisplay = document.getElementById("cash-given-display");
+const cashChangeDisplay = document.getElementById("cash-change-display");
+
+if (!tripSelect || !seatMap) return;
+
+function getBookedSeats(tripId) {
+    return new Set((bookedSeatsByTrip && bookedSeatsByTrip[tripId]) || []);
+}
+
+function updateSummary(trip) {
+    if (!trip) return;
+
+    summaryRoute.textContent = `${trip.bus_no} — ${trip.origin} → ${trip.destination}`;
+    summaryDeparture.textContent = trip.departure || '—';
+    summaryArrival.textContent = trip.arrival || '—';
+
+    const price = Number(trip.price || 0);
+    summaryPrice.textContent = `₱${price.toFixed(2)}`;
+    paymentAmount.value = price.toFixed(2);
+    
+    if (modalTotalAmount) {
+        modalTotalAmount.textContent = `₱${price.toFixed(2)}`;
+        cashTotalDisplay.textContent = `₱${price.toFixed(2)}`;
+    }
+
+    summarySeat.textContent = 'None';
+}
+
+function resetSummary() {
+    summarySeat.textContent = 'None';
+    summaryRoute.textContent = '—';
+    summaryDeparture.textContent = '—';
+    summaryArrival.textContent = '—';
+    summaryPrice.textContent = '—';
+    paymentAmount.value = '';
+}
+
+function renderSeatMap(tripId) {
+    seatMap.innerHTML = '';
+    seatInput.value = '';
+    summarySeat.textContent = 'None';
+
+    const trip = trips.find(t => String(t.id) === String(tripId));
+
+    if (!trip) {
+        resetSummary();
+        seatMap.innerHTML = '<p style="color:#102a43;text-align:center;">Select a trip</p>';
+        return;
+    }
+
+    updateSummary(trip);
+
+    const bookedSeats = getBookedSeats(tripId);
+    const availableSeats = 52 - bookedSeats.size;
+    availableCount.textContent = `${availableSeats} seats available`;
 
     const seatRows = [
         [[1, 2], [3, 4]],
@@ -303,205 +399,170 @@
         [[33, 34], [35, 36]],
         [[40, 39], [38, 37]],
         [[41, 42], [43, 44]],
-        [[46, 45], []],
+        [[46], [45]],
         [[48, 47], [49, 50], [51, 52]]
     ];
 
-    function getBookedSeats(busId) {
-        return new Set(bookedSeatsByBus[busId] || []);
-    }
+    seatRows.forEach(row => {
+        const rowEl = document.createElement('div');
+        rowEl.className = 'seat-row';
 
-    function renderSeatMap(busId) {
-        seatMap.innerHTML = '';
-        seatInput.value = '';
-        summarySeat.textContent = 'None';
-        const bookedSeats = getBookedSeats(busId);
-        const availableSeats = Math.max(0, 52 - bookedSeats.size);
-        availableCount.textContent = `${availableSeats} seats available`;
-        const busInfo = busData.find(bus => String(bus.id) === String(busId));
+        row.forEach(group => {
+            const groupEl = document.createElement('div');
+            groupEl.className = 'seat-pair';
 
-        if (!busId || !busInfo) {
-            seatMap.innerHTML = '<p style="color: #102a43; text-align: center; padding: 1rem;">Please select a bus to display seat availability.</p>';
-            summaryRoute.textContent = '—';
-            summaryDeparture.textContent = '—';
-            summaryArrival.textContent = '—';
-            summaryPrice.textContent = '—';
-            summaryStatus.textContent = 'Walk-in';
-            availableCount.textContent = '52 seats available';
-            return;
-        }
+            group.forEach(seat => {
+                const seatEl = document.createElement('div');
+                seatEl.className = 'seat-box';
+                seatEl.innerHTML = `<span class="seat-number">${seat}</span>`;
 
-        summaryRoute.textContent = busInfo.route || '—';
-        summaryDeparture.textContent = busInfo.departure || '—';
-        summaryArrival.textContent = busInfo.arrival || '—';
-        const priceValue = busInfo.price ? Number(busInfo.price).toFixed(2) : '0.00';
-        summaryPrice.textContent = priceValue !== '0.00' ? `₱${priceValue}` : '—';
-        summaryStatus.textContent = 'Walk-in';
+                if (bookedSeats.has(String(seat))) {
+                    seatEl.classList.add('booked');
+                }
 
-        // Update modal amount
-        totalAmountEl.textContent = `₱${priceValue}`;
-        gcashAmountEl.textContent = `₱${priceValue}`;
-        paymentAmountInput.value = priceValue;
+                seatEl.addEventListener('click', () => {
+                    if (seatEl.classList.contains('booked')) return;
 
-        seatRows.forEach((rowGroups) => {
-            const rowEl = document.createElement('div');
-            rowEl.className = 'seat-row';
+                    document.querySelectorAll('.seat-box')
+                        .forEach(b => b.classList.remove('selected'));
 
-            rowGroups.forEach((group, groupIndex) => {
-                const groupEl = document.createElement('div');
-                groupEl.className = 'seat-pair';
+                    seatEl.classList.add('selected');
 
-                group.forEach((seat) => {
-                    const seatEl = document.createElement('div');
-                    seatEl.className = 'seat-box';
-                    seatEl.setAttribute('data-seat', seat);
-
-                    const seatNumber = document.createElement('span');
-                    seatNumber.className = 'seat-number';
-                    seatNumber.textContent = seat;
-                    seatEl.appendChild(seatNumber);
-
-                    if (bookedSeats.has(String(seat))) {
-                        seatEl.classList.add('booked');
-                        seatEl.title = 'Seat booked';
-                    }
-
-                    seatEl.addEventListener('click', () => {
-                        if (seatEl.classList.contains('booked')) {
-                            alert('This seat is already booked. Please choose another seat.');
-                            return;
-                        }
-
-                        document.querySelectorAll('#staff-seat-map .seat-box').forEach((box) => {
-                            box.classList.remove('selected');
-                        });
-
-                        seatEl.classList.add('selected');
-                        const seatNumber = seatEl.getAttribute('data-seat');
-                        seatInput.value = seatNumber;
-                        summarySeat.textContent = `Seat #${seatNumber}`;
-                    });
-
-                    groupEl.appendChild(seatEl);
+                    seatInput.value = seat;
+                    summarySeat.textContent = `Seat #${seat}`;
                 });
 
-                rowEl.appendChild(groupEl);
-                if (groupIndex < rowGroups.length - 1) {
-                    const aisleEl = document.createElement('div');
-                    aisleEl.className = 'aisle';
-                    rowEl.appendChild(aisleEl);
-                }
+                groupEl.appendChild(seatEl);
             });
 
-            seatMap.appendChild(rowEl);
+            rowEl.appendChild(groupEl);
         });
+
+        seatMap.appendChild(rowEl);
+    });
+}
+
+window.selectModalPaymentMethod = function(method) {
+    selectedModalMethod = method;
+    
+    document.querySelectorAll('.method-option-modal').forEach(opt => {
+        opt.style.borderColor = '#e0e0e0';
+        opt.style.background = 'transparent';
+        const radioInner = opt.querySelector('.radio-inner-modal');
+        if (radioInner) radioInner.style.background = 'transparent';
+    });
+    
+    const selectedElement = document.getElementById(`modal-method-${method}`);
+    if (selectedElement) {
+        selectedElement.style.borderColor = '#f27523';
+        selectedElement.style.background = 'rgba(242, 117, 35, 0.05)';
+        const radioInner = selectedElement.querySelector('.radio-inner-modal');
+        if (radioInner) radioInner.style.background = '#f27523';
+    }
+    
+    const cashFields = document.getElementById('modal-cash-fields');
+    const gcashFields = document.getElementById('modal-gcash-fields');
+    
+    if (method === 'cash') {
+        cashFields.classList.remove('hidden');
+        gcashFields.classList.add('hidden');
+    } else {
+        cashFields.classList.add('hidden');
+        gcashFields.classList.remove('hidden');
+    }
+};
+
+window.closeModal = function() {
+    modal.style.display = "none";
+    selectedModalMethod = "cash";
+    if (cashInput) cashInput.value = "";
+};
+
+tripSelect.addEventListener('change', function () {
+    renderSeatMap(this.value);
+});
+
+if (tripSelect.value) renderSeatMap(tripSelect.value);
+
+proceedBtn.addEventListener("click", function () {
+    if (!tripSelect.value || !seatInput.value) {
+        alert("Please select trip and seat first.");
+        return;
     }
 
-    function updateCashChange() {
-        const cashGiven = parseFloat(cashGivenInput.value) || 0;
-        const total = parseFloat(paymentAmountInput.value) || 0;
-        const change = cashGiven - total;
-        cashChangeEl.textContent = change >= 0 ? `₱${change.toFixed(2)}` : '₱0.00';
+    const trip = trips.find(t => String(t.id) === String(tripSelect.value));
+    const price = Number(trip.price || 0);
+    
+    if (modalTotalAmount) {
+        modalTotalAmount.textContent = `₱${price.toFixed(2)}`;
+        cashTotalDisplay.textContent = `₱${price.toFixed(2)}`;
     }
+    
+    selectModalPaymentMethod('cash');
+    
+    modal.style.display = "block";
+});
 
-    // Event listeners
-    busSelect.addEventListener('change', function () {
-        renderSeatMap(this.value);
-    });
+document.querySelector(".close")?.addEventListener("click", closeModal);
+window.onclick = (e) => {
+    if (e.target == modal) closeModal();
+};
 
-    proceedBtn.addEventListener('click', function () {
-        if (!seatInput.value) {
-            alert('Please select a seat before proceeding to payment.');
-            return;
-        }
-        paymentModal.style.display = 'flex';
-    });
-
-    closeModal.addEventListener('click', function () {
-        paymentModal.style.display = 'none';
-    });
-
-    paymentMethodRadios.forEach(radio => {
-        radio.addEventListener('change', function () {
-            if (this.value === 'cash') {
-                cashFields.classList.remove('hidden');
-                gcashFields.classList.add('hidden');
-            } else {
-                cashFields.classList.add('hidden');
-                gcashFields.classList.remove('hidden');
-            }
-        });
-    });
-
-    cashGivenInput.addEventListener('input', updateCashChange);
-
-    confirmBtn.addEventListener('click', function () {
-        const form = document.querySelector('form.dashboard-form');
+if (cashInput) {
+    cashInput.addEventListener("input", function () {
+        const trip = trips.find(t => String(t.id) === String(tripSelect.value));
+        const price = Number(trip.price || 0);
+        const cashGiven = Number(this.value) || 0;
+        const change = cashGiven - price;
         
-        // Validate required fields (Name, Contact, Bus) before submitting
-        if (!form.reportValidity()) {
-            paymentModal.classList.add('hidden');
+        cashGivenDisplay.textContent = `₱${cashGiven.toFixed(2)}`;
+        cashChangeDisplay.textContent = `₱${change > 0 ? change.toFixed(2) : "0.00"}`;
+        cashChangeDisplay.style.color = change >= 0 ? "#2e7d32" : "#c62828";
+    });
+}
+
+confirmBtn.addEventListener("click", function () {
+    const method = selectedModalMethod;
+    
+    document.getElementById("payment_method").value = method;
+    
+    if (method === "cash") {
+        const cashGiven = document.getElementById("modal_cash_given").value;
+        const trip = trips.find(t => String(t.id) === String(tripSelect.value));
+        const price = Number(trip.price || 0);
+        
+        if (!cashGiven || Number(cashGiven) < price) {
+            alert(`Insufficient cash. Amount due is ₱${price.toFixed(2)}`);
             return;
         }
-        // Additional client-side validation for contact number
-        const contactInput = form.querySelector('input[name="contact"]');
-        if (contactInput && (!contactInput.value || !/^[0-9]{11}$/.test(contactInput.value))) {
-            alert('Contact number must be an 11-digit number.');
-            return;
+        
+        document.getElementById("cash_given").value = cashGiven;
+        document.querySelector("form").submit();
+        return;
+    }
+    
+    const form = document.querySelector("form");
+    form.action = "/staff/walkin/gcash";
+    form.submit();
+});
+
+const tabButtons = document.querySelectorAll(".tab-btn");
+const tabPanels = document.querySelectorAll(".tab-panel");
+
+tabButtons.forEach(btn => {
+    btn.addEventListener("click", () => {
+        tabButtons.forEach(b => b.classList.remove("active"));
+        tabPanels.forEach(p => p.classList.remove("active"));
+        
+        btn.classList.add("active");
+        
+        const target = document.getElementById(btn.dataset.tab);
+        if (target) {
+            target.classList.add("active");
         }
-
-        const selectedMethod = document.querySelector('input[name="modal_payment_method"]:checked').value;
-        // Capitalize for consistency (cash -> Cash, gcash -> GCash)
-        paymentMethodInput.value = selectedMethod === 'cash' ? 'Cash' : 'GCash';
-
-        if (selectedMethod === 'cash') {
-            const cashGiven = parseFloat(cashGivenInput.value) || 0;
-            const total = parseFloat(paymentAmountInput.value) || 0;
-            if (cashGiven < total) {
-                alert('Cash given must be equal to or greater than the total amount.');
-                return;
-            }
-            cashGivenFormInput.value = cashGivenInput.value;
-            paymentStatusInput.value = 'paid';
-        } else {
-            cashGivenFormInput.value = '';
-            paymentStatusInput.value = 'waiting for payment';
-        }
-
-        // Submit the form
-        document.querySelector('form.dashboard-form').submit();
     });
+});
 
-    const tabButtons = document.querySelectorAll('.tab-btn');
-    const tabPanels = document.querySelectorAll('.tab-panel');
-
-    tabButtons.forEach(button => {
-        button.addEventListener('click', () => {
-            tabButtons.forEach(btn => btn.classList.remove('active'));
-            tabPanels.forEach(panel => panel.classList.remove('active'));
-
-            button.classList.add('active');
-            const activePanel = document.getElementById(button.dataset.tab);
-            if (activePanel) {
-                activePanel.classList.add('active');
-            }
-        });
-    });
-
-    const recordsTabs = document.querySelectorAll('#booking-records-tab .record-tabs button');
-    const recordsSections = document.querySelectorAll('#booking-records-tab .record-section');
-
-    recordsTabs.forEach((btn) => {
-        btn.addEventListener('click', () => {
-            recordsTabs.forEach((tab) => tab.classList.remove('active'));
-            recordsSections.forEach((section) => section.classList.remove('active'));
-
-            btn.classList.add('active');
-            const sectionId = btn.id === 'historyRecordsTab' ? 'historyRecordsSection' : 'activeRecordsSection';
-            document.getElementById(sectionId).classList.add('active');
-        });
-    });
-
-    renderSeatMap(busSelect.value);
+});
 </script>
 {% endblock %}

@@ -31,7 +31,7 @@
                     </div>
                     <div class="header-actions">
                         <div class="search-wrapper" style="position: relative; margin: 0;">
-                            <input id="bookingSearch" type="text" placeholder="Search bookings..." class="search-input" style="padding: 12px 45px 12px 15px; width: 320px; border-radius: 12px; background: white; color: var(--dark-text); border: 1px solid rgba(16,42,67,0.2);">
+                            <input id="bookingSearch" type="text" placeholder="Search by ID, User, Bus, Route, Seat..." class="search-input" style="padding: 12px 45px 12px 15px; width: 320px; border-radius: 12px; background: white; color: var(--dark-text); border: 1px solid rgba(16,42,67,0.2);">
                             <i class="fa-solid fa-magnifying-glass" style="position: absolute; right: 15px; top: 50%; transform: translateY(-50%); color: var(--accent-dark); font-size: 1.1rem;"></i>
                         </div>
                     </div>
@@ -42,9 +42,9 @@
                     <div class="table-container">
                         <div class="table-header" style="background: rgba(138, 184, 255, 0.25); color: var(--dark-text); border-bottom: 1px solid rgba(16,42,67,0.1);">
                             <i class="fa-solid fa-calendar-day" style="margin-right: 0.5rem;"></i>
-                            {{ today_str }} <small style="color: rgba(16, 42, 67, 0.7); margin-left: 0.5rem;">({{ today_bookings|length }} bookings today)</small>
+                            {{ today_str }} <small style="color: rgba(16, 42, 67, 0.7); margin-left: 0.5rem;">(<span id="activeCount">{{ today_bookings|length }}</span> bookings today)</small>
                         </div>
-                    <table class="admin-table admin-bookings-table">
+                    <table class="admin-table admin-bookings-table" id="activeBookingsTable">
                     <thead style="background: var(--dark-text);">
                         <tr>
                             <th style="color: white; border-radius: 12px 0 0 0;">ID</th>
@@ -59,7 +59,7 @@
                     </thead>
                     <tbody style="background: rgba(255,255,255,1);">
                         {% for b in today_bookings %}
-                        <tr style="border-bottom: 1px solid rgba(16,42,67,0.1);">
+                        <tr data-booking-id="{{ b.id }}" data-booking-user="{{ b.user|lower }}" data-booking-bus="{{ b.bus_no|lower }}" data-booking-route="{{ b.route|lower }}" data-booking-seat="{{ b.seat_number }}" data-booking-status="{{ b.status|lower }}">
                             <td style="color: var(--dark-text); font-weight: 700;">#{{ b.id }}</td>
                             <td style="color: var(--dark-text); font-weight: 700;">{{ b.user }}</td>
                             <td style="color: var(--dark-text);">{{ b.bus_no }}</td>
@@ -88,15 +88,15 @@
                 {% endif %}
                 </div>
 
-                <div id="historyBookingsSection" class="booking-tab-section" style="margin-top: 1rem;">
+                <div id="historyBookingsSection" class="booking-tab-section" style="display: none;">
                     {% if history_bookings_by_date %}
                     {% for date, items in history_bookings_by_date.items() %}
-                    <div class="table-container" style="margin-bottom: 2rem;">
+                    <div class="table-container" style="margin-bottom: 2rem;" data-history-date="{{ date }}">
                         <div class="table-header" style="background: rgba(138, 184, 255, 0.25); color: var(--dark-text); border-bottom: 1px solid rgba(16,42,67,0.1);">
                             <i class="fa-solid fa-clock-rotate-left" style="margin-right: 0.5rem;"></i>
-                            {{ date }} <small style="color: rgba(16, 42, 67, 0.7); margin-left: 0.5rem;">({{ items|length }} past records)</small>
+                            {{ date }} <small style="color: rgba(16, 42, 67, 0.7); margin-left: 0.5rem;">(<span class="history-count">{{ items|length }}</span> past records)</small>
                         </div>
-                    <table class="admin-table admin-bookings-table">
+                    <table class="admin-table admin-bookings-table history-table">
                     <thead style="background: var(--dark-text);">
                         <tr>
                             <th style="color: white; border-radius: 12px 0 0 0;">ID</th>
@@ -111,7 +111,7 @@
                     </thead>
                     <tbody style="background: rgba(255,255,255,1);">
                         {% for b in items %}
-                        <tr style="border-bottom: 1px solid rgba(16,42,67,0.1);">
+                        <tr data-booking-id="{{ b.id }}" data-booking-user="{{ b.user|lower }}" data-booking-bus="{{ b.bus_no|lower }}" data-booking-route="{{ b.route|lower }}" data-booking-seat="{{ b.seat_number }}" data-booking-status="{{ b.status|lower }}">
                             <td style="color: var(--dark-text); font-weight: 700;">#{{ b.id }}</td>
                             <td style="color: var(--dark-text); font-weight: 700;">{{ b.user }}</td>
                             <td style="color: var(--dark-text);">{{ b.bus_no }}</td>
@@ -138,15 +138,15 @@
                 {% endif %}
                 </div>
 
-                <div id="walkinBookingsSection" class="booking-tab-section" style="margin-top: 1rem; display: none;">
+                <div id="walkinBookingsSection" class="booking-tab-section" style="display: none;">
                     {% if walkin_bookings_by_date %}
                     {% for date, items in walkin_bookings_by_date.items() %}
-                    <div class="table-container" style="margin-bottom: 2rem;">
+                    <div class="table-container" style="margin-bottom: 2rem;" data-walkin-date="{{ date }}">
                         <div class="table-header" style="background: rgba(138, 184, 255, 0.25); color: var(--dark-text); border-bottom: 1px solid rgba(16,42,67,0.1);">
                             <i class="fa-solid fa-person-walking" style="margin-right: 0.5rem;"></i>
-                            {{ date }} <small style="color: rgba(16, 42, 67, 0.7); margin-left: 0.5rem;">({{ items|length }} walk-in bookings)</small>
+                            {{ date }} <small style="color: rgba(16, 42, 67, 0.7); margin-left: 0.5rem;">(<span class="walkin-count">{{ items|length }}</span> walk-in bookings)</small>
                         </div>
-                    <table class="admin-table admin-bookings-table">
+                    <table class="admin-table admin-bookings-table walkin-table">
                     <thead style="background: var(--dark-text);">
                         <tr>
                             <th style="color: white; border-radius: 12px 0 0 0;">ID</th>
@@ -161,7 +161,7 @@
                     </thead>
                     <tbody style="background: rgba(255,255,255,1);">
                         {% for b in items %}
-                        <tr style="border-bottom: 1px solid rgba(16,42,67,0.1);">
+                        <tr data-booking-id="{{ b.id }}" data-booking-user="{{ b.user|lower }}" data-booking-bus="{{ b.bus_no|lower }}" data-booking-route="{{ b.route|lower }}" data-booking-seat="{{ b.seat_number }}" data-booking-status="{{ b.status|lower }}">
                             <td style="color: var(--dark-text); font-weight: 700;">#{{ b.id }}</td>
                             <td style="color: var(--dark-text); font-weight: 700;">{{ b.user }}</td>
                             <td style="color: var(--dark-text);">{{ b.bus_no }}</td>
@@ -193,7 +193,9 @@
     </div>
 
 </div>
+
 <script>
+    // Tab switching functionality
     const adminTabButtons = document.querySelectorAll('.tab-switcher button');
     const bookingSections = {
         activeBookingsTab: 'activeBookingsSection',
@@ -212,7 +214,152 @@
             button.classList.add('active');
             const activeSection = document.getElementById(bookingSections[button.id]);
             if (activeSection) activeSection.style.display = 'block';
+            
+            // Clear search when switching tabs
+            const searchInput = document.getElementById('bookingSearch');
+            if (searchInput) {
+                searchInput.value = '';
+                filterBookings('');
+            }
         });
     });
+    
+    // Search functionality
+    const searchInput = document.getElementById('bookingSearch');
+    
+    function filterBookings(searchTerm) {
+        if (!searchTerm) {
+            // Show all rows
+            showAllRows();
+            return;
+        }
+        
+        const term = searchTerm.toLowerCase().trim();
+        
+        // Filter Active Bookings
+        const activeRows = document.querySelectorAll('#activeBookingsTable tbody tr');
+        let activeVisibleCount = 0;
+        activeRows.forEach(row => {
+            const id = row.cells[0]?.innerText.toLowerCase() || '';
+            const user = row.cells[1]?.innerText.toLowerCase() || '';
+            const bus = row.cells[2]?.innerText.toLowerCase() || '';
+            const route = row.cells[3]?.innerText.toLowerCase() || '';
+            const seat = row.cells[4]?.innerText.toLowerCase() || '';
+            const status = row.cells[6]?.innerText.toLowerCase() || '';
+            
+            const matches = id.includes(term) || user.includes(term) || bus.includes(term) || 
+                           route.includes(term) || seat.includes(term) || status.includes(term);
+            
+            row.style.display = matches ? '' : 'none';
+            if (matches) activeVisibleCount++;
+        });
+        
+        // Update active count display
+        const activeCountSpan = document.getElementById('activeCount');
+        if (activeCountSpan) {
+            activeCountSpan.innerText = activeVisibleCount;
+        }
+        
+        // Filter History Bookings
+        const historyContainers = document.querySelectorAll('#historyBookingsSection .table-container');
+        historyContainers.forEach(container => {
+            const rows = container.querySelectorAll('tbody tr');
+            let visibleCount = 0;
+            rows.forEach(row => {
+                const id = row.cells[0]?.innerText.toLowerCase() || '';
+                const user = row.cells[1]?.innerText.toLowerCase() || '';
+                const bus = row.cells[2]?.innerText.toLowerCase() || '';
+                const route = row.cells[3]?.innerText.toLowerCase() || '';
+                const seat = row.cells[4]?.innerText.toLowerCase() || '';
+                const status = row.cells[6]?.innerText.toLowerCase() || '';
+                
+                const matches = id.includes(term) || user.includes(term) || bus.includes(term) || 
+                               route.includes(term) || seat.includes(term) || status.includes(term);
+                
+                row.style.display = matches ? '' : 'none';
+                if (matches) visibleCount++;
+            });
+            
+            // Update history count for this container
+            const countSpan = container.querySelector('.history-count');
+            if (countSpan) {
+                countSpan.innerText = visibleCount;
+            }
+            
+            // Hide container if no visible rows
+            container.style.display = visibleCount === 0 ? 'none' : '';
+        });
+        
+        // Filter Walk-in Bookings
+        const walkinContainers = document.querySelectorAll('#walkinBookingsSection .table-container');
+        walkinContainers.forEach(container => {
+            const rows = container.querySelectorAll('tbody tr');
+            let visibleCount = 0;
+            rows.forEach(row => {
+                const id = row.cells[0]?.innerText.toLowerCase() || '';
+                const user = row.cells[1]?.innerText.toLowerCase() || '';
+                const bus = row.cells[2]?.innerText.toLowerCase() || '';
+                const route = row.cells[3]?.innerText.toLowerCase() || '';
+                const seat = row.cells[4]?.innerText.toLowerCase() || '';
+                const status = row.cells[6]?.innerText.toLowerCase() || '';
+                
+                const matches = id.includes(term) || user.includes(term) || bus.includes(term) || 
+                               route.includes(term) || seat.includes(term) || status.includes(term);
+                
+                row.style.display = matches ? '' : 'none';
+                if (matches) visibleCount++;
+            });
+            
+            // Update walkin count for this container
+            const countSpan = container.querySelector('.walkin-count');
+            if (countSpan) {
+                countSpan.innerText = visibleCount;
+            }
+            
+            // Hide container if no visible rows
+            container.style.display = visibleCount === 0 ? 'none' : '';
+        });
+    }
+    
+    function showAllRows() {
+        // Show all active rows
+        const activeRows = document.querySelectorAll('#activeBookingsTable tbody tr');
+        activeRows.forEach(row => row.style.display = '');
+        const activeCountSpan = document.getElementById('activeCount');
+        if (activeCountSpan) {
+            activeCountSpan.innerText = activeRows.length;
+        }
+        
+        // Show all history containers and rows
+        const historyContainers = document.querySelectorAll('#historyBookingsSection .table-container');
+        historyContainers.forEach(container => {
+            container.style.display = '';
+            const rows = container.querySelectorAll('tbody tr');
+            rows.forEach(row => row.style.display = '');
+            const countSpan = container.querySelector('.history-count');
+            if (countSpan) {
+                countSpan.innerText = rows.length;
+            }
+        });
+        
+        // Show all walkin containers and rows
+        const walkinContainers = document.querySelectorAll('#walkinBookingsSection .table-container');
+        walkinContainers.forEach(container => {
+            container.style.display = '';
+            const rows = container.querySelectorAll('tbody tr');
+            rows.forEach(row => row.style.display = '');
+            const countSpan = container.querySelector('.walkin-count');
+            if (countSpan) {
+                countSpan.innerText = rows.length;
+            }
+        });
+    }
+    
+    // Add search input event listener
+    if (searchInput) {
+        searchInput.addEventListener('input', function(e) {
+            filterBookings(e.target.value);
+        });
+    }
 </script>
 {% endblock %}
