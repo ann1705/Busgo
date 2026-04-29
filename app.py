@@ -5,6 +5,7 @@ import requests
 import datetime
 from flask import jsonify
 import urllib.parse
+from flask import flash
 from werkzeug.security import generate_password_hash, check_password_hash
 
 app = Flask(__name__)
@@ -1161,11 +1162,34 @@ def delete_bus(bus_id):
     if "user_id" not in session or session.get("role") != "admin":
         return redirect(url_for("home"))
 
-    conn = get_db_connection()
-    conn.execute("DELETE FROM buses WHERE id = ?", (bus_id,))
-    conn.commit()
-    conn.close()
-
+    try:
+        conn = get_db_connection()
+        
+        # First, delete related bookings
+        # You need to delete from trips first if there are foreign key constraints
+        # Get all trips for this bus
+        trips = conn.execute("SELECT id FROM trips WHERE bus_id = ?", (bus_id,)).fetchall()
+        
+        for trip in trips:
+            # Delete bookings for each trip
+            conn.execute("DELETE FROM bookings WHERE trip_id = ?", (trip[0],))
+        
+        # Delete trips for this bus
+        conn.execute("DELETE FROM trips WHERE bus_id = ?", (bus_id,))
+        
+        # Delete the bus
+        conn.execute("DELETE FROM buses WHERE id = ?", (bus_id,))
+        
+        conn.commit()
+        conn.close()
+        
+        flash('Bus deleted successfully!', 'success')
+        
+    except Exception as e:
+        conn.rollback() if conn else None
+        conn.close() if conn else None
+        flash(f'Error deleting bus: {str(e)}', 'danger')
+    
     return redirect(url_for("admin_buses"))
 
 

@@ -2715,3 +2715,135 @@ body {
             min-width: 1000px;
         }
     }
+
+    /* Delete Modal Styles - Uniform with Existing Design */
+.delete-modal {
+    display: none;
+    position: fixed;
+    z-index: 2000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(5px);
+    animation: fadeIn 0.2s ease;
+}
+
+.delete-modal .modal-content {
+    background: var(--bg-light, #ffffff);
+    border-radius: 24px;
+    width: 90%;
+    max-width: 450px;
+    margin: 15% auto;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+    animation: slideIn 0.3s ease;
+    overflow: hidden;
+}
+
+.delete-modal .modal-header {
+    padding: 1.5rem 1.5rem 0.5rem 1.5rem;
+    border-bottom: 2px solid rgba(16, 42, 67, 0.1);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.delete-modal .modal-header h3 {
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: var(--dark-text, #102a43);
+    margin: 0;
+}
+
+.delete-modal .close-delete-modal {
+    font-size: 28px;
+    font-weight: bold;
+    color: var(--gray-600, #6c757d);
+    cursor: pointer;
+    transition: color 0.2s;
+    line-height: 1;
+}
+
+.delete-modal .close-delete-modal:hover {
+    color: var(--danger-color, #ef233c);
+}
+
+.delete-modal .modal-body {
+    padding: 1.5rem;
+    text-align: center;
+}
+
+.delete-modal .warning-icon {
+    margin-bottom: 1rem;
+    color: #ef233c;
+}
+
+.delete-modal .confirmation-text {
+    font-size: 1.1rem;
+    color: var(--dark-text, #102a43);
+    margin-bottom: 0.5rem;
+}
+
+.delete-modal .confirmation-text strong {
+    font-weight: 800;
+    color: var(--accent-dark, #1e4a76);
+}
+
+.delete-modal .warning-text {
+    font-size: 0.9rem;
+    color: var(--gray-600, #6c757d);
+    margin: 0;
+}
+
+.delete-modal .modal-footer {
+    padding: 1rem 1.5rem 1.5rem 1.5rem;
+    display: flex;
+    gap: 1rem;
+    justify-content: flex-end;
+}
+
+.delete-modal .modal-footer .btn {
+    padding: 0.7rem 1.5rem;
+    border-radius: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: none;
+    font-size: 0.9rem;
+}
+
+.delete-modal .modal-footer .btn-secondary {
+    background: rgba(16, 42, 67, 0.1);
+    color: var(--dark-text, #102a43);
+}
+
+.delete-modal .modal-footer .btn-secondary:hover {
+    background: rgba(16, 42, 67, 0.2);
+}
+
+.delete-modal .modal-footer .btn-danger {
+    background: #ef233c;
+    color: white;
+}
+
+.delete-modal .modal-footer .btn-danger:hover {
+    background: #d90429;
+    transform: translateY(-2px);
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateY(-50px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}

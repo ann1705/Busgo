@@ -3,6 +3,198 @@
 {% block title %}BusGo | Manage Bus{% endblock %}
 
 {% block content %}
+<style>
+/* Delete Modal Styles - Uniform with Existing Design */
+.delete-modal {
+    display: none;
+    position: fixed;
+    z-index: 2000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(5px);
+    animation: fadeIn 0.2s ease;
+}
+
+.delete-modal .modal-content {
+    background: var(--bg-light, #ffffff);
+    border-radius: 24px;
+    width: 90%;
+    max-width: 450px;
+    margin: 15% auto;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+    animation: slideIn 0.3s ease;
+    overflow: hidden;
+}
+
+.delete-modal .modal-header {
+    padding: 1.5rem 1.5rem 0.5rem 1.5rem;
+    border-bottom: 2px solid rgba(16, 42, 67, 0.1);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.delete-modal .modal-header h3 {
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: var(--dark-text, #102a43);
+    margin: 0;
+}
+
+.delete-modal .close-delete-modal {
+    font-size: 28px;
+    font-weight: bold;
+    color: var(--gray-600, #6c757d);
+    cursor: pointer;
+    transition: color 0.2s;
+    line-height: 1;
+}
+
+.delete-modal .close-delete-modal:hover {
+    color: #ef233c;
+}
+
+.delete-modal .modal-body {
+    padding: 1.5rem;
+    text-align: center;
+}
+
+.delete-modal .warning-icon {
+    margin-bottom: 1rem;
+    color: #ef233c;
+}
+
+.delete-modal .confirmation-text {
+    font-size: 1.1rem;
+    color: var(--dark-text, #102a43);
+    margin-bottom: 0.5rem;
+}
+
+.delete-modal .confirmation-text strong {
+    font-weight: 800;
+    color: var(--accent-dark, #1e4a76);
+}
+
+.delete-modal .warning-text {
+    font-size: 0.9rem;
+    color: var(--gray-600, #6c757d);
+    margin: 0;
+}
+
+.delete-modal .modal-footer {
+    padding: 1rem 1.5rem 1.5rem 1.5rem;
+    display: flex;
+    gap: 1rem;
+    justify-content: flex-end;
+}
+
+.delete-modal .modal-footer .btn {
+    padding: 0.7rem 1.5rem;
+    border-radius: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: none;
+    font-size: 0.9rem;
+}
+
+.delete-modal .modal-footer .btn-secondary {
+    background: rgba(16, 42, 67, 0.1);
+    color: var(--dark-text, #102a43);
+}
+
+.delete-modal .modal-footer .btn-secondary:hover {
+    background: rgba(16, 42, 67, 0.2);
+}
+
+.delete-modal .modal-footer .btn-danger {
+    background: #ef233c;
+    color: white;
+}
+
+.delete-modal .modal-footer .btn-danger:hover {
+    background: #d90429;
+    transform: translateY(-2px);
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateY(-50px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+@keyframes slideInRight {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+@keyframes fadeOut {
+    from {
+        opacity: 1;
+    }
+    to {
+        opacity: 0;
+    }
+}
+
+.delete-bus-btn {
+    background: #ef233c !important;
+    color: white !important;
+    border: none !important;
+}
+
+/* Loading overlay */
+.loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 9999;
+    display: none;
+    justify-content: center;
+    align-items: center;
+}
+
+.loading-spinner {
+    background: white;
+    padding: 20px;
+    border-radius: 16px;
+    text-align: center;
+}
+
+.loading-spinner i {
+    font-size: 40px;
+    color: var(--accent-dark);
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+</style>
+
 <div class="admin-wrapper">
 
     <div class="admin-content">
@@ -89,7 +281,7 @@
                     </div>
                 </div>
 
-                <!-- BUS TABLE - ONLY CHANGED TBODY BACKGROUND TO WHITE -->
+                <!-- BUS TABLE -->
                 <table class="admin-table admin-buses-table">
                     <thead style="background: var(--dark-text);">
                         <tr>
@@ -132,7 +324,9 @@
                                 <div class="admin-action-group">
                                     <a href="{{ url_for('admin_buses', edit_id=bus.id) }}" class="auth-btn action-btn" style="text-decoration: none; margin-right: 0.5rem; padding: 0.7rem 1rem;">Edit</a>
                                     <a href="{{ url_for('toggle_bus_status', bus_id=bus.id) }}" class="book-now-btn action-btn" style="text-decoration: none; margin-right: 0.5rem; padding: 0.7rem 1rem;">{{ 'Set Available' if bus.status == 'under_maintenance' else 'Set Maintenance' }}</a>
-                                    <a href="{{ url_for('delete_bus', bus_id=bus.id) }}" class="cancel-btn action-btn" style="text-decoration: none; padding: 0.7rem 1rem;">Delete</a>
+                                    <button class="delete-bus-btn action-btn" data-bus-id="{{ bus.id }}" data-bus-number="{{ bus.bus_no }}" style="text-decoration: none; padding: 0.7rem 1rem; background: #ef233c; color: white; border: none; border-radius: 12px; cursor: pointer;">
+                                        Delete
+                                    </button>
                                 </div>
                             </td>
                         </tr>
@@ -146,5 +340,196 @@
 
 </div>
 
+<!-- DELETE CONFIRMATION MODAL -->
+<div id="deleteModal" class="delete-modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3><i class="fa-solid fa-trash-can" style="margin-right: 10px; color: #ef233c;"></i> Delete Bus</h3>
+            <span class="close-delete-modal">&times;</span>
+        </div>
+        <div class="modal-body">
+            <div class="warning-icon">
+                <i class="fa-solid fa-triangle-exclamation" style="font-size: 48px;"></i>
+            </div>
+            <p class="confirmation-text">Are you sure you want to delete <strong id="deleteBusNumber"></strong>?</p>
+            <p class="warning-text">This action cannot be undone. All associated trips and bookings will also be removed.</p>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" id="cancelDeleteBtn">Cancel</button>
+            <button class="btn btn-danger" id="confirmDeleteBtn">Delete Permanently</button>
+        </div>
+    </div>
+</div>
+
+<!-- Loading Overlay -->
+<div id="loadingOverlay" class="loading-overlay">
+    <div class="loading-spinner">
+        <i class="fa-solid fa-spinner"></i>
+        <p style="margin-top: 10px;">Deleting bus...</p>
+    </div>
+</div>
+
+<script>
+// Delete Modal Functionality
+const deleteModal = document.getElementById('deleteModal');
+const loadingOverlay = document.getElementById('loadingOverlay');
+let currentBusId = null;
+
+// Get all delete buttons
+const deleteButtons = document.querySelectorAll('.delete-bus-btn');
+
+// Open modal when delete button is clicked
+deleteButtons.forEach(button => {
+    button.addEventListener('click', function(e) {
+        e.preventDefault();
+        const busId = this.getAttribute('data-bus-id');
+        const busNumber = this.getAttribute('data-bus-number');
+        
+        currentBusId = busId;
+        document.getElementById('deleteBusNumber').textContent = busNumber;
+        deleteModal.style.display = 'block';
+    });
+});
+
+// Close modal functions
+function closeDeleteModal() {
+    deleteModal.style.display = 'none';
+    currentBusId = null;
+}
+
+// Close when clicking X
+document.querySelector('.close-delete-modal').addEventListener('click', closeDeleteModal);
+
+// Close when clicking Cancel
+document.getElementById('cancelDeleteBtn').addEventListener('click', closeDeleteModal);
+
+// Close when clicking outside modal
+window.addEventListener('click', function(e) {
+    if (e.target === deleteModal) {
+        closeDeleteModal();
+    }
+});
+
+// Close with ESC key
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape' && deleteModal.style.display === 'block') {
+        closeDeleteModal();
+    }
+});
+
+// Confirm delete - Redirect to delete route
+document.getElementById('confirmDeleteBtn').addEventListener('click', function() {
+    if (currentBusId) {
+        // Show loading overlay
+        loadingOverlay.style.display = 'flex';
+        
+        // Redirect to delete route (matches your app.py)
+        window.location.href = `/admin/delete_bus/${currentBusId}`;
+    }
+});
+
+// Check for flash messages and show toast
+{% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+        {% for category, message in messages %}
+            setTimeout(function() {
+                showToast('{{ message }}', '{{ category }}');
+            }, 100);
+        {% endfor %}
+    {% endif %}
+{% endwith %}
+
+// Toast notification function
+function showToast(message, type = 'success') {
+    // Remove existing toast if any
+    const existingToast = document.querySelector('.toast-notification');
+    if (existingToast) {
+        existingToast.remove();
+    }
+    
+    // Map flash categories to toast types
+    if (type === 'danger' || type === 'error') {
+        type = 'error';
+    } else if (type === 'success') {
+        type = 'success';
+    }
+    
+    // Create toast element
+    const toast = document.createElement('div');
+    toast.className = `toast-notification toast-${type}`;
+    toast.innerHTML = `
+        <i class="fa-solid ${type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'}"></i>
+        <span>${message}</span>
+    `;
+    toast.style.cssText = `
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        background: ${type === 'success' ? '#2e7d32' : '#c62828'};
+        color: white;
+        padding: 12px 20px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        z-index: 10000;
+        animation: slideInRight 0.3s ease;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        font-weight: 600;
+    `;
+    
+    document.body.appendChild(toast);
+    
+    // Remove toast after 3 seconds
+    setTimeout(() => {
+        toast.style.animation = 'fadeOut 0.3s ease';
+        setTimeout(() => toast.remove(), 300);
+    }, 3000);
+}
+
+// Search functionality
+document.getElementById('busSearch').addEventListener('keyup', function() {
+    const searchValue = this.value.toLowerCase();
+    const tableRows = document.querySelectorAll('.admin-buses-table tbody tr');
+    
+    tableRows.forEach(row => {
+        const text = row.textContent.toLowerCase();
+        if (text.includes(searchValue)) {
+            row.style.display = '';
+        } else {
+            row.style.display = 'none';
+        }
+    });
+});
+
+// Add Bus Modal functionality
+const addBusBtn = document.getElementById('addBusBtn');
+const addBusModal = document.getElementById('addBusModal');
+const closeModalBtn = document.querySelector('.close-modal');
+
+if (addBusBtn) {
+    addBusBtn.addEventListener('click', function() {
+        addBusModal.style.display = 'block';
+    });
+}
+
+if (closeModalBtn) {
+    closeModalBtn.addEventListener('click', function() {
+        addBusModal.style.display = 'none';
+    });
+}
+
+// Close add bus modal when clicking outside
+window.addEventListener('click', function(e) {
+    if (e.target === addBusModal) {
+        addBusModal.style.display = 'none';
+    }
+});
+
+// Hide loading overlay when page loads (in case of redirect)
+window.addEventListener('load', function() {
+    loadingOverlay.style.display = 'none';
+});
+</script>
 
 {% endblock %}
