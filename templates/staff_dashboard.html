@@ -5,6 +5,7 @@
 {% block content %}
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 
 <section class="schedule-main" style="flex-direction: column; align-items: center;">
     <div class="page-back-nav" style="width: 100%; max-width: 1800px; margin: 0 auto 1.5rem auto;">
@@ -36,7 +37,7 @@
                 Walk-in Booking
             </div>
 
-            <form method="POST" class="dashboard-form">
+            <form method="POST" class="dashboard-form" action="/staff" id="walkin-form">
                 <div class="input-group">
                     <label for="trip_id">Select Trip</label>
                     <select name="trip_id" id="trip_id" required>
@@ -115,6 +116,7 @@
                             <div id="staff-id-scanner-ui" style="margin-bottom: 1rem;">
                                 <div id="staff-id-reader" style="width: 100%; max-width: 400px; margin: 0 auto; border-radius: 10px; overflow: hidden; display: none;"></div>
                                 <button type="button" id="staff-start-id-scan" class="auth-btn" style="background: var(--accent-dark);"><i class="fa-solid fa-camera"></i> Scan Customer ID</button>
+                                <button type="button" id="staff-stop-id-scan" class="auth-btn hidden" style="background: #dc3545;"><i class="fa-solid fa-stop"></i> Stop Scanning</button>
                             </div>
                             <input type="hidden" id="staff_id_scanned" name="id_scanned" value="0">
                             <div id="staff-id-verification-status" style="margin-top: 10px; font-weight: 700; font-size: 0.9rem; display: none;"></div>
@@ -315,14 +317,28 @@
                                     <td style="padding: 10px;">{{ booking.route }}</td>
                                     <td style="padding: 10px;">{{ booking.departure }}</td>
                                     <td style="padding: 10px;">{{ booking.seat_number }}</td>
-                                    <td class="status-{{ booking.status.lower() }}" style="padding: 10px;">
-                                        {{ 'Completed' if booking.status == 'paid' else 'Waiting for Payment' if booking.status == 'waiting for payment' else booking.status|capitalize }}
+                                    <td style="padding: 10px;">
+                                        {% if booking.status == 'waiting for payment' %}
+                                            <span class="status-waiting-for-payment">Waiting for Payment</span>
+                                        {% elif booking.status == 'paid' %}
+                                            <span class="status-paid">Confirmed - Ready</span>
+                                        {% elif booking.status == 'dispatched' %}
+                                            <span class="status-dispatched">Dispatched (On Bus)</span>
+                                        {% elif booking.status == 'onboard' %}
+                                            <span class="status-onboard">Onboard (Traveling)</span>
+                                        {% elif booking.status == 'arrived' %}
+                                            <span class="status-arrived">Arrived (Completed)</span>
+                                        {% elif booking.status == 'cancelled' %}
+                                            <span class="status-cancelled">Cancelled</span>
+                                        {% else %}
+                                            {{ booking.status|capitalize }}
+                                        {% endif %}
                                     </td>
                                     <td style="padding: 10px;">
                                         <a href="{{ url_for('staff_view_booking', booking_id=booking.id) }}" class="book-now-btn" style="padding:5px 10px; display: inline-block; margin-right: 5px; font-size: 0.8rem;">
                                             View
                                         </a>
-                                        {% if booking.status == 'paid' %}
+                                        {% if booking.status in ['paid', 'dispatched', 'onboard', 'arrived'] %}
                                         <a href="{{ url_for('ticket', booking_id=booking.id) }}" class="receipt-btn-sm" style="padding:5px 10px; background: #4CAF50; color: white; border-radius: 5px; text-decoration: none; font-size: 0.8rem; display: inline-block;">
                                             Receipt
                                         </a>
@@ -330,7 +346,7 @@
                                         <span style="font-size:0.75rem; color:#627d98;">No Receipt</span>
                                         {% endif %}
                                     </td>
-                                </tr>
+                                 </tr>
                                 {% endfor %}
                             </tbody>
                         </table>
@@ -376,9 +392,73 @@
             min-width: 1000px;
         }
     }
+
+    /* Status badge styles */
+    .status-paid {
+        background: #4CAF50;
+        color: white;
+        padding: 4px 8px;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        display: inline-block;
+    }
+    
+    .status-dispatched {
+        background: #2196F3;
+        color: white;
+        padding: 4px 8px;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        display: inline-block;
+    }
+    
+    .status-onboard {
+        background: #FF9800;
+        color: white;
+        padding: 4px 8px;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        display: inline-block;
+    }
+    
+    .status-arrived {
+        background: #9C27B0;
+        color: white;
+        padding: 4px 8px;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        display: inline-block;
+    }
+    
+    .status-waiting-for-payment {
+        background: #FF5722;
+        color: white;
+        padding: 4px 8px;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        display: inline-block;
+    }
+    
+    .status-cancelled {
+        background: #9E9E9E;
+        color: white;
+        padding: 4px 8px;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        display: inline-block;
+    }
 </style>
 
 <script>
+// Global variable for HTML5 QR Code scanner
+let html5QrCode = null;
+
 document.addEventListener("DOMContentLoaded", function () {
 
 const bookedSeatsByTrip = {{ booked_seats_by_bus | tojson }};
@@ -399,6 +479,7 @@ const distanceInput = document.getElementById('staff-distance-input');
 const locationSearchBtn = document.getElementById('staff-location-search-btn');
 const searchStatusDiv = document.getElementById('staff-search-status');
 const selectedDropoffLabel = document.getElementById('staff-selected-dropoff-label');
+const locationSearchInput = document.getElementById('staff-location-search-input');
 
 const staffMapContainer = document.getElementById('staff-route-map');
 const staffMapFallback = document.getElementById('staff-map-fallback');
@@ -424,6 +505,14 @@ const routeDestinationLabel = document.getElementById('staff-route-destination')
 const routeFareDisplay = document.getElementById('staff-route-fare');
 
 let currentRouteFare = 0;
+
+// ID Scanner Elements
+const idVerifySection = document.getElementById('staff-id-verify-section');
+const startScanBtn = document.getElementById('staff-start-id-scan');
+const stopScanBtn = document.getElementById('staff-stop-id-scan');
+const idReaderDiv = document.getElementById('staff-id-reader');
+const idScannedInput = document.getElementById('staff_id_scanned');
+const idVerificationStatus = document.getElementById('staff-id-verification-status');
 
 if (!tripSelect || !seatMap) return;
 
@@ -476,7 +565,50 @@ function refreshRoutePricing(trip, distance = null) {
     }
 }
 
+function initStaffMap(trip) {
+    if (!staffMapContainer) return;
+    
+    let geometry = [];
+    try { geometry = JSON.parse(trip.geometry_json); } catch(e) {}
+
+    if (!geometry || geometry.length === 0) {
+        staffMapContainer.style.display = 'none';
+        staffMapFallback.style.display = 'block';
+        return;
+    }
+
+    staffMapFallback.style.display = 'none';
+    staffMapContainer.style.display = 'block';
+
+    if (staffMap) {
+        staffMap.remove();
+        staffMap = null;
+    }
+
+    staffMap = L.map('staff-route-map', { zoomControl: true, attributionControl: false });
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(staffMap);
+    staffDropoffMarker = L.circleMarker([0,0], { radius: 7, fillColor: '#f27523', color: '#fff', weight: 2, fillOpacity: 1 }).addTo(staffMap);
+    staffMap.on('click', function(e) {
+        const currentTrip = trips.find(t => String(t.id) === String(tripSelect.value));
+        if (currentTrip) {
+            let geometry = [];
+            try { geometry = JSON.parse(currentTrip.geometry_json); } catch(e) {}
+            const snapped = closestPointOnStaffRoute(e.latlng, geometry);
+            const routeKm = getStaffRouteKilometers(snapped, geometry, currentTrip.route_distance);
+            refreshRoutePricing(currentTrip, routeKm);
+        }
+    });
+
+    staffRouteLine = L.polyline(geometry, { color: '#0078FF', weight: 5 }).addTo(staffMap);
+    staffMap.fitBounds(staffRouteLine.getBounds(), { padding: [20, 20] });
+    
+    const currentDist = Number(distanceInput.value || 0);
+    updateStaffMapMarker(currentDist, geometry, trip.route_distance);
+}
+
 function closestPointOnStaffRoute(latlng, geometry) {
+    if (!staffMap || !geometry || geometry.length < 2) return latlng;
+    
     let minfDist = Infinity;
     let closestLatLng = latlng;
     for (let i = 0; i < geometry.length - 1; i++) {
@@ -498,6 +630,7 @@ function closestPointOnStaffRoute(latlng, geometry) {
 }
 
 function getStaffRouteKilometers(snappedLatLng, geometry, totalKm) {
+    if (!geometry || geometry.length < 2) return 0;
     let totalDist = 0;
     for (let i = 0; i < geometry.length - 1; i++) {
         const p1 = L.latLng(geometry[i]);
@@ -512,87 +645,6 @@ function getStaffRouteKilometers(snappedLatLng, geometry, totalKm) {
         }
     }
     return Math.min(totalKm, totalDist / 1000);
-}
-
-function selectStaffRoutePosition(latlng, trip) {
-    let geometry = [];
-    try { geometry = JSON.parse(trip.geometry_json); } catch(e) {}
-    if (!geometry || geometry.length < 2) return;
-    const snappedLatLng = closestPointOnStaffRoute(latlng, geometry);
-    staffDropoffMarker.setLatLng(snappedLatLng);
-    const routeKm = getStaffRouteKilometers(snappedLatLng, geometry, trip.route_distance);
-    if (selectedDropoffLabel) {
-        selectedDropoffLabel.textContent = `${routeKm.toFixed(1)} km from origin`;
-    }
-    refreshRoutePricing(trip, routeKm);
-}
-
-function initStaffMap(trip) {
-    if (!staffMapContainer) return;
-    
-    let geometry = [];
-    try { geometry = JSON.parse(trip.geometry_json); } catch(e) {}
-
-    if (!geometry || geometry.length === 0) {
-        staffMapContainer.style.display = 'none';
-        staffMapFallback.style.display = 'block';
-        return;
-    }
-
-    staffMapFallback.style.display = 'none';
-    staffMapContainer.style.display = 'block';
-
-    if (!staffMap) {
-        staffMap = L.map('staff-route-map', { zoomControl: true, attributionControl: false });
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(staffMap);
-        staffDropoffMarker = L.circleMarker([0,0], { radius: 7, fillColor: '#f27523', color: '#fff', weight: 2, fillOpacity: 1 }).addTo(staffMap);
-        staffMap.on('click', function(e) {
-            const currentTrip = trips.find(t => String(t.id) === String(tripSelect.value));
-            if (currentTrip) selectStaffRoutePosition(e.latlng, currentTrip);
-        });
-    }
-
-    if (staffRouteLine) staffMap.removeLayer(staffRouteLine);
-    staffRouteLine = L.polyline(geometry, { color: '#0078FF', weight: 5 }).addTo(staffMap);
-    staffMap.fitBounds(staffRouteLine.getBounds(), { padding: [20, 20] });
-    
-    const currentDist = Number(distanceInput.value || 0);
-    updateStaffMapMarker(currentDist, geometry, trip.route_distance);
-}
-
-function searchAndSnapStaffLocation(searchText) {
-    const trip = trips.find(t => String(t.id) === String(tripSelect.value));
-    if (!trip) { alert("Please select a trip first."); return; }
-    if (!searchText.trim()) { showStaffSearchStatus('Please enter a location to search.', false); return; }
-    if (searchStatusDiv) {
-        searchStatusDiv.textContent = 'Searching...';
-        searchStatusDiv.style.display = 'block';
-        searchStatusDiv.style.backgroundColor = '#e0f2fe';
-        searchStatusDiv.style.color = '#0c4a6e';
-    }
-    const headers = { 'User-Agent': 'BusGo-App/1.0' };
-    const nominatimUrl = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchText + ', Philippines')}&limit=1`;
-    fetch(nominatimUrl, { headers })
-        .then(res => res.json())
-        .then(data => {
-            if (!data || data.length === 0) { showStaffSearchStatus('Location not found.', false); return; }
-            const result = data[0];
-            const searchedLatLng = L.latLng(parseFloat(result.lat), parseFloat(result.lon));
-            selectStaffRoutePosition(searchedLatLng, trip);
-            showStaffSearchStatus(`📍 pinned to route!`, true);
-            locationSearchInput.value = '';
-        })
-        .catch(error => { console.error('Search error:', error); showStaffSearchStatus('Error searching location.', false); });
-}
-
-function showStaffSearchStatus(message, isSuccess = true) {
-    if (searchStatusDiv) {
-        searchStatusDiv.textContent = message;
-        searchStatusDiv.style.display = 'block';
-        searchStatusDiv.style.backgroundColor = isSuccess ? '#dcfce7' : '#fee2e2';
-        searchStatusDiv.style.color = isSuccess ? '#166534' : '#991b1b';
-        setTimeout(() => { searchStatusDiv.style.display = 'none'; }, 5000);
-    }
 }
 
 function updateStaffMapMarker(distKm, geometry, totalKm) {
@@ -686,7 +738,7 @@ function renderSeatMap(tripId) {
         [[40, 39], [38, 37]],
         [[41, 42], [43, 44]],
         [[48, 47], [46, 45]],
-        [[49, 50,  51, 52]]
+        [[49, 50, 51, 52]]
     ];
 
     seatRows.forEach(row => {
@@ -738,6 +790,169 @@ function renderSeatMap(tripId) {
     });
 }
 
+// ID Scanner Functions
+function toggleDiscountVerification(type) {
+    if (type !== 'regular') {
+        idVerifySection.classList.remove('hidden');
+    } else {
+        idVerifySection.classList.add('hidden');
+        if (idScannedInput) idScannedInput.value = '0';
+        if (idVerificationStatus) {
+            idVerificationStatus.style.display = 'none';
+            idVerificationStatus.innerHTML = '';
+        }
+        stopScanner();
+    }
+}
+
+async function startScanner() {
+    if (html5QrCode) {
+        await stopScanner();
+    }
+    
+    idReaderDiv.style.display = 'block';
+    startScanBtn.classList.add('hidden');
+    stopScanBtn.classList.remove('hidden');
+    
+    html5QrCode = new Html5Qrcode("staff-id-reader");
+    
+    try {
+        await html5QrCode.start(
+            { facingMode: "environment" },
+            {
+                fps: 10,
+                qrbox: { width: 250, height: 250 }
+            },
+            (decodedText, decodedResult) => {
+                // QR code scanned successfully
+                console.log("Scanned:", decodedText);
+                handleScannedId(decodedText);
+            },
+            (errorMessage) => {
+                // Scanning error - ignore as it's normal
+                console.log("Scan error:", errorMessage);
+            }
+        );
+    } catch (err) {
+        console.error("Failed to start scanner:", err);
+        showIdVerificationStatus("Could not access camera. Please check permissions.", false);
+        await stopScanner();
+    }
+}
+
+async function stopScanner() {
+    if (html5QrCode && html5QrCode.isScanning) {
+        try {
+            await html5QrCode.stop();
+            await html5QrCode.clear();
+        } catch (err) {
+            console.error("Error stopping scanner:", err);
+        }
+    }
+    html5QrCode = null;
+    idReaderDiv.style.display = 'none';
+    startScanBtn.classList.remove('hidden');
+    stopScanBtn.classList.add('hidden');
+}
+
+function handleScannedId(scannedText) {
+    // Simulate ID verification - in production, you'd validate against a database
+    const discountType = discountSelect.value;
+    let isValid = false;
+    let message = "";
+    
+    // Simple validation based on discount type
+    if (discountType === 'student') {
+        // Look for student ID patterns: STU-12345, STUDENT2024, etc.
+        const studentPatterns = [/STU/i, /STUDENT/i, /SHS/i, /COLLEGE/i];
+        isValid = studentPatterns.some(pattern => pattern.test(scannedText));
+        message = isValid ? "Student ID verified successfully!" : "Invalid Student ID format. Please scan a valid student ID.";
+    } else if (discountType === 'senior') {
+        // Senior citizen patterns: OSCA, SENIOR, SC-12345
+        const seniorPatterns = [/OSCA/i, /SENIOR/i, /SC-/i];
+        isValid = seniorPatterns.some(pattern => pattern.test(scannedText));
+        message = isValid ? "Senior Citizen ID verified successfully!" : "Invalid Senior Citizen ID format. Please scan a valid senior ID.";
+    } else if (discountType === 'pwd') {
+        // PWD patterns: PWD-12345, PERSONS WITH DISABILITY
+        const pwdPatterns = [/PWD/i, /PERSONS WITH DISABILITY/i];
+        isValid = pwdPatterns.some(pattern => pattern.test(scannedText));
+        message = isValid ? "PWD ID verified successfully!" : "Invalid PWD ID format. Please scan a valid PWD ID.";
+    }
+    
+    if (isValid) {
+        idScannedInput.value = "1";
+        showIdVerificationStatus(message, true);
+        stopScanner();
+    } else {
+        idScannedInput.value = "0";
+        showIdVerificationStatus(message, false);
+        // Don't stop scanner, let them try again
+    }
+}
+
+function showIdVerificationStatus(message, isSuccess) {
+    if (idVerificationStatus) {
+        idVerificationStatus.textContent = message;
+        idVerificationStatus.style.display = 'block';
+        idVerificationStatus.style.backgroundColor = isSuccess ? '#dcfce7' : '#fee2e2';
+        idVerificationStatus.style.color = isSuccess ? '#166534' : '#991b1b';
+        idVerificationStatus.style.padding = '0.75rem';
+        idVerificationStatus.style.borderRadius = '8px';
+        
+        if (!isSuccess) {
+            setTimeout(() => {
+                if (idVerificationStatus && idVerificationStatus.style.display !== 'none') {
+                    idVerificationStatus.style.display = 'none';
+                }
+            }, 5000);
+        }
+    }
+}
+
+// Add discount type change listener
+if (discountSelect) {
+    discountSelect.addEventListener('change', function() {
+        const trip = trips.find(t => String(t.id) === String(tripSelect.value));
+        if (trip) refreshRoutePricing(trip);
+        toggleDiscountVerification(this.value);
+    });
+}
+
+// Add scanner button listeners
+if (startScanBtn) {
+    startScanBtn.addEventListener('click', startScanner);
+}
+if (stopScanBtn) {
+    stopScanBtn.addEventListener('click', stopScanner);
+}
+
+// Clean up scanner when discount type changes to regular
+function cleanupScanner() {
+    if (discountSelect && discountSelect.value === 'regular') {
+        stopScanner();
+    }
+}
+
+// Add form validation before submit
+const walkinForm = document.getElementById('walkin-form');
+if (walkinForm) {
+    walkinForm.addEventListener('submit', function(e) {
+        if (!tripSelect.value || !seatInput.value) {
+            e.preventDefault();
+            alert("Please select trip and seat first.");
+            return;
+        }
+        
+        if (discountSelect.value !== 'regular') {
+            if (idScannedInput.value !== '1') {
+                e.preventDefault();
+                alert("Please scan the customer's valid ID to verify discount eligibility.");
+                return;
+            }
+        }
+    });
+}
+
 window.selectModalPaymentMethod = function(method) {
     selectedModalMethod = method;
     
@@ -774,8 +989,60 @@ window.closeModal = function() {
     if (cashInput) cashInput.value = "";
 };
 
+function showStaffSearchStatus(message, isSuccess = true) {
+    if (searchStatusDiv) {
+        searchStatusDiv.textContent = message;
+        searchStatusDiv.style.display = 'block';
+        searchStatusDiv.style.backgroundColor = isSuccess ? '#dcfce7' : '#fee2e2';
+        searchStatusDiv.style.color = isSuccess ? '#166534' : '#991b1b';
+        setTimeout(() => { searchStatusDiv.style.display = 'none'; }, 5000);
+    }
+}
+
+function searchAndSnapStaffLocation(searchText) {
+    const trip = trips.find(t => String(t.id) === String(tripSelect.value));
+    if (!trip) { 
+        showStaffSearchStatus("Please select a trip first.", false);
+        return; 
+    }
+    if (!searchText.trim()) { 
+        showStaffSearchStatus('Please enter a location to search.', false); 
+        return; 
+    }
+    if (searchStatusDiv) {
+        searchStatusDiv.textContent = 'Searching...';
+        searchStatusDiv.style.display = 'block';
+        searchStatusDiv.style.backgroundColor = '#e0f2fe';
+        searchStatusDiv.style.color = '#0c4a6e';
+    }
+    const headers = { 'User-Agent': 'BusGo-App/1.0' };
+    const nominatimUrl = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchText + ', Philippines')}&limit=1`;
+    fetch(nominatimUrl, { headers })
+        .then(res => res.json())
+        .then(data => {
+            if (!data || data.length === 0) { 
+                showStaffSearchStatus('Location not found.', false); 
+                return; 
+            }
+            const result = data[0];
+            const searchedLatLng = L.latLng(parseFloat(result.lat), parseFloat(result.lon));
+            let geometry = [];
+            try { geometry = JSON.parse(trip.geometry_json); } catch(e) {}
+            const snapped = closestPointOnStaffRoute(searchedLatLng, geometry);
+            const routeKm = getStaffRouteKilometers(snapped, geometry, trip.route_distance);
+            refreshRoutePricing(trip, routeKm);
+            showStaffSearchStatus(`📍 pinned to route!`, true);
+            locationSearchInput.value = '';
+        })
+        .catch(error => { 
+            console.error('Search error:', error); 
+            showStaffSearchStatus('Error searching location.', false); 
+        });
+}
+
 tripSelect.addEventListener('change', function () {
     renderSeatMap(this.value);
+    cleanupScanner();
 });
 
 if (locationSearchBtn) {
@@ -789,18 +1056,16 @@ if (locationSearchInput) {
     });
 }
 
-if (discountSelect) {
-    discountSelect.addEventListener('change', function () {
-        const trip = trips.find(t => String(t.id) === String(tripSelect.value));
-        if (trip) refreshRoutePricing(trip);
-    });
-}
-
 if (tripSelect.value) renderSeatMap(tripSelect.value);
 
 proceedBtn.addEventListener("click", function () {
     if (!tripSelect.value || !seatInput.value) {
         alert("Please select trip and seat first.");
+        return;
+    }
+
+    if (discountSelect.value !== 'regular' && idScannedInput.value !== '1') {
+        alert("Please scan the customer's ID to verify discount eligibility.");
         return;
     }
 
@@ -824,7 +1089,6 @@ window.onclick = (e) => {
 
 if (cashInput) {
     cashInput.addEventListener("input", function () {
-        const trip = trips.find(t => String(t.id) === String(tripSelect.value));
         const basePrice = currentRouteFare;
         const cashGiven = Number(this.value) || 0;
         const change = cashGiven - basePrice;
@@ -836,7 +1100,7 @@ if (cashInput) {
 }
 
 confirmBtn.addEventListener("click", function () {
-    if (discountSelect.value !== 'regular' && document.getElementById('staff_id_scanned').value !== '1') {
+    if (discountSelect.value !== 'regular' && idScannedInput.value !== '1') {
         alert("Please scan the customer's ID to verify discount.");
         return;
     }
@@ -847,7 +1111,6 @@ confirmBtn.addEventListener("click", function () {
     
     if (method === "cash") {
         const cashGiven = document.getElementById("modal_cash_given").value;
-        const trip = trips.find(t => String(t.id) === String(tripSelect.value));
         const price = currentRouteFare;
         
         if (!cashGiven || Number(cashGiven) < price) {
@@ -860,9 +1123,8 @@ confirmBtn.addEventListener("click", function () {
         return;
     }
     
-    const form = document.querySelector("form");
-    form.action = "/staff/walkin/gcash";
-    form.submit();
+    // For GCash, submit the form normally
+    document.querySelector("form").submit();
 });
 
 const tabButtons = document.querySelectorAll(".tab-btn");

@@ -21,21 +21,35 @@
             </a>
         </div>
 
+        <!-- Active Bookings Section (Today's trips that are paid but not completed) -->
         <div class="table-container">
             <div class="table-header">
                 <i class="fa-solid fa-ticket" style="margin-right: 0.5rem;"></i> Active Bookings
             </div>
 
-            {% set counts = namespace(active=0, history=0) %}
+            {% set today = now.date().isoformat() if now is defined else None %}
+            {% set active_bookings = [] %}
+            {% set scheduled_bookings = [] %}
+            {% set history_bookings = [] %}
+            
             {% for booking in bookings %}
-                {% if booking.status in ['paid', 'cancelled'] %}
-                    {% set counts.history = counts.history + 1 %}
+                {% if booking.status == 'paid' %}
+                    {% if booking.travel_date == today %}
+                        {% set _ = active_bookings.append(booking) %}
+                    {% elif booking.travel_date > today %}
+                        {% set _ = scheduled_bookings.append(booking) %}
+                    {% else %}
+                        {% set _ = history_bookings.append(booking) %}
+                    {% endif %}
+                {% elif booking.status in ['cancelled', 'dispatched', 'onboard', 'arrived'] %}
+                    {% set _ = history_bookings.append(booking) %}
                 {% else %}
-                    {% set counts.active = counts.active + 1 %}
+                    <!-- Other statuses like 'waiting for payment', 'processing payment' go to active -->
+                    {% set _ = active_bookings.append(booking) %}
                 {% endif %}
             {% endfor %}
 
-            {% if counts.active > 0 %}
+            {% if active_bookings|length > 0 %}
                 <table class="admin-table admin-bookings-table">
                     <thead style="background: var(--dark-text);">
                         <tr>
@@ -51,7 +65,7 @@
                         </tr>
                     </thead>
                     <tbody style="background: rgba(255,255,255,0.4);">
-                        {% for booking in bookings if booking.status not in ['paid', 'cancelled'] %}
+                        {% for booking in active_bookings %}
                         <tr style="border-bottom: 1px solid rgba(16,42,67,0.1);">
                             <td style="color: var(--dark-text); font-weight: 700;">#{{ booking.id }}</td>
                             <td style="color: var(--dark-text);">{{ booking.bus_no }}</td>
@@ -60,17 +74,37 @@
                             <td style="color: var(--dark-text); font-weight: 700;">{{ booking.departure }}</td>
                             <td style="color: var(--dark-text);">{{ booking.booked_on }}</td>
                             <td style="color: var(--dark-text); font-weight: 700;">₱{{ "%.2f"|format(booking.price) }}</td>
-                            <td class="status-{{ booking.status.lower() }}" style="font-weight: 700;">
-                                {{ 'Completed' if booking.status == 'paid' else 'Waiting for Payment' if booking.status == 'waiting for payment' else booking.status|capitalize }}
+                            <td style="color: var(--dark-text); font-weight: 500;">
+                                {% if booking.status == 'paid' %}
+                                    Paid
+                                {% elif booking.status == 'waiting for payment' %}
+                                    Waiting for Payment
+                                {% elif booking.status == 'processing payment' %}
+                                    Processing Payment
+                                {% else %}
+                                    {{ booking.status|capitalize }}
+                                {% endif %}
                             </td>
                             <td>
                                 <a href="{{ url_for('view_booking', booking_id=booking.id) }}" class="book-now-btn" style="padding: 8px 14px; font-size: 0.9rem;">
                                     View
                                 </a>
+                                {% if booking.status == 'waiting for payment' or booking.status == 'processing payment' %}
+                                <a href="{{ url_for('pay_booking', booking_id=booking.id) }}" class="print-btn" style="padding: 8px 14px; font-size: 0.9rem; background: var(--yellow);">
+                                    Pay Now
+                                </a>
+                                {% endif %}
+                                {% if booking.status == 'waiting for payment' %}
                                 <button form="cancel-{{ booking.id }}" type="submit" class="cancel-btn" style="padding: 8px 14px; font-size: 0.9rem;" onclick="return confirm('Cancel this booking?')">
                                     Cancel
                                 </button>
                                 <form id="cancel-{{ booking.id }}" method="GET" action="{{ url_for('user_cancel_booking', booking_id=booking.id) }}" style="display: none;"></form>
+                                {% endif %}
+                                {% if booking.status == 'paid' %}
+                                <a href="{{ url_for('ticket', booking_id=booking.id) }}" class="receipt-btn" style="padding: 8px 14px; font-size: 0.9rem;">
+                                    Ticket
+                                </a>
+                                {% endif %}
                             </td>
                         </tr>
                         {% endfor %}
@@ -85,12 +119,13 @@
             {% endif %}
         </div>
 
+        <!-- Scheduled Bookings Section (Advance bookings with Paid Scheduled status) -->
         <div class="table-container" style="margin-top: 2rem;">
             <div class="table-header">
-                <i class="fa-solid fa-history" style="margin-right: 0.5rem;"></i> Booking History
+                <i class="fa-solid fa-calendar-alt" style="margin-right: 0.5rem;"></i> Scheduled Bookings (Advance)
             </div>
 
-            {% if counts.history > 0 %}
+            {% if scheduled_bookings|length > 0 %}
                 <table class="admin-table admin-bookings-table">
                     <thead style="background: var(--dark-text);">
                         <tr>
@@ -106,17 +141,81 @@
                         </tr>
                     </thead>
                     <tbody style="background: rgba(255,255,255,0.4);">
-                        {% for booking in bookings if booking.status in ['paid', 'cancelled'] %}
+                        {% for booking in scheduled_bookings %}
                         <tr style="border-bottom: 1px solid rgba(16,42,67,0.1);">
                             <td style="color: var(--dark-text); font-weight: 700;">#{{ booking.id }}</td>
                             <td style="color: var(--dark-text);">{{ booking.bus_no }}</td>
-                            <td style="color: var(--dark-text);">{{ booking.origin }} â†’ {{ booking.destination }}</td>
+                            <td style="color: var(--dark-text);">{{ booking.origin }} → {{ booking.destination }}</td>
                             <td style="color: var(--dark-text);">{{ booking.travel_date }}</td>
                             <td style="color: var(--dark-text); font-weight: 700;">{{ booking.departure }}</td>
                             <td style="color: var(--dark-text);">{{ booking.booked_on }}</td>
                             <td style="color: var(--dark-text); font-weight: 700;">₱{{ "%.2f"|format(booking.price) }}</td>
-                            <td class="status-{{ booking.status.lower() }}" style="font-weight: 700;">
-                                {{ 'Completed' if booking.status == 'paid' else 'Waiting for Payment' if booking.status == 'waiting for payment' else booking.status|capitalize }}
+                            <td style="color: var(--dark-text); font-weight: 500;">Paid Scheduled</td>
+                            <td>
+                                <a href="{{ url_for('view_booking', booking_id=booking.id) }}" class="book-now-btn" style="padding: 8px 14px; font-size: 0.9rem;">
+                                    View
+                                </a>
+                                <a href="{{ url_for('ticket', booking_id=booking.id) }}" class="receipt-btn" style="padding: 8px 14px; font-size: 0.9rem;">
+                                    Ticket
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <div style="text-align: center; padding: 3rem; color: rgba(255, 255, 255, 0.7);">
+                    <i class="fa-solid fa-calendar-week" style="font-size: 3rem; margin-bottom: 1rem; display: block; color: var(--yellow);"></i>
+                    <p style="font-size: 1.1rem;">No scheduled advance bookings.</p>
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- Booking History Section (Completed/Cancelled/Expired bookings) -->
+        <div class="table-container" style="margin-top: 2rem;">
+            <div class="table-header">
+                <i class="fa-solid fa-history" style="margin-right: 0.5rem;"></i> Booking History
+            </div>
+
+            {% if history_bookings|length > 0 %}
+                <table class="admin-table admin-bookings-table">
+                    <thead style="background: var(--dark-text);">
+                        <tr>
+                            <th style="color: white; border-radius: 12px 0 0 0;">Ticket ID</th>
+                            <th style="color: white;">Bus</th>
+                            <th style="color: white;">Route</th>
+                            <th style="color: white;">Travel Date</th>
+                            <th style="color: white;">Departure</th>
+                            <th style="color: white;">Booked On</th>
+                            <th style="color: white;">Price</th>
+                            <th style="color: white;">Status</th>
+                            <th style="color: white; border-radius: 0 12px 0 0;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody style="background: rgba(255,255,255,0.4);">
+                        {% for booking in history_bookings %}
+                        <tr style="border-bottom: 1px solid rgba(16,42,67,0.1);">
+                            <td style="color: var(--dark-text); font-weight: 700;">#{{ booking.id }}</td>
+                            <td style="color: var(--dark-text);">{{ booking.bus_no }}</td>
+                            <td style="color: var(--dark-text);">{{ booking.origin }} → {{ booking.destination }}</td>
+                            <td style="color: var(--dark-text);">{{ booking.travel_date }}</td>
+                            <td style="color: var(--dark-text); font-weight: 700;">{{ booking.departure }}</td>
+                            <td style="color: var(--dark-text);">{{ booking.booked_on }}</td>
+                            <td style="color: var(--dark-text); font-weight: 700;">₱{{ "%.2f"|format(booking.price) }}</td>
+                            <td style="color: var(--dark-text); font-weight: 500;">
+                                {% if booking.status == 'arrived' %}
+                                    Completed
+                                {% elif booking.status == 'cancelled' %}
+                                    Cancelled
+                                {% elif booking.status == 'dispatched' %}
+                                    Dispatched
+                                {% elif booking.status == 'onboard' %}
+                                    Onboard
+                                {% elif booking.status == 'paid' and booking.travel_date < today %}
+                                    Expired
+                                {% else %}
+                                    {{ booking.status|capitalize }}
+                                {% endif %}
                             </td>
                             <td>
                                 <a href="{{ url_for('view_booking', booking_id=booking.id) }}" class="book-now-btn" style="padding: 8px 14px; font-size: 0.9rem;">
@@ -127,9 +226,11 @@
                                     Receipt
                                 </a>
                                 {% endif %}
+                                {% if booking.status == 'cancelled' or (booking.status == 'paid' and booking.travel_date < today) %}
                                 <a href="{{ url_for('user_delete_booking', booking_id=booking.id) }}" class="cancel-btn" style="padding: 8px 14px; font-size: 0.9rem;" onclick="return confirm('Delete this booking from history?')">
                                     Delete
                                 </a>
+                                {% endif %}
                             </td>
                         </tr>
                         {% endfor %}

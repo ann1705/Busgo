@@ -27,7 +27,7 @@
         </div>
         <main class="schedule-main">
             <div class="schedule-container glass-card bus-management-card" style="width: 100%; max-width: 100%; padding: 2.5rem;">
-                <header class="content-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2.5rem; width: 100%; border-bottom: 2px solid rgba(16, 42, 67, 0.1); padding-bottom: 1.5rem;">
+                <header class="content-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2.5rem; width: 100%; border-bottom: 2px solid rgba(16, 42, 67, 0.95); padding-bottom: 1.5rem;">
                     <h2 class="section-heading" style="margin: 0; color: var(--dark-text); font-size: 1.8rem; font-weight: 800;">Revenue Overview</h2>
                 </header>
 
@@ -42,50 +42,72 @@
                     </form>
                 </div>
 
-                <div class="stats-row" style="justify-content: flex-start; margin-bottom: 3rem;">
-                    <div class="stat-card">
-                        <i class="fa-solid fa-money-bill-wave"></i>
+                <!-- Statistics Row -->
+                <div class="stats-row" style="display: flex; gap: 1.5rem; margin-bottom: 3rem; flex-wrap: wrap;">
+                    <div class="stat-card" style="background: white; border-radius: 16px; padding: 1.5rem; box-shadow: 0 2px 8px rgba(0,0,0,0.08); flex: 1; min-width: 200px; border: 1px solid rgba(16,42,67,0.1);">
+                        <i class="fa-solid fa-money-bill-wave" style="font-size: 2rem; color: var(--accent); margin-bottom: 0.5rem; display: block;"></i>
                         <div>
-                            <div class="stat-number">₱{{ "%.2f"|format(total_revenue) }}</div>
-                            <div class="stat-label">Revenue Overview</div>
-                            <div>({% if filter_date %}For {{ filter_date }}{% else %}All time{% endif %})</div>
+                            <div class="stat-number" style="font-size: 1.8rem; font-weight: 700; color: var(--dark-text);">₱{{ "%.2f"|format(total_revenue|float) }}</div>
+                            <div class="stat-label" style="color: rgba(16, 42, 67, 0.7);">Filtered Revenue</div>
+                            <div style="font-size: 0.8rem; color: rgba(16, 42, 67, 0.6);">{{ total_transactions }} transactions</div>
+                            <div style="font-size: 0.7rem; color: rgba(16, 42, 67, 0.5);">{% if filter_date %}For {{ filter_date }}{% else %}All time{% endif %}</div>
                         </div>
                     </div>
-                    <div class="stat-card">
-                        <i class="fa-solid fa-calendar-day"></i>
+                    
+                    <div class="stat-card" style="background: white; border-radius: 16px; padding: 1.5rem; box-shadow: 0 2px 8px rgba(0,0,0,0.08); flex: 1; min-width: 200px; border: 1px solid rgba(16,42,67,0.1);">
+                        <i class="fa-solid fa-calendar-day" style="font-size: 2rem; color: var(--accent); margin-bottom: 0.5rem; display: block;"></i>
                         <div>
-                            <div class="stat-number">₱{{ "%.2f"|format(today_revenue) }}</div>
-                            <div class="stat-label">Today's Revenue</div>
-                            <div>(Actual current day)</div>
+                            <div class="stat-number" style="font-size: 1.8rem; font-weight: 700; color: var(--dark-text);">₱{{ "%.2f"|format(today_revenue|float) }}</div>
+                            <div class="stat-label" style="color: rgba(16, 42, 67, 0.7);">Today's Revenue</div>
+                            <div style="font-size: 0.8rem; color: rgba(16, 42, 67, 0.6);">{{ today_count }} transactions</div>
+                            <div style="font-size: 0.7rem; color: rgba(16, 42, 67, 0.5);">{{ today_date }}</div>
+                        </div>
+                    </div>
+                    
+                    <div class="stat-card" style="background: white; border-radius: 16px; padding: 1.5rem; box-shadow: 0 2px 8px rgba(0,0,0,0.08); flex: 1; min-width: 200px; border: 1px solid rgba(16,42,67,0.1);">
+                        <i class="fa-solid fa-chart-line" style="font-size: 2rem; color: var(--accent); margin-bottom: 0.5rem; display: block;"></i>
+                        <div>
+                            <div class="stat-number" style="font-size: 1.8rem; font-weight: 700; color: var(--dark-text);">₱{{ "%.2f"|format(overall_total|float) }}</div>
+                            <div class="stat-label" style="color: rgba(16, 42, 67, 0.7);">Overall Revenue</div>
+                            <div style="font-size: 0.8rem; color: rgba(16, 42, 67, 0.6);">{{ overall_count }} total bookings</div>
+                            <div style="font-size: 0.7rem; color: rgba(16, 42, 67, 0.5);">Average: ₱{{ "%.2f"|format(average_fare|float) }}</div>
                         </div>
                     </div>
                 </div>
 
+                <!-- Revenue Details Table -->
                 <div class="table-container" style="width: 100%; overflow-x: auto;">
-                    {% if revenue_by_date %}
-                        {% for date, data in revenue_by_date.items() %}
+                    {% if revenue_by_date and revenue_by_date.keys()|length > 0 %}
+                        {% for display_date, date_info in revenue_by_date.items() %}
                         <div style="margin-bottom: 2rem; width: 100%;">
                             <div class="table-header" style="background: rgba(138, 184, 255, 0.25); border-bottom: 1px solid rgba(16,42,67,0.1); padding: 10px;">
                                 <i class="fa-solid fa-calendar-day"></i>
-                                {{ date }}
-                                <small style="margin-left: 0.5rem;">(Total: ₱{{ "%.2f"|format(data.total) }})</small>
+                                {{ display_date }}
+                                <small style="margin-left: 0.5rem; color: rgba(16, 42, 67, 0.7);">
+                                    (Revenue: ₱{{ "%.2f"|format(date_info.get('total_amount', 0)) }} | 
+                                    Transactions: {{ date_info.get('transaction_count', 0) }})
+                                </small>
                             </div>
                             <table class="admin-table admin-bookings-table" style="width: 100%; border-collapse: collapse;">
-                                <thead style="background: #0f1f3e;">
+                                <thead style="background: var(--dark-text);">
                                     <tr>
                                         <th style="color:white; padding: 12px; text-align: left;">Ticket ID</th>
+                                        <th style="color:white; padding: 12px; text-align: left;">User</th>
                                         <th style="color:white; padding: 12px; text-align: left;">Bus No</th>
+                                        <th style="color:white; padding: 12px; text-align: left;">Travel Date</th>
                                         <th style="color:white; padding: 12px; text-align: left;">Time</th>
                                         <th style="color:white; padding: 12px; text-align: left;">Fare</th>
                                     </tr>
                                 </thead>
                                 <tbody style="background: white;">
-                                    {% for item in data.items %}
+                                    {% for sale in date_info.get('transactions', []) %}
                                     <tr style="border-bottom: 1px solid rgba(16,42,67,0.1);">
-                                        <td style="padding: 10px;"><strong>#{{ item.ticket_id }}</strong></td>
-                                        <td style="padding: 10px;">{{ item.bus_no }}</td>
-                                        <td style="padding: 10px;">{{ item.date_time.split(' ')[-2:] | join(' ') }}</td> {# Extract time part #}
-                                        <td style="padding: 10px;">₱{{ "%.2f"|format(item.fare) }}</td>
+                                        <td style="padding: 10px; color: var(--dark-text);"><strong>#{{ sale.get('ticket_id', '') }}</strong></td>
+                                        <td style="padding: 10px; color: var(--dark-text);">{{ sale.get('user_name', '') }}</td>
+                                        <td style="padding: 10px; color: var(--dark-text);">{{ sale.get('bus_number', '') }}</td>
+                                        <td style="padding: 10px; color: var(--dark-text);">{{ sale.get('travel_date', '') }}</td>
+                                        <td style="padding: 10px; color: var(--dark-text);">{{ sale.get('time', '') }}</td>
+                                        <td style="padding: 10px; color: var(--dark-text); font-weight: 700;">₱{{ "%.2f"|format(sale.get('price', 0)) }}</td>
                                     </tr>
                                     {% endfor %}
                                 </tbody>

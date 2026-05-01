@@ -41,13 +41,14 @@
                     </div>
                 </header>
 
+                <!-- Active Bookings Section -->
                 <div id="activeBookingsSection" class="booking-tab-section active">
-                    {% if today_bookings %}
                     <div class="table-container">
                         <div class="table-header" style="background: rgba(138, 184, 255, 0.25); color: var(--dark-text); border-bottom: 1px solid rgba(16,42,67,0.1);">
                             <i class="fa-solid fa-calendar-day" style="margin-right: 0.5rem;"></i>
-                            {{ today_str }} <small style="color: rgba(16, 42, 67, 0.7); margin-left: 0.5rem;">(<span id="activeCount">{{ today_bookings|length }}</span> bookings today)</small>
+                            Today's Active Bookings - {{ today_str }} <small style="color: rgba(16, 42, 67, 0.7); margin-left: 0.5rem;">(<span id="activeCount">{{ active_bookings|length }}</span> bookings)</small>
                         </div>
+                    {% if active_bookings and active_bookings|length > 0 %}
                     <table class="admin-table admin-bookings-table" id="activeBookingsTable">
                     <thead style="background: var(--dark-text);">
                         <tr>
@@ -63,7 +64,7 @@
                         </tr>
                     </thead>
                     <tbody style="background: rgba(255,255,255,1);">
-                        {% for b in today_bookings %}
+                        {% for b in active_bookings %}
                         <tr data-booking-id="{{ b.id }}" data-booking-user="{{ b.user|lower }}" data-booking-bus="{{ b.bus_no|lower }}" data-booking-route="{{ b.route|lower }}" data-booking-seat="{{ b.seat_number }}" data-booking-date="{{ b.travel_date }}" data-booking-status="{{ b.status|lower }}">
                             <td style="color: var(--dark-text); font-weight: 700;">#{{ b.id }}</td>
                             <td style="color: var(--dark-text); font-weight: 700;">{{ b.user }}</td>
@@ -72,30 +73,43 @@
                             <td style="color: var(--dark-text);">{{ b.seat_number }}</td>
                             <td style="color: var(--dark-text); font-weight: 700;">{{ b.travel_date }}</td>
                             <td style="color: var(--dark-text);">{{ b.created_date }} {{ b.created_time }}</td>
-                            <td class="status-{{ b.status }}" style="font-weight: 700;">{{ 'Completed' if b.status == 'paid' else 'Waiting for Payment' if b.status == 'waiting for payment' else b.status|capitalize }}</td>
+                            <td style="color: var(--dark-text); font-weight: 500;">
+                                {% if b.status == 'paid' %}
+                                    Paid
+                                {% elif b.status == 'waiting for payment' %}
+                                    Waiting for Payment
+                                {% elif b.status == 'processing payment' %}
+                                    Processing Payment
+                                {% else %}
+                                    {{ b.status|capitalize }}
+                                {% endif %}
+                            </td>
                             <td>
                                 <a href="{{ url_for('admin_view_booking', booking_id=b.id) }}" class="book-now-btn" style="padding: 6px 12px; font-size: 0.85rem; margin-right: 0.5rem;">
                                     View
                                 </a>
+                                {% if b.status != 'paid' %}
                                 <a href="{{ url_for('cancel_booking', booking_id=b.id) }}" class="cancel-btn" style="padding: 6px 12px; font-size: 0.85rem;">
                                     Cancel
                                 </a>
+                                {% endif %}
                             </td>
                         </tr>
                         {% endfor %}
                     </tbody>
                 </table>
-                </div>
                 {% else %}
                 <div style="text-align: center; padding: 3rem; color: rgba(16, 42, 67, 0.6);">
                     <i class="fa-solid fa-inbox" style="font-size: 3rem; margin-bottom: 1rem; color: var(--accent);"></i>
-                    <p style="font-size: 1.1rem;">No bookings recorded for today.</p>
+                    <p style="font-size: 1.1rem;">No active bookings for today.</p>
                 </div>
                 {% endif %}
                 </div>
+                </div>
 
+                <!-- Scheduled Bookings Section -->
                 <div id="scheduledBookingsSection" class="booking-tab-section" style="display: none;">
-                    {% if scheduled_bookings_by_date %}
+                    {% if scheduled_bookings_by_date and scheduled_bookings_by_date.items()|length > 0 %}
                     {% for date, items in scheduled_bookings_by_date.items() %}
                     <div class="table-container" style="margin-bottom: 2rem;" data-scheduled-date="{{ date }}">
                         <div class="table-header" style="background: rgba(138, 184, 255, 0.25); color: var(--dark-text); border-bottom: 1px solid rgba(16,42,67,0.1);">
@@ -126,16 +140,14 @@
                             <td style="color: var(--dark-text);">{{ b.seat_number }}</td>
                             <td style="color: var(--dark-text); font-weight: 700;">{{ b.travel_date }}</td>
                             <td style="color: var(--dark-text);">{{ b.created_date }} {{ b.created_time }}</td>
-                            <td class="status-{{ b.status }}" style="font-weight: 700;">{{ 'Completed' if b.status == 'paid' else 'Waiting for Payment' if b.status == 'waiting for payment' else b.status|capitalize }}</td>
+                            <td style="color: var(--dark-text); font-weight: 500;">Paid Scheduled</td>
                             <td>
                                 <a href="{{ url_for('admin_view_booking', booking_id=b.id) }}" class="book-now-btn" style="padding: 6px 12px; font-size: 0.85rem; margin-right: 0.5rem;">
                                     View
                                 </a>
-                                {% if b.status != 'paid' %}
                                 <a href="{{ url_for('cancel_booking', booking_id=b.id) }}" class="cancel-btn" style="padding: 6px 12px; font-size: 0.85rem;">
                                     Cancel
                                 </a>
-                                {% endif %}
                             </td>
                         </tr>
                         {% endfor %}
@@ -146,13 +158,14 @@
                 {% else %}
                 <div style="text-align: center; padding: 3rem; color: rgba(16, 42, 67, 0.6);">
                     <i class="fa-solid fa-calendar-check" style="font-size: 3rem; margin-bottom: 1rem; color: var(--accent);"></i>
-                    <p style="font-size: 1.1rem;">No advance bookings scheduled.</p>
+                    <p style="font-size: 1.1rem;">No advance scheduled bookings.</p>
                 </div>
                 {% endif %}
                 </div>
 
+                <!-- History Bookings Section -->
                 <div id="historyBookingsSection" class="booking-tab-section" style="display: none;">
-                    {% if history_bookings_by_date %}
+                    {% if history_bookings_by_date and history_bookings_by_date.items()|length > 0 %}
                     {% for date, items in history_bookings_by_date.items() %}
                     <div class="table-container" style="margin-bottom: 2rem;" data-history-date="{{ date }}">
                         <div class="table-header" style="background: rgba(138, 184, 255, 0.25); color: var(--dark-text); border-bottom: 1px solid rgba(16,42,67,0.1);">
@@ -183,7 +196,19 @@
                             <td style="color: var(--dark-text);">{{ b.seat_number }}</td>
                             <td style="color: var(--dark-text); font-weight: 700;">{{ b.travel_date }}</td>
                             <td style="color: var(--dark-text);">{{ b.created_date }} {{ b.created_time }}</td>
-                            <td class="status-{{ b.status }}" style="font-weight: 700;">{{ 'Completed' if b.status == 'paid' else 'Waiting for Payment' if b.status == 'waiting for payment' else b.status|capitalize }}</td>
+                            <td style="color: var(--dark-text); font-weight: 500;">
+                                {% if b.status == 'arrived' %}
+                                    Completed
+                                {% elif b.status == 'cancelled' %}
+                                    Cancelled
+                                {% elif b.status == 'dispatched' %}
+                                    Dispatched
+                                {% elif b.status == 'onboard' %}
+                                    Onboard
+                                {% else %}
+                                    {{ b.status|capitalize }}
+                                {% endif %}
+                            </td>
                             <td>
                                 <a href="{{ url_for('admin_delete_booking', booking_id=b.id) }}" class="cancel-btn" onclick="return confirm('Delete this booking record?')">
                                     Delete
@@ -203,8 +228,9 @@
                 {% endif %}
                 </div>
 
+                <!-- Walk-in Bookings Section -->
                 <div id="walkinBookingsSection" class="booking-tab-section" style="display: none;">
-                    {% if walkin_bookings_by_date %}
+                    {% if walkin_bookings_by_date and walkin_bookings_by_date.items()|length > 0 %}
                     {% for date, items in walkin_bookings_by_date.items() %}
                     <div class="table-container" style="margin-bottom: 2rem;" data-walkin-date="{{ date }}">
                         <div class="table-header" style="background: rgba(138, 184, 255, 0.25); color: var(--dark-text); border-bottom: 1px solid rgba(16,42,67,0.1);">
@@ -233,7 +259,7 @@
                             <td style="color: var(--dark-text);">{{ b.route }}</td>
                             <td style="color: var(--dark-text);">{{ b.seat_number }}</td>
                             <td style="color: var(--dark-text);">{{ b.created_date }} {{ b.created_time }}</td>
-                            <td class="status-{{ b.status }}" style="font-weight: 700;">{{ b.status|capitalize }}</td>
+                            <td style="color: var(--dark-text); font-weight: 500;">{{ b.status|capitalize }}</td>
                             <td>
                                 <a href="{{ url_for('admin_delete_booking', booking_id=b.id) }}" class="cancel-btn" onclick="return confirm('Delete this walk-in booking record?')">
                                     Delete
@@ -295,7 +321,6 @@
     
     function filterBookings(searchTerm) {
         if (!searchTerm) {
-            // Show all rows
             showAllRows();
             return;
         }
@@ -303,28 +328,18 @@
         const term = searchTerm.toLowerCase().trim();
         
         // Filter Active Bookings
-        const activeRows = document.querySelectorAll('#activeBookingsTable tbody tr');
-        let activeVisibleCount = 0;
-        activeRows.forEach(row => {
-            const id = row.cells[0]?.innerText.toLowerCase() || '';
-            const user = row.cells[1]?.innerText.toLowerCase() || '';
-            const bus = row.cells[2]?.innerText.toLowerCase() || '';
-            const route = row.cells[3]?.innerText.toLowerCase() || '';
-            const seat = row.cells[4]?.innerText.toLowerCase() || '';
-            const travelDate = row.cells[5]?.innerText.toLowerCase() || '';
-            const status = row.cells[7]?.innerText.toLowerCase() || '';
-            
-            const matches = id.includes(term) || user.includes(term) || bus.includes(term) || 
-                           route.includes(term) || seat.includes(term) || travelDate.includes(term) || status.includes(term);
-            
-            row.style.display = matches ? '' : 'none';
-            if (matches) activeVisibleCount++;
-        });
-        
-        // Update active count display
-        const activeCountSpan = document.getElementById('activeCount');
-        if (activeCountSpan) {
-            activeCountSpan.innerText = activeVisibleCount;
+        const activeTable = document.querySelector('#activeBookingsTable');
+        if (activeTable) {
+            const activeRows = activeTable.querySelectorAll('tbody tr');
+            let activeVisibleCount = 0;
+            activeRows.forEach(row => {
+                const text = row.innerText.toLowerCase();
+                const matches = text.includes(term);
+                row.style.display = matches ? '' : 'none';
+                if (matches) activeVisibleCount++;
+            });
+            const activeCountSpan = document.getElementById('activeCount');
+            if (activeCountSpan) activeCountSpan.innerText = activeVisibleCount;
         }
 
         // Filter Scheduled Bookings
@@ -333,25 +348,13 @@
             const rows = container.querySelectorAll('tbody tr');
             let visibleCount = 0;
             rows.forEach(row => {
-                const id = row.cells[0]?.innerText.toLowerCase() || '';
-                const user = row.cells[1]?.innerText.toLowerCase() || '';
-                const bus = row.cells[2]?.innerText.toLowerCase() || '';
-                const route = row.cells[3]?.innerText.toLowerCase() || '';
-                const seat = row.cells[4]?.innerText.toLowerCase() || '';
-                const travelDate = row.cells[5]?.innerText.toLowerCase() || '';
-                const status = row.cells[7]?.innerText.toLowerCase() || '';
-
-                const matches = id.includes(term) || user.includes(term) || bus.includes(term) ||
-                               route.includes(term) || seat.includes(term) || travelDate.includes(term) || status.includes(term);
-
+                const text = row.innerText.toLowerCase();
+                const matches = text.includes(term);
                 row.style.display = matches ? '' : 'none';
                 if (matches) visibleCount++;
             });
-
             const countSpan = container.querySelector('.scheduled-count');
-            if (countSpan) {
-                countSpan.innerText = visibleCount;
-            }
+            if (countSpan) countSpan.innerText = visibleCount;
             container.style.display = visibleCount === 0 ? 'none' : '';
         });
         
@@ -361,28 +364,13 @@
             const rows = container.querySelectorAll('tbody tr');
             let visibleCount = 0;
             rows.forEach(row => {
-                const id = row.cells[0]?.innerText.toLowerCase() || '';
-                const user = row.cells[1]?.innerText.toLowerCase() || '';
-                const bus = row.cells[2]?.innerText.toLowerCase() || '';
-                const route = row.cells[3]?.innerText.toLowerCase() || '';
-                const seat = row.cells[4]?.innerText.toLowerCase() || '';
-                const travelDate = row.cells[5]?.innerText.toLowerCase() || '';
-                const status = row.cells[7]?.innerText.toLowerCase() || '';
-                
-                const matches = id.includes(term) || user.includes(term) || bus.includes(term) || 
-                               route.includes(term) || seat.includes(term) || travelDate.includes(term) || status.includes(term);
-                
+                const text = row.innerText.toLowerCase();
+                const matches = text.includes(term);
                 row.style.display = matches ? '' : 'none';
                 if (matches) visibleCount++;
             });
-            
-            // Update history count for this container
             const countSpan = container.querySelector('.history-count');
-            if (countSpan) {
-                countSpan.innerText = visibleCount;
-            }
-            
-            // Hide container if no visible rows
+            if (countSpan) countSpan.innerText = visibleCount;
             container.style.display = visibleCount === 0 ? 'none' : '';
         });
         
@@ -392,38 +380,25 @@
             const rows = container.querySelectorAll('tbody tr');
             let visibleCount = 0;
             rows.forEach(row => {
-                const id = row.cells[0]?.innerText.toLowerCase() || '';
-                const user = row.cells[1]?.innerText.toLowerCase() || '';
-                const bus = row.cells[2]?.innerText.toLowerCase() || '';
-                const route = row.cells[3]?.innerText.toLowerCase() || '';
-                const seat = row.cells[4]?.innerText.toLowerCase() || '';
-                const status = row.cells[6]?.innerText.toLowerCase() || '';
-                
-                const matches = id.includes(term) || user.includes(term) || bus.includes(term) || 
-                               route.includes(term) || seat.includes(term) || status.includes(term);
-                
+                const text = row.innerText.toLowerCase();
+                const matches = text.includes(term);
                 row.style.display = matches ? '' : 'none';
                 if (matches) visibleCount++;
             });
-            
-            // Update walkin count for this container
             const countSpan = container.querySelector('.walkin-count');
-            if (countSpan) {
-                countSpan.innerText = visibleCount;
-            }
-            
-            // Hide container if no visible rows
+            if (countSpan) countSpan.innerText = visibleCount;
             container.style.display = visibleCount === 0 ? 'none' : '';
         });
     }
     
     function showAllRows() {
         // Show all active rows
-        const activeRows = document.querySelectorAll('#activeBookingsTable tbody tr');
-        activeRows.forEach(row => row.style.display = '');
-        const activeCountSpan = document.getElementById('activeCount');
-        if (activeCountSpan) {
-            activeCountSpan.innerText = activeRows.length;
+        const activeTable = document.querySelector('#activeBookingsTable');
+        if (activeTable) {
+            const activeRows = activeTable.querySelectorAll('tbody tr');
+            activeRows.forEach(row => row.style.display = '');
+            const activeCountSpan = document.getElementById('activeCount');
+            if (activeCountSpan) activeCountSpan.innerText = activeRows.length;
         }
 
         // Show all scheduled containers and rows
@@ -433,9 +408,7 @@
             const rows = container.querySelectorAll('tbody tr');
             rows.forEach(row => row.style.display = '');
             const countSpan = container.querySelector('.scheduled-count');
-            if (countSpan) {
-                countSpan.innerText = rows.length;
-            }
+            if (countSpan && rows.length > 0) countSpan.innerText = rows.length;
         });
         
         // Show all history containers and rows
@@ -445,9 +418,7 @@
             const rows = container.querySelectorAll('tbody tr');
             rows.forEach(row => row.style.display = '');
             const countSpan = container.querySelector('.history-count');
-            if (countSpan) {
-                countSpan.innerText = rows.length;
-            }
+            if (countSpan && rows.length > 0) countSpan.innerText = rows.length;
         });
         
         // Show all walkin containers and rows
@@ -457,9 +428,7 @@
             const rows = container.querySelectorAll('tbody tr');
             rows.forEach(row => row.style.display = '');
             const countSpan = container.querySelector('.walkin-count');
-            if (countSpan) {
-                countSpan.innerText = rows.length;
-            }
+            if (countSpan && rows.length > 0) countSpan.innerText = rows.length;
         });
     }
     

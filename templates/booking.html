@@ -473,10 +473,10 @@
 
             <div class="booking-panel-blue">
                 <h3>Select Drop-Off Location</h3>
-                <p style="margin-bottom: 0.75rem; color: rgba(15, 31, 62, 0.8);">Use the map below to choose your drop-off point on the bus route. Your selection is snapped to the route and cannot exceed the route distance.</p>
+                <p style="margin-bottom: 0.75rem; color: rgba(15, 31, 62, 0.8);">Click on any point along the main road route to drop off. Your fare is calculated based on distance from origin.</p>
 
                 <div style="display: flex; gap: 0.75rem; margin-bottom: 1.25rem;">
-                    <input type="text" id="location-search-input" placeholder="Search for a location on the route..." style="flex: 1; padding: 0.75rem; border: 1px solid var(--border-gray); border-radius: 8px; font-size: 0.95rem;">
+                    <input type="text" id="location-search-input" placeholder="Search for a location in Cebu..." style="flex: 1; padding: 0.75rem; border: 1px solid var(--border-gray); border-radius: 8px; font-size: 0.95rem;">
                     <button type="button" id="location-search-btn" style="padding: 0.75rem 1.5rem; background: var(--accent); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 700; white-space: nowrap;">
                         <i class="fa-solid fa-magnifying-glass"></i> Search
                     </button>
@@ -504,10 +504,10 @@
                 <div class="input-group" style="margin-bottom: 1rem;">
                     <label for="discount_type">Fare option</label>
                     <select id="discount_type" name="discount_type">
-                        <option value="regular">Regular</option>
-                        <option value="student">Student ID</option>
-                        <option value="senior">Senior Citizen ID</option>
-                        <option value="pwd">PWD ID</option>
+                        <option value="regular">Regular (₱18.00 first 5km)</option>
+                        <option value="student">Student (₱14.40 first 5km)</option>
+                        <option value="senior">Senior Citizen (₱14.40 first 5km)</option>
+                        <option value="pwd">PWD (₱14.40 first 5km)</option>
                     </select>
                 </div>
 
@@ -635,23 +635,38 @@
     const routeMapContainer = document.getElementById("route-map");
     const mapFallback = document.getElementById("map-fallback");
 
+    // Cebu bounds - limit map to Cebu, Philippines only
+    const cebuBounds = {
+        north: 11.3,    // Northern Cebu (Bogo, Daanbantayan)
+        south: 9.5,     // Southern Cebu (Santander, Oslob)
+        west: 123.2,    // Western Cebu (Toledo, Pinamungajan)
+        east: 124.2     // Eastern Cebu (Daanbantayan, Bantayan Island area)
+    };
+
+    // Improved fare calculation based on user requirements
     function calculateFare(distance, discountValue) {
         const distanceValue = Number(distance) || 0;
         const isDiscount = ['student', 'senior', 'pwd'].includes(discountValue);
-        const base = isDiscount ? 14.40 : 18.00;
+        
+        // Base fare: first 5 km
+        const baseFare = isDiscount ? 14.40 : 18.00;
+        
         if (distanceValue <= 5) {
-            return Number(base.toFixed(2));
+            return Number(baseFare.toFixed(2));
         }
-        const total = base + (distanceValue - 5) * 2.97;
+        
+        // Additional fare for succeeding km: 2.97 per km
+        const extraKm = distanceValue - 5;
+        const total = baseFare + (extraKm * 2.97);
         return Number(total.toFixed(2));
     }
 
     function updateFare(distanceValue) {
-        const maxDistance = Number(routeInfo.route_distance || 20);
+        const maxDistance = Number(routeInfo.route_distance || 200);
         const clampedDistance = Math.min(Math.max(Number(distanceValue) || 0, 0), maxDistance);
         const fare = calculateFare(clampedDistance, discountType ? discountType.value : 'regular');
-        selectedDistanceText.textContent = clampedDistance.toFixed(1);
-        routeMaxDistance.textContent = maxDistance.toFixed(1);
+        selectedDistanceText.textContent = clampedDistance.toFixed(2);
+        routeMaxDistance.textContent = maxDistance.toFixed(2);
         fareDisplay.textContent = fare.toFixed(2);
         selectedFareDisplay.textContent = `₱${fare.toFixed(2)}`;
         return clampedDistance;
@@ -673,7 +688,7 @@
     function updateDropoff(distanceKm, lat, lon, label) {
         const clamped = updateFare(distanceKm);
         if (dropoffDistanceInput) {
-            dropoffDistanceInput.value = clamped.toFixed(1);
+            dropoffDistanceInput.value = clamped.toFixed(2);
         }
         if (dropoffLatInput) {
             dropoffLatInput.value = lat !== null ? lat.toFixed(6) : '';
@@ -682,7 +697,7 @@
             dropoffLonInput.value = lon !== null ? lon.toFixed(6) : '';
         }
         if (selectedDropoffLabel) {
-            selectedDropoffLabel.textContent = label || `${clamped.toFixed(1)} km from origin`;
+            selectedDropoffLabel.textContent = label || `${clamped.toFixed(2)} km from origin`;
         }
     }
 
@@ -694,6 +709,11 @@
         if (routeMapContainer) {
             routeMapContainer.style.backgroundColor = '#f8fafc';
         }
+    }
+
+    function isPointInCebu(lat, lng) {
+        return lat >= cebuBounds.south && lat <= cebuBounds.north && 
+               lng >= cebuBounds.west && lng <= cebuBounds.east;
     }
 
     function initRouteMap() {
@@ -712,14 +732,20 @@
 
         routeMapContainer.innerHTML = '';
 
+        // Create map with Cebu bounds restriction
         const map = L.map(routeMapContainer, {
             zoomControl: true,
-            attributionControl: false
+            attributionControl: false,
+            maxBounds: L.latLngBounds(
+                L.latLng(cebuBounds.south, cebuBounds.west),
+                L.latLng(cebuBounds.north, cebuBounds.east)
+            ),
+            maxBoundsViscosity: 1.0 // Prevents panning outside bounds
         }).setView(originLatLng, 10);
 
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             maxZoom: 19,
-            attribution: '&copy; OpenStreetMap contributors'
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> contributors | Cebu, Philippines'
         }).addTo(map);
 
         const routeLine = L.polyline(routeInfo.geometry, {
@@ -728,25 +754,47 @@
             opacity: 0.88
         }).addTo(map);
 
-        L.marker(originLatLng, { title: 'Origin' }).addTo(map).bindPopup('Origin');
-        L.marker(destinationLatLng, { title: 'Destination' }).addTo(map).bindPopup('Destination');
+        // Custom icon for origin
+        const originIcon = L.divIcon({
+            className: 'custom-div-icon',
+            html: '<div style="background-color: #10b981; width: 12px; height: 12px; border-radius: 50%; border: 2px solid white; box-shadow: 0 0 4px rgba(0,0,0,0.3);"></div>',
+            iconSize: [16, 16],
+            popupAnchor: [0, -8]
+        });
+        
+        // Custom icon for destination
+        const destIcon = L.divIcon({
+            className: 'custom-div-icon',
+            html: '<div style="background-color: #ef4444; width: 12px; height: 12px; border-radius: 50%; border: 2px solid white; box-shadow: 0 0 4px rgba(0,0,0,0.3);"></div>',
+            iconSize: [16, 16],
+            popupAnchor: [0, -8]
+        });
+
+        L.marker(originLatLng, { icon: originIcon, title: 'Origin' }).addTo(map).bindPopup('<strong>Origin</strong><br>' + routeInfo.origin);
+        L.marker(destinationLatLng, { icon: destIcon, title: 'Destination' }).addTo(map).bindPopup('<strong>Destination</strong><br>' + routeInfo.destination);
 
         const dropoffMarker = L.circleMarker(originLatLng, {
-            radius: 9,
+            radius: 10,
             fillColor: '#f59e0b',
             color: '#ffffff',
             weight: 3,
             fillOpacity: 1
         }).addTo(map);
+        
+        dropoffMarker.bindPopup('Selected drop-off point');
 
-        map.fitBounds(routeLine.getBounds(), { padding: [30, 30] });
+        // Fit bounds to route with padding
+        try {
+            map.fitBounds(routeLine.getBounds(), { padding: [30, 30] });
+        } catch(e) {
+            // Fallback: center on origin
+            map.setView(originLatLng, 10);
+        }
 
         function closestPointOnRoute(latlng) {
-            // Snap to the actual road polyline instead of a straight segment
-            let minfDist = Infinity;
+            let minDist = Infinity;
             let closestLatLng = latlng;
             
-            // Iterate through the geometry to find the nearest point on the road path
             const points = routeInfo.geometry;
             for (let i = 0; i < points.length - 1; i++) {
                 const p1 = L.latLng(points[i]);
@@ -758,8 +806,8 @@
                 );
                 const snappedLatLng = map.layerPointToLatLng(snapped);
                 const dist = latlng.distanceTo(snappedLatLng);
-                if (dist < minfDist) {
-                    minfDist = dist;
+                if (dist < minDist) {
+                    minDist = dist;
                     closestLatLng = snappedLatLng;
                 }
             }
@@ -767,38 +815,78 @@
         }
 
         function getRouteKilometers(snappedLatLng) {
-            // Calculate distance along the curved road path
             const points = routeInfo.geometry;
             let totalDist = 0;
+            let found = false;
+            
             for (let i = 0; i < points.length - 1; i++) {
                 const p1 = L.latLng(points[i]);
                 const p2 = L.latLng(points[i+1]);
                 
-                // Check if snapped point lies on this segment
                 const segment = [map.latLngToLayerPoint(p1), map.latLngToLayerPoint(p2)];
                 const snappedPoint = map.latLngToLayerPoint(snappedLatLng);
                 
-                if (L.LineUtil.pointToSegmentDistance(snappedPoint, segment[0], segment[1]) < 1) {
+                // Check if snapped point lies on this segment (with tolerance)
+                const pointToSegmentDist = L.LineUtil.pointToSegmentDistance(snappedPoint, segment[0], segment[1]);
+                
+                if (pointToSegmentDist < 5 && !found) {
                     totalDist += p1.distanceTo(snappedLatLng);
-                    break;
-                } else {
+                    found = true;
+                } else if (!found) {
                     totalDist += p1.distanceTo(p2);
                 }
             }
+            
+            // If point not found on route, return max distance
+            if (!found && points.length > 1) {
+                totalDist = 0;
+                for (let i = 0; i < points.length - 1; i++) {
+                    totalDist += L.latLng(points[i]).distanceTo(L.latLng(points[i+1]));
+                }
+            }
+            
             return Math.min(routeInfo.route_distance, totalDist / 1000);
         }
 
         function selectRoutePosition(latlng) {
+            // Check if click is within Cebu bounds
+            if (!isPointInCebu(latlng.lat, latlng.lng)) {
+                const statusDiv = document.getElementById('search-status');
+                if (statusDiv) {
+                    statusDiv.textContent = '📍 Service area is limited to Cebu, Philippines only.';
+                    statusDiv.style.display = 'block';
+                    statusDiv.style.backgroundColor = '#fee2e2';
+                    statusDiv.style.color = '#991b1b';
+                    setTimeout(() => {
+                        statusDiv.style.display = 'none';
+                    }, 4000);
+                }
+                return;
+            }
+            
             const snappedLatLng = closestPointOnRoute(latlng);
             dropoffMarker.setLatLng(snappedLatLng);
             const routeKm = getRouteKilometers(snappedLatLng);
-            updateDropoff(routeKm, snappedLatLng.lat, snappedLatLng.lng, `${routeKm.toFixed(1)} km from origin`);
+            const distanceFromOrigin = routeKm;
+            
+            // Show distance with fare preview
+            const fare = calculateFare(distanceFromOrigin, discountType ? discountType.value : 'regular');
+            dropoffMarker.setPopupContent(`
+                <strong>Drop-off Point</strong><br>
+                Distance: ${distanceFromOrigin.toFixed(2)} km from origin<br>
+                Fare: ₱${fare.toFixed(2)}
+            `);
+            dropoffMarker.openPopup();
+            
+            updateDropoff(distanceFromOrigin, snappedLatLng.lat, snappedLatLng.lng, 
+                `${distanceFromOrigin.toFixed(2)} km from origin (₱${fare.toFixed(2)})`);
         }
 
         map.on('click', function(e) {
             selectRoutePosition(e.latlng);
         });
 
+        // Initialize with origin
         selectRoutePosition(originLatLng);
     }
 
@@ -896,7 +984,7 @@
         }
 
         const distanceValue = Number(dropoffDistanceInput ? dropoffDistanceInput.value : 0);
-        const maxRouteDistance = Number(routeInfo.route_distance || 20);
+        const maxRouteDistance = Number(routeInfo.route_distance || 200);
         if (distanceValue <= 0 || distanceValue > maxRouteDistance) {
             e.preventDefault();
             alert('Please select a valid stop within the route distance.');
@@ -923,7 +1011,7 @@
         }
     }
 
-    function isLocationWithinRouteBounds(searchedLat, searchedLng, originLat, originLng, destLat, destLng, toleranceKm = 30) {
+    function isLocationWithinRouteBounds(searchedLat, searchedLng, originLat, originLng, destLat, destLng, toleranceKm = 50) {
         const toRad = (deg) => deg * Math.PI / 180;
         const haversine = (lat1, lon1, lat2, lon2) => {
             const R = 6371;
@@ -947,20 +1035,21 @@
 
         const searchStatusDiv = document.getElementById('search-status');
         if (searchStatusDiv) {
-            searchStatusDiv.textContent = 'Searching...';
+            searchStatusDiv.textContent = 'Searching in Cebu...';
             searchStatusDiv.style.display = 'block';
             searchStatusDiv.style.backgroundColor = '#e0f2fe';
             searchStatusDiv.style.color = '#0c4a6e';
         }
 
         const headers = { 'User-Agent': 'BusGo-App/1.0' };
-        const nominatimUrl = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchText)}&limit=1`;
+        // Restrict search to Cebu, Philippines
+        const nominatimUrl = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchText + ', Cebu, Philippines')}&limit=1&countrycodes=PH&bounded=1&viewbox=${cebuBounds.west},${cebuBounds.south},${cebuBounds.east},${cebuBounds.north}`;
 
         fetch(nominatimUrl, { headers })
             .then(res => res.json())
             .then(data => {
                 if (!data || data.length === 0) {
-                    showSearchStatus('Location not found. Please try a different search.', false);
+                    showSearchStatus('Location not found in Cebu. Please search for a location within Cebu province.', false);
                     return;
                 }
 
@@ -968,24 +1057,24 @@
                 const searchedLat = parseFloat(result.lat);
                 const searchedLng = parseFloat(result.lon);
 
-                if (isLocationWithinRouteBounds(searchedLat, searchedLng, routeInfo.origin_lat, routeInfo.origin_lon, routeInfo.destination_lat, routeInfo.destination_lon)) {
+                if (!isPointInCebu(searchedLat, searchedLng)) {
+                    showSearchStatus('Location is outside Cebu province. Please select a location within Cebu, Philippines.', false);
+                    return;
+                }
+
+                if (isLocationWithinRouteBounds(searchedLat, searchedLng, routeInfo.origin_lat, routeInfo.origin_lon, routeInfo.destination_lat, routeInfo.destination_lon, 30)) {
                     const searchedLatLng = L.latLng(searchedLat, searchedLng);
                     selectRoutePosition(searchedLatLng);
-                    showSearchStatus(`📍 "${result.name}" pinned to route!`, true);
+                    showSearchStatus(`📍 "${result.display_name.split(',')[0]}" pinned to route!`, true);
                     document.getElementById('location-search-input').value = '';
                 } else {
-                    showSearchStatus('Location is outside the bus route. Please select within the route.', false);
+                    showSearchStatus('Location is outside the bus route. Please select a point along the route.', false);
                 }
             })
             .catch(error => {
                 console.error('Search error:', error);
                 showSearchStatus('Error searching location. Please try again.', false);
             });
-    }
-
-    // Only allow PH search results
-    function isLocationInPhilippines(result) {
-        return result.display_name && !/philippines/i.test(result.display_name);
     }
 
     document.addEventListener('DOMContentLoaded', function() {

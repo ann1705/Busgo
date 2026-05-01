@@ -359,30 +359,65 @@ def get_route_geo(origin, destination):
 
     origin_geo = geocode_place(origin)
     destination_geo = geocode_place(destination)
+    
     if origin_geo and destination_geo:
-        distance_km_straight = round(haversine_distance(
-            origin_geo["lat"], origin_geo["lon"],
-            destination_geo["lat"], destination_geo["lon"]
-        ), 2)
-        
-        # Default estimate multiplier
-        route_distance = max(5.0, round(distance_km_straight * 1.2, 1))
+        # Default values in case OSRM fails
+        route_distance = 20.0
         route_geometry = [[origin_geo["lat"], origin_geo["lon"]], [destination_geo["lat"], destination_geo["lon"]]]
         
-        # Fetch actual road distance from OSRM to follow highways and main roads
+        # Fetch actual road distance and geometry from OSRM
         try:
-            # overview=full & geometries=geojson to get the actual road-following path
+            # OSRM expects coordinates as lon,lat
             osrm_url = f"https://router.project-osrm.org/route/v1/driving/{origin_geo['lon']},{origin_geo['lat']};{destination_geo['lon']},{destination_geo['lat']}?overview=full&geometries=geojson"
-            res = requests.get(osrm_url, headers={"User-Agent": "BusGo-App/1.0"}, timeout=5)
+            
+            res = requests.get(osrm_url, headers={"User-Agent": "BusGo-App/1.0"}, timeout=10)
+            
             if res.status_code == 200:
                 data = res.json()
-                if data.get("routes"):
+                if data.get("routes") and len(data["routes"]) > 0:
                     route = data["routes"][0]
-                    route_distance = round(route["distance"] / 1000, 1)
-                    # OSRM returns [lng, lat], Leaflet wants [lat, lng]
-                    route_geometry = [[coord[1], coord[0]] for coord in route["geometry"]["coordinates"]]
-        except Exception:
-            pass
+                    route_distance = round(route["distance"] / 1000, 1)  # Convert meters to km
+                    
+                    # OSRM returns [lng, lat], convert to [lat, lng] for Leaflet
+                    if route.get("geometry") and route["geometry"].get("coordinates"):
+                        route_geometry = [[coord[1], coord[0]] for coord in route["geometry"]["coordinates"]]
+                    else:
+                        # Fallback to straight line if no geometry
+                        route_geometry = [[origin_geo["lat"], origin_geo["lon"]], [destination_geo["lat"], destination_geo["lon"]]]
+                else:
+                    # No route found, use straight line
+                    distance_km_straight = round(haversine_distance(
+                        origin_geo["lat"], origin_geo["lon"],
+                        destination_geo["lat"], destination_geo["lon"]
+                    ), 2)
+                    route_distance = max(5.0, round(distance_km_straight * 1.2, 1))
+                    route_geometry = [[origin_geo["lat"], origin_geo["lon"]], [destination_geo["lat"], destination_geo["lon"]]]
+            else:
+                # OSRM request failed, use straight line approximation
+                distance_km_straight = round(haversine_distance(
+                    origin_geo["lat"], origin_geo["lon"],
+                    destination_geo["lat"], destination_geo["lon"]
+                ), 2)
+                route_distance = max(5.0, round(distance_km_straight * 1.2, 1))
+                route_geometry = [[origin_geo["lat"], origin_geo["lon"]], [destination_geo["lat"], destination_geo["lon"]]]
+                
+        except requests.exceptions.Timeout:
+            # Timeout fallback
+            distance_km_straight = round(haversine_distance(
+                origin_geo["lat"], origin_geo["lon"],
+                destination_geo["lat"], destination_geo["lon"]
+            ), 2)
+            route_distance = max(5.0, round(distance_km_straight * 1.2, 1))
+            route_geometry = [[origin_geo["lat"], origin_geo["lon"]], [destination_geo["lat"], destination_geo["lon"]]]
+        except Exception as e:
+            # Any other error fallback
+            print(f"OSRM Error: {e}")
+            distance_km_straight = round(haversine_distance(
+                origin_geo["lat"], origin_geo["lon"],
+                destination_geo["lat"], destination_geo["lon"]
+            ), 2)
+            route_distance = max(5.0, round(distance_km_straight * 1.2, 1))
+            route_geometry = [[origin_geo["lat"], origin_geo["lon"]], [destination_geo["lat"], destination_geo["lon"]]]
 
         route_geo_cache[key] = {
             "origin_lat": origin_geo["lat"],
@@ -390,7 +425,6 @@ def get_route_geo(origin, destination):
             "destination_lat": destination_geo["lat"],
             "destination_lon": destination_geo["lon"],
             "route_distance": route_distance,
-            "direct_distance": distance_km_straight,
             "geometry": route_geometry
         }
     else:
@@ -400,7 +434,6 @@ def get_route_geo(origin, destination):
             "destination_lat": None,
             "destination_lon": None,
             "route_distance": 20.0,
-            "direct_distance": None,
             "geometry": []
         }
 
@@ -417,16 +450,18 @@ def calculate_fare(distance, discount_type='regular'):
     if discount_type in ['student', 'senior', 'pwd']:
         fare_type = 'discount'
 
+    # Base fare for first 5 km
     if fare_type == 'discount':
-        base = 14.40
+        base = 14.40  # 20% discount from 18.00
     else:
-        base = 18.00
+        base = 18.00  # Regular fare for first 5 km
 
     if distance <= 5:
         return round(base, 2), fare_type
 
+    # Additional 2.97 pesos per succeeding km
     extra_km = max(0.0, distance - 5.0)
-    total = base + extra_km * 2.97
+    total = base + (extra_km * 2.97)
     return round(total, 2), fare_type
 
 
@@ -559,116 +594,142 @@ def booking(trip_id):
         flash("This trip is unavailable.")
         return redirect(url_for("schedules"))
 
-    # Fallback: Fetch geometry if missing in database
     import json
-    geometry = json.loads(trip["geometry_json"]) if trip["geometry_json"] else []
+    
+    # Check if geometry exists in database
+    geometry = []
+    if trip["geometry_json"]:
+        try:
+            geometry = json.loads(trip["geometry_json"])
+        except:
+            geometry = []
+    
+    # If no geometry in DB, fetch from OSRM
     if not geometry:
         geo = get_route_geo(trip["origin"], trip["destination"])
         geometry = geo['geometry']
+        route_distance = geo['route_distance']
+        
+        # Save to database for future use
         if geometry:
-            conn.execute("UPDATE routes SET distance = ?, geometry_json = ? WHERE id = (SELECT route_id FROM trips WHERE id = ?)", 
-                         (geo['route_distance'], json.dumps(geometry), trip_id))
+            conn.execute("""
+                UPDATE routes 
+                SET distance = ?, geometry_json = ? 
+                WHERE id = (SELECT route_id FROM trips WHERE id = ?)
+            """, (route_distance, json.dumps(geometry), trip_id))
             conn.commit()
 
-    # Prepare route_info for template
+    # Prepare route_info for template with actual road geometry
     route_info = {
         "origin": trip["origin"],
         "destination": trip["destination"],
-        "route_distance": trip["route_distance"],
-        "geometry": geometry,
-        # Add coordinates so the map knows where to start/end
-        "origin_lat": geometry[0][0] if geometry else None,
-        "origin_lon": geometry[0][1] if geometry else None,
-        "destination_lat": geometry[-1][0] if geometry else None,
-        "destination_lon": geometry[-1][1] if geometry else None
+        "route_distance": trip["route_distance"] if trip["route_distance"] > 0 else 20.0,
+        "geometry": geometry if geometry else [],
+        "origin_lat": geometry[0][0] if geometry and len(geometry) > 0 else None,
+        "origin_lon": geometry[0][1] if geometry and len(geometry) > 0 else None,
+        "destination_lat": geometry[-1][0] if geometry and len(geometry) > 0 else None,
+        "destination_lon": geometry[-1][1] if geometry and len(geometry) > 0 else None
     }
-
+    
+    # If still no coordinates, geocode them
+    if not route_info["origin_lat"]:
+        origin_geo = geocode_place(trip["origin"])
+        dest_geo = geocode_place(trip["destination"])
+        if origin_geo and dest_geo:
+            route_info["origin_lat"] = origin_geo["lat"]
+            route_info["origin_lon"] = origin_geo["lon"]
+            route_info["destination_lat"] = dest_geo["lat"]
+            route_info["destination_lon"] = dest_geo["lon"]
+    
+    # Rest of your existing booking code remains the same...
+    # (keep all the existing POST handling and other logic unchanged)
     if request.method == "POST":
-        passenger_name = request.form["passenger_name"]
-        contact = request.form["contact"]
-        seat_number = request.form["seat_number"]
-        travel_date = request.form.get("travel_date")
-        distance = request.form.get("distance", "0").strip()
-        discount_type = request.form.get("discount_type", "regular")
-        id_photo_path = None
+            passenger_name = request.form["passenger_name"]
+            contact = request.form["contact"]
+            seat_number = request.form["seat_number"]
+            travel_date = request.form.get("travel_date")
+            distance = request.form.get("distance", "0").strip()
+            discount_type = request.form.get("discount_type", "regular")
+            id_photo_path = None
 
-        try:
-            distance_value = float(distance)
-        except ValueError:
-            distance_value = 0.0
+            try:
+                distance_value = float(distance)
+            except ValueError:
+                distance_value = 0.0
 
-        if not contact.isdigit() or len(contact) != 11:
-            conn.close()
-            flash("Invalid contact number.")
-            return redirect(url_for("booking", trip_id=trip_id))
-
-        if seat_number in get_blocked_seats(conn, trip_id):
-            conn.close()
-            flash(f"Seat #{seat_number} is blocked by the admin. Please choose another seat.")
-            return redirect(url_for("booking", trip_id=trip_id))
-
-        # Check if seat is already taken for that specific day.
-        existing = conn.execute("""
-            SELECT id, status FROM bookings
-            WHERE trip_id = ? AND seat_number = ? AND travel_date = ? AND status != 'cancelled'
-        """, (trip_id, seat_number, travel_date)).fetchone()
-
-        if existing:
-            conn.close()
-            flash(f"Seat #{seat_number} is already booked for {travel_date}. Please choose another seat.")
-            return redirect(url_for("booking", trip_id=trip_id))
-
-        if distance_value <= 0 or distance_value > route_info["route_distance"]:
-            conn.close()
-            flash("Selected destination exceeds the available route for this trip.")
-            return redirect(url_for("booking", trip_id=trip_id))
-
-        # Verification check for Discounted IDs (ID Scan required)
-        if discount_type != 'regular':
-            if request.form.get('id_scanned') != '1':
-                flash("Discount ID must be verified via scanner.")
+            if not contact.isdigit() or len(contact) != 11:
+                conn.close()
+                flash("Invalid contact number.")
                 return redirect(url_for("booking", trip_id=trip_id))
 
-        price, fare_type = calculate_fare(distance_value, discount_type)
+            if seat_number in get_blocked_seats(conn, trip_id):
+                conn.close()
+                flash(f"Seat #{seat_number} is blocked by the admin. Please choose another seat.")
+                return redirect(url_for("booking", trip_id=trip_id))
 
-        created_at = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            # Check if seat is already taken for that specific day.
+            existing = conn.execute("""
+                SELECT id, status FROM bookings
+                WHERE trip_id = ? AND seat_number = ? AND travel_date = ? AND status != 'cancelled'
+            """, (trip_id, seat_number, travel_date)).fetchone()
 
-        cur = conn.execute(
-            "INSERT INTO passengers (fullname, contact) VALUES (?, ?)",
-            (passenger_name, contact)
-        )
-        passenger_id = cur.lastrowid
+            if existing:
+                conn.close()
+                flash(f"Seat #{seat_number} is already booked for {travel_date}. Please choose another seat.")
+                return redirect(url_for("booking", trip_id=trip_id))
 
-        cur = conn.execute("""
-            INSERT INTO bookings (
-                user_id, trip_id, passenger_id, seat_number,
-                status, booking_type, payment_method, price, distance,
-                fare_type, discount_type, travel_date, id_photo_path, created_at
+            if distance_value <= 0 or distance_value > route_info["route_distance"]:
+                conn.close()
+                flash("Selected destination exceeds the available route for this trip.")
+                return redirect(url_for("booking", trip_id=trip_id))
+
+            # Verification check for Discounted IDs (ID Scan required)
+            if discount_type != 'regular':
+                if request.form.get('id_scanned') != '1':
+                    flash("Discount ID must be verified via scanner.")
+                    return redirect(url_for("booking", trip_id=trip_id))
+
+            price, fare_type = calculate_fare(distance_value, discount_type)
+
+            created_at = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+            cur = conn.execute(
+                "INSERT INTO passengers (fullname, contact) VALUES (?, ?)",
+                (passenger_name, contact)
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """, (
-            session["user_id"],
-            trip_id,
-            passenger_id,
-            seat_number,
-            "waiting for payment",
-            "Online",
-            "Online",
-            price,
-            distance_value,
-            fare_type,
-            discount_type,
-            travel_date,
-            id_photo_path,
-            created_at
-        ))
+            passenger_id = cur.lastrowid
 
-        conn.commit()
-        booking_id = cur.lastrowid
-        conn.close()
+            cur = conn.execute("""
+                INSERT INTO bookings (
+                    user_id, trip_id, passenger_id, seat_number,
+                    status, booking_type, payment_method, price, distance,
+                    fare_type, discount_type, travel_date, id_photo_path, created_at
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (
+                session["user_id"],
+                trip_id,
+                passenger_id,
+                seat_number,
+                "waiting for payment",
+                "Online",
+                "Online",
+                price,
+                distance_value,
+                fare_type,
+                discount_type,
+                travel_date,
+                id_photo_path,
+                created_at
+            ))
 
-        return redirect(url_for("view_booking", booking_id=booking_id))
+            conn.commit()
+            booking_id = cur.lastrowid
+            conn.close()
 
+            return redirect(url_for("view_booking", booking_id=booking_id))
+
+    
     today = datetime.date.today().isoformat()
     seat_statuses = get_seat_statuses(conn, trip_id, today)
     booked_seat_numbers = list(seat_statuses.keys())
@@ -737,7 +798,8 @@ def user_dashboard():
         })
     conn.close()
 
-    return render_template("user_dashboard.html", bookings=bookings)
+    # Pass today's date to template
+    return render_template("user_dashboard.html", bookings=bookings, now=datetime.datetime.now())
 
 @app.route("/api/booked-seats/<int:trip_id>")
 def booked_seats(trip_id):
@@ -1714,11 +1776,16 @@ def admin_bookings():
 
     today_str = datetime.datetime.now().strftime('%B %d, %Y')
     today_iso = datetime.date.today().isoformat()
+    
+    now = datetime.datetime.now()
 
-    today_bookings = []
-    scheduled_bookings_by_date = {}
-    history_bookings_by_date = {}
+    active_bookings = []  # Bookings with travel_date = today and status not in completed/cancelled
+    scheduled_bookings_by_date = {}  # Bookings with travel_date > today and status = paid
+    history_bookings_by_date = {}  # Bookings with status = arrived, cancelled, or travel_date < today
     walkin_bookings_by_date = {}
+
+    print(f"Total bookings found: {len(rows)}")  # Debug line
+    print(f"Today's date (ISO): {today_iso}")  # Debug line
 
     for row in rows:
         created_at_raw = row["created_at"] or ""
@@ -1745,24 +1812,49 @@ def admin_bookings():
         }
 
         travel_date_raw = row["travel_date"] or ""
+        
+        print(f"Booking #{row['id']}: travel_date={travel_date_raw}, status={row['status']}, type={row['booking_type']}")  # Debug line
+        
+        # Walk-in bookings
         if booking_item["booking_type"] == "Walk-in":
             walkin_bookings_by_date.setdefault(created_date, []).append(booking_item)
-        elif travel_date_raw > today_iso and booking_item["status"] != "cancelled":
+        
+        # Active Bookings (today's trips that are paid, waiting, or processing)
+        elif travel_date_raw == today_iso and row["status"] not in ["arrived", "cancelled"]:
+            active_bookings.append(booking_item)
+            print(f"Added to Active Bookings: #{row['id']}")  # Debug line
+        
+        # Scheduled Bookings (future travel dates with paid status)
+        elif travel_date_raw > today_iso and row["status"] == "paid":
             scheduled_bookings_by_date.setdefault(travel_date_raw, []).append(booking_item)
-        elif booking_item["status"] in ["paid", "cancelled"]:
+            print(f"Added to Scheduled Bookings: #{row['id']} for date {travel_date_raw}")  # Debug line
+        
+        # History Bookings (past travel dates OR completed/cancelled status)
+        else:
             history_bookings_by_date.setdefault(created_date, []).append(booking_item)
-        elif created_date == today_str:
-            today_bookings.append(booking_item)
+            print(f"Added to History Bookings: #{row['id']}")  # Debug line
+
+    # Sort scheduled bookings by date
+    scheduled_bookings_by_date = dict(sorted(scheduled_bookings_by_date.items()))
+    
+    # Sort history by date (newest first)
+    history_bookings_by_date = dict(sorted(history_bookings_by_date.items(), reverse=True))
+
+    print(f"Active count: {len(active_bookings)}")  # Debug line
+    print(f"Scheduled count: {sum(len(v) for v in scheduled_bookings_by_date.values())}")  # Debug line
+    print(f"History count: {sum(len(v) for v in history_bookings_by_date.values())}")  # Debug line
+    print(f"Walk-in count: {sum(len(v) for v in walkin_bookings_by_date.values())}")  # Debug line
 
     conn.close()
 
     return render_template(
         "admin_bookings.html",
-        today_bookings=today_bookings,
+        active_bookings=active_bookings,
         scheduled_bookings_by_date=scheduled_bookings_by_date,
         history_bookings_by_date=history_bookings_by_date,
         walkin_bookings_by_date=walkin_bookings_by_date,
-        today_str=today_str
+        today_str=today_str,
+        now=now
     )
 
 @app.route("/admin/revenue")
@@ -1784,63 +1876,117 @@ def admin_revenue():
     
     filtered_where_clause_str = " AND ".join(filtered_where_clauses)
 
+    # Get all paid bookings with their details
     filtered_rows = conn.execute(f"""
         SELECT
             b.id,
             b.created_at,
             COALESCE(b.price, 0) AS fare,
-            bs.bus_no
+            bs.bus_no,
+            b.status,
+            b.travel_date,
+            u.fullname AS user_name
         FROM bookings b
         JOIN trips t ON t.id = b.trip_id
         JOIN buses bs ON bs.id = t.bus_id
+        JOIN users u ON u.id = b.user_id
         WHERE {filtered_where_clause_str}
         ORDER BY date(b.created_at) DESC, b.created_at DESC
     """, filtered_query_params).fetchall()
 
     revenue_by_date = {}
     total_filtered_revenue = 0
+    total_transactions = 0
 
     for row in filtered_rows:
         created_at_raw = row["created_at"] or ""
         date_key = "Unknown Date"
         time_label = created_at_raw
-        iso_date = ""
+        fare = float(row["fare"] or 0)
+        
+        # Skip zero or negative fares (shouldn't happen but safe check)
+        if fare <= 0:
+            continue
 
         try:
             parsed = datetime.datetime.strptime(created_at_raw, "%Y-%m-%d %H:%M:%S")
             date_key = parsed.strftime("%B %d, %Y")
             time_label = parsed.strftime("%I:%M %p")
-            iso_date = parsed.date().isoformat()
         except Exception:
             pass
 
-        fare = float(row["fare"] or 0)
         total_filtered_revenue += fare
+        total_transactions += 1
 
-        group = revenue_by_date.setdefault(date_key, {"items": [], "total": 0})
-        group["items"].append({
+        # Initialize the date group if it doesn't exist
+        if date_key not in revenue_by_date:
+            revenue_by_date[date_key] = {
+                "transactions": [],
+                "total_amount": 0,
+                "transaction_count": 0
+            }
+        
+        revenue_by_date[date_key]["transactions"].append({
             "ticket_id": row["id"],
-            "bus_no": row["bus_no"],
-            "date_time": f"{date_key} {time_label}" if time_label else date_key,
-            "fare": fare
+            "bus_number": row["bus_no"],
+            "time": time_label,
+            "price": fare,
+            "user_name": row["user_name"],
+            "travel_date": row["travel_date"]
         })
-        group["total"] += fare
+        revenue_by_date[date_key]["total_amount"] += fare
+        revenue_by_date[date_key]["transaction_count"] += 1
 
-    # Query for today's actual revenue (unfiltered)
+    # Calculate today's revenue (unfiltered, all paid bookings today)
     today_iso = datetime.date.today().isoformat()
-    today_revenue_rows = conn.execute("""
-        SELECT COALESCE(SUM(b.price), 0)
+    today_stats = conn.execute("""
+        SELECT 
+            COALESCE(SUM(b.price), 0) as total,
+            COUNT(b.id) as count
         FROM bookings b
         WHERE b.status = 'paid' AND date(b.created_at) = ?
-    """, (today_iso,)).fetchone()[0]
+    """, (today_iso,)).fetchone()
+    
+    today_revenue = today_stats["total"] if today_stats else 0
+    today_count = today_stats["count"] if today_stats else 0
+    today_date = datetime.datetime.now().strftime('%B %d, %Y')
+    
+    # Calculate overall statistics
+    overall_stats = conn.execute("""
+        SELECT 
+            COALESCE(SUM(price), 0) as total,
+            COUNT(id) as count,
+            AVG(price) as average
+        FROM bookings
+        WHERE status = 'paid'
+    """).fetchone()
+    
+    overall_total = overall_stats["total"] if overall_stats else 0
+    overall_count = overall_stats["count"] if overall_stats else 0
+    average_fare = overall_stats["average"] if overall_stats and overall_stats["average"] else 0
     
     conn.close()
+
+    # Debug output
+    print(f"=== Revenue Summary ===")
+    print(f"Filter applied: {filter_date if filter_date else 'None'}")
+    print(f"Total revenue: ₱{total_filtered_revenue:,.2f}")
+    print(f"Total transactions: {total_transactions}")
+    print(f"Today's revenue: ₱{today_revenue:,.2f} ({today_count} transactions)")
+    print(f"Overall revenue: ₱{overall_total:,.2f} ({overall_count} transactions)")
+    print(f"Average fare: ₱{average_fare:,.2f}")
 
     return render_template(
         "admin_revenue.html",
         revenue_by_date=revenue_by_date,
         total_revenue=total_filtered_revenue,
-        today_revenue=today_revenue_rows,
+        total_transactions=total_transactions,
+        today_revenue=today_revenue,
+        today_count=today_count,
+        today_date=today_date,
+        overall_total=overall_total,
+        overall_count=overall_count,
+        average_fare=average_fare,
         filter_date=filter_date
     )
 
@@ -2018,7 +2164,7 @@ def payment_success(booking_id):
 
     conn = get_db_connection()
 
-    # Update booking status to paid
+    # Update booking status to paid (not completed)
     conn.execute("""
         UPDATE bookings 
         SET status = 'paid', 
@@ -2081,7 +2227,7 @@ def ticket(booking_id):
         WHERE b.id = ?
     """, (booking_id,)).fetchone()
 
-    if not booking or booking["status"] not in ["paid", "dispatched", "completed"]:
+    if not booking or booking["status"] not in ["paid", "dispatched", "onboard", "arrived"]:
         conn.close()
         role = session.get("role")
         if role == "admin":
@@ -2100,6 +2246,16 @@ def ticket(booking_id):
         except Exception:
             formatted_created_at = created_at_raw
 
+    # Map status to display text and badge color
+    status_display = {
+        'paid': ('Confirmed - Ready for Boarding', 'status-paid'),
+        'dispatched': ('Dispatched - On Board', 'status-dispatched'),
+        'onboard': ('Onboard - Currently Traveling', 'status-onboard'),
+        'arrived': ('Arrived - Trip Completed', 'status-arrived')
+    }
+    
+    status_text, status_class = status_display.get(booking['status'], (booking['status'].capitalize(), ''))
+
     qr_data = (
         f"Ticket #{booking['id']}\n"
         f"Passenger: {booking['passenger_name']}\n"
@@ -2110,6 +2266,7 @@ def ticket(booking_id):
         f"Departure: {booking['departure']}\n"
         f"Arrival: {booking['arrival']}\n"
         f"Payment Method: {booking['payment_method']}\n"
+        f"Status: {status_text}\n"
     )
     qr_url = "https://api.qrserver.com/v1/create-qr-code/?size=280x280&data=" + urllib.parse.quote(qr_data)
 
@@ -2122,8 +2279,13 @@ def ticket(booking_id):
         back_url = url_for("user_dashboard")
 
     conn.close()
-    return render_template("booking_detail.html", booking=booking, booking_created_at=formatted_created_at, qr_url=qr_url, back_url=back_url)
-
+    return render_template("booking_detail.html", 
+                         booking=booking, 
+                         booking_created_at=formatted_created_at, 
+                         qr_url=qr_url, 
+                         back_url=back_url,
+                         status_text=status_text,
+                         status_class=status_class)
 
 @app.route("/user/cancel/<int:booking_id>")
 def user_cancel_booking(booking_id):
@@ -2228,13 +2390,19 @@ def scan_ticket():
                 return jsonify({"success": False, "message": f"Access Denied: Ticket expired. Scheduled travel was for {booking['travel_date']}."}), 400
 
         new_status = "dispatched"
-        msg = "Passenger Boarded Successfully! Status: Dispatched."
+        msg = "Passenger Boarded Successfully! Status: Dispatched (On Bus)"
+        
     elif current_status == "dispatched":
-        new_status = "completed"
-        msg = "Passenger Arrived at Destination. Status: Completed."
-    elif current_status == "completed":
+        new_status = "onboard"
+        msg = "Passenger is now ONBOARD and traveling to destination."
+        
+    elif current_status == "onboard":
+        new_status = "arrived"
+        msg = "Passenger has ARRIVED at destination. Trip completed."
+        
+    elif current_status == "arrived":
         conn.close()
-        return jsonify({"success": False, "message": "Error: This ticket has already been used and is completed."}), 400
+        return jsonify({"success": False, "message": "Error: This ticket has already been completed (Arrived)."}), 400
     elif current_status == "cancelled":
         conn.close()
         return jsonify({"success": False, "message": "Error: This ticket has been cancelled."}), 400
