@@ -214,6 +214,9 @@
             <a href="{{ url_for('admin_bookings') }}" class="{% if request.endpoint == 'admin_bookings' %}active{% endif %}">
                 <i class="fa-solid fa-ticket"></i> Bookings
             </a>
+            <a href="{{ url_for('admin_revenue') }}" class="{% if request.endpoint == 'admin_revenue' %}active{% endif %}">
+                <i class="fa-solid fa-sack-dollar"></i> Revenue
+            </a>
         </div>
         <main class="schedule-main">
             <div class="schedule-container glass-card bus-management-card" style="width: 100%; max-width: 100%; padding: 2.5rem;">
@@ -259,10 +262,6 @@
                             </div>
 
                             <div class="input-group">
-                                <input type="number" step="0.01" name="price" placeholder="Price" value="{{ edit_bus.price if edit_bus else '' }}" required>
-                            </div>
-
-                            <div class="input-group">
                                 <select name="status" required style="width: 100%; padding: 10px 15px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); border-radius: 10px; color: white; outline: none;">
                                     <option value="available" {% if edit_bus and edit_bus.status == 'available' %}selected{% endif %}>Available</option>
                                     <option value="under_maintenance" {% if edit_bus and edit_bus.status == 'under_maintenance' %}selected{% endif %}>Under Maintenance</option>
@@ -290,7 +289,6 @@
                             <th style="color: white;">Route</th>
                             <th style="color: white;">Departure</th>
                             <th style="color: white;">Arrival</th>
-                            <th style="color: white;">Price</th>
                             <th style="color: white;">Status</th>
                             <th style="color: white; border-radius: 0 12px 0 0;">Action</th>
                         </tr>
@@ -304,7 +302,6 @@
                             <td style="color: var(--dark-text);">{{ bus.route }}</td>
                             <td style="color: var(--dark-text);">{{ bus.departure }}</td>
                             <td style="color: var(--dark-text);">{{ bus.arrival }}</td>
-                            <td style="color: var(--dark-text); font-weight: 700;">₱{{ "%.2f"|format(bus.price) }}</td>
                             <td>
                                 <span style="padding: 4px 12px; border-radius: 20px; font-size: 0.85rem; font-weight: 600;
                                     {% if bus.status == 'available' %}
@@ -323,6 +320,7 @@
                             <td>
                                 <div class="admin-action-group">
                                     <a href="{{ url_for('admin_buses', edit_id=bus.id) }}" class="auth-btn action-btn" style="text-decoration: none; margin-right: 0.5rem; padding: 0.7rem 1rem;">Edit</a>
+                                    <button class="book-now-btn action-btn manage-seats-btn" data-trip-id="{{ bus.trip_id }}" data-bus-no="{{ bus.bus_no }}" style="text-decoration: none; margin-right: 0.5rem; padding: 0.7rem 1rem; background: var(--dark-text); border: none; color: white;">Seats</button>
                                     <a href="{{ url_for('toggle_bus_status', bus_id=bus.id) }}" class="book-now-btn action-btn" style="text-decoration: none; margin-right: 0.5rem; padding: 0.7rem 1rem;">{{ 'Set Available' if bus.status == 'under_maintenance' else 'Set Maintenance' }}</a>
                                     <button class="delete-bus-btn action-btn" data-bus-id="{{ bus.id }}" data-bus-number="{{ bus.bus_no }}" style="text-decoration: none; padding: 0.7rem 1rem; background: #ef233c; color: white; border: none; border-radius: 12px; cursor: pointer;">
                                         Delete
@@ -361,6 +359,187 @@
     </div>
 </div>
 
+<!-- MANAGE SEATS MODAL -->
+<div id="manageSeatsModal" class="modal" style="display: none;">
+    <div class="modal-content" style="max-width: 600px; color: var(--dark-text);">
+        <span class="close-modal" id="closeManageSeatsBtn">&times;</span>
+        <h2 id="manageSeatsTitle" style="color: var(--dark-text); margin-bottom: 1rem;">Manage Bus Seats</h2>
+        
+        <div class="booking-panel-blue" style="margin-bottom: 1.5rem; background: rgba(16, 42, 67, 0.05); padding: 1.5rem;">
+            <div class="booking-input-group">
+                <label style="color: var(--dark-text);"><i class="fa-solid fa-calendar-days" style="color: var(--accent); margin-right: 0.5rem;"></i>Select Date to Manage</label>
+                <input type="date" id="manageSeatsDate" value="{{ today_date }}" min="{{ today_date }}" required style="color: black; border: 1px solid rgba(16,42,67,0.2);">
+            </div>
+            <div style="display: flex; gap: 1rem; font-size: 0.8rem; margin-top: 0.5rem;">
+                <span><span style="display:inline-block; width:12px; height:12px; background:#fff; border:1px solid #ccc; border-radius:3px;"></span> Available</span>
+                <span><span style="display:inline-block; width:12px; height:12px; background:#666; border-radius:3px;"></span> Blocked (Admin)</span>
+                <span><span style="display:inline-block; width:12px; height:12px; background:#ef233c; border-radius:3px;"></span> Booked (Customer)</span>
+            </div>
+        </div>
+
+        <div class="bus-layout" id="adminSeatMap" style="margin: 0 auto; transform: scale(0.9); transform-origin: top center;">
+            <!-- Seat layout will be injected by JS -->
+        </div>
+
+        <div style="text-align: center; margin-top: 1.5rem;">
+            <button type="button" class="auth-btn" id="finishManageSeatsBtn">Close</button>
+        </div>
+    </div>
+</div>
+
+<script>
+let currentTripId = null;
+const manageSeatsModal = document.getElementById('manageSeatsModal');
+const manageSeatsDate = document.getElementById('manageSeatsDate');
+const adminSeatMap = document.getElementById('adminSeatMap');
+const closeManageSeatsBtn = document.getElementById('closeManageSeatsBtn');
+const finishManageSeatsBtn = document.getElementById('finishManageSeatsBtn');
+
+function closeManageSeatsModal() {
+    manageSeatsModal.style.display = 'none';
+    document.body.classList.remove('modal-scroll-lock');
+}
+
+closeManageSeatsBtn?.addEventListener('click', closeManageSeatsModal);
+finishManageSeatsBtn?.addEventListener('click', closeManageSeatsModal);
+
+window.addEventListener('click', (e) => {
+    if (e.target === manageSeatsModal) closeManageSeatsModal();
+});
+
+document.querySelectorAll('.manage-seats-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+        currentTripId = this.getAttribute('data-trip-id');
+        const busNo = this.getAttribute('data-bus-no');
+        document.getElementById('manageSeatsTitle').textContent = `Manage Seats - Bus ${busNo}`;
+        manageSeatsModal.style.display = 'flex';
+        manageSeatsModal.scrollTop = 0;
+        document.body.classList.add('modal-scroll-lock');
+        loadAdminSeatMap();
+    });
+});
+
+manageSeatsDate?.addEventListener('change', loadAdminSeatMap);
+
+function loadAdminSeatMap() {
+    if (!currentTripId) return;
+    
+    const date = manageSeatsDate.value;
+    adminSeatMap.innerHTML = '<div style="text-align:center; padding: 2rem; color: #102a43;"><i class="fa-solid fa-spinner fa-spin"></i> Loading...</div>';
+    
+    fetch(`/api/booked-seats/${currentTripId}?date=${date}`)
+        .then(res => res.json())
+        .then(data => {
+            renderAdminSeats(data);
+        });
+}
+
+function renderAdminSeats(seatData) {
+    const statusMap = {};
+    seatData.forEach(item => statusMap[String(item.seat)] = item.status);
+    adminSeatMap.innerHTML = '';
+
+    // Driver area
+    const driverArea = document.createElement('div');
+    driverArea.className = 'driver-area';
+    driverArea.innerHTML = '<i class="fa-solid fa-steering-wheel"></i> DRIVER';
+    adminSeatMap.appendChild(driverArea);
+
+    // Define seat rows as in booking.html
+    const rows = [
+        [[1, 2], [3, 4]], [[8, 7], [6, 5]], [[9, 10], [11, 12]], 
+        [[16, 15], [14, 13]], [[17, 18], [19, 20]], [[22, 21], [23, 24]], 
+        [[25, 26], [27, 28]], [[32, 31], [30, 29]], [[33, 34], [35, 36]], 
+        [[40, 39], [38, 37]], [[41, 42], [43, 44]], [[48, 47], [46, 45]]
+    ];
+
+    rows.forEach(row => {
+        const rowDiv = document.createElement('div');
+        rowDiv.className = 'seat-row';
+        
+        row.forEach((pair, index) => {
+            const pairDiv = document.createElement('div');
+            pairDiv.className = 'seat-pair';
+            pair.forEach(num => pairDiv.appendChild(createSeatElement(num, statusMap)));
+            rowDiv.appendChild(pairDiv);
+            
+            if (index === 0) {
+                const aisle = document.createElement('div');
+                aisle.className = 'aisle';
+                rowDiv.appendChild(aisle);
+            }
+        });
+        adminSeatMap.appendChild(rowDiv);
+    });
+
+    // Back row
+    const backRow = document.createElement('div');
+    backRow.className = 'seat-row back-row';
+    [49, 50, 51, 52].forEach(num => backRow.appendChild(createSeatElement(num, statusMap)));
+    adminSeatMap.appendChild(backRow);
+}
+
+function createSeatElement(num, statusMap) {
+    const seat = document.createElement('div');
+    const status = statusMap[String(num)];
+
+    // 1. Set the HTML content FIRST so the child elements exist
+    seat.innerHTML = `<span class="seat-number" style="pointer-events: none;">${num}</span>`;
+    seat.setAttribute('data-seat', num);
+    
+    seat.className = 'seat-box';
+    if (status === 'blocked') {
+        seat.classList.add('blocked-admin'); // Custom admin state
+        seat.title = "Blocked by Admin";
+    } else if (status) {
+        seat.classList.add('booked', 'booked-customer');
+        seat.setAttribute('data-status', status);
+        seat.title = `Booked by Customer (${status})`;
+    }
+    
+    seat.onclick = () => toggleSeatAvailability(num, seat);
+    
+    return seat;
+}
+
+function toggleSeatAvailability(num, element) {
+    if (element.classList.contains('booked-customer')) {
+        alert(`Seat #${num} is already booked by a customer and cannot be changed here.`);
+        return;
+    }
+
+    const date = manageSeatsDate.value;
+    
+    fetch('/admin/api/toggle-seat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            trip_id: currentTripId,
+            date: date,
+            seat_number: num
+        })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            if (data.new_status === 'blocked') {
+                element.classList.add('blocked-admin');
+                element.classList.remove('booked', 'booked-customer');
+                element.removeAttribute('data-status');
+                element.title = "Blocked by Admin";
+            } else {
+                element.classList.remove('blocked-admin');
+                element.classList.remove('booked', 'booked-customer');
+                element.removeAttribute('data-status');
+                element.title = "";
+            }
+        } else {
+            alert(data.message || 'Error updating seat status');
+        }
+    });
+}
+</script>
+
 <!-- Loading Overlay -->
 <div id="loadingOverlay" class="loading-overlay">
     <div class="loading-spinner">
@@ -371,7 +550,6 @@
 
 <script>
 // Delete Modal Functionality
-const deleteModal = document.getElementById('deleteModal');
 const loadingOverlay = document.getElementById('loadingOverlay');
 let currentBusId = null;
 
@@ -503,8 +681,6 @@ document.getElementById('busSearch').addEventListener('keyup', function() {
 });
 
 // Add Bus Modal functionality
-const addBusBtn = document.getElementById('addBusBtn');
-const addBusModal = document.getElementById('addBusModal');
 const closeModalBtn = document.querySelector('.close-modal');
 
 if (addBusBtn) {

@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+
+{% block title %}BusGo | Conductor Dashboard{% endblock %}
+
+{% block content %}
+<section class="schedule-main" style="flex-direction: column; align-items: center;">
+    <div class="page-back-nav" style="width: 100%; max-width: 1800px; margin: 0 auto 1.5rem auto;">
+        <a href="{{ url_for('home') }}" class="back-btn" style="background: rgba(16, 42, 67, 0.1); color: var(--dark-text);">
+            <i class="fa-solid fa-arrow-left"></i> Back to Home
+        </a>
+    </div>
+
+    <div class="schedule-container glass-booking-card dashboard-page" style="max-width: 800px; min-width: auto; width: 95%;">
+        <div class="dashboard-header" style="text-align: center; margin-bottom: 2rem;">
+            <h1>Conductor Dashboard</h1>
+            <p>Update ticket status by scanning the passenger's QR code.</p>
+        </div>
+
+        <!-- Dashboard Navigation Tabs -->
+        <div class="staff-tabs" style="justify-content: center; margin-bottom: 2.5rem;">
+            <button type="button" class="tab-btn active" data-tab="scanner-section">
+                <i class="fa-solid fa-qrcode" style="margin-right: 0.5rem;"></i> Scan Ticket
+            </button>
+            <button type="button" class="tab-btn" data-tab="history-section">
+                <i class="fa-solid fa-clock-rotate-left" style="margin-right: 0.5rem;"></i> Recent Scans
+            </button>
+        </div>
+
+        <div id="scanner-section" class="tab-panel active">
+            <div class="booking-panel-blue" style="text-align: center; padding: 2.5rem; background: rgba(255, 255, 255, 0.12);">
+                <!-- Scanner Area -->
+                <div id="reader" style="width: 100%; max-width: 450px; margin: 0 auto 2rem; border: 2px solid rgba(132, 180, 255, 0.3); border-radius: 20px; overflow: hidden; box-shadow: var(--shadow-medium);"></div>
+                
+                <!-- Feedback Area -->
+                <div id="scan-feedback" style="margin-top: 1rem; padding: 2rem; border-radius: 18px; display: none; backdrop-filter: blur(10px); transition: all 0.3s ease;">
+                    <i id="feedback-icon" class="fa-solid" style="font-size: 3.5rem; margin-bottom: 1.2rem;"></i>
+                    <h3 id="feedback-title" style="margin-bottom: 0.8rem; font-weight: 800;"></h3>
+                    <p id="feedback-message" style="font-size: 1.1rem; font-weight: 600;"></p>
+                    
+                    <button type="button" id="reset-scanner-btn" class="auth-btn" style="margin-top: 2rem; max-width: 250px;">
+                        Scan Next Ticket
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Help Section -->
+            <div style="margin-top: 2rem; padding: 1.5rem; background: rgba(255,255,255,0.05); border-radius: 16px; border: 1px solid rgba(255,255,255,0.1);">
+                <h4 style="color: var(--accent); margin-bottom: 0.8rem; display: flex; align-items: center; gap: 0.6rem;">
+                    <i class="fa-solid fa-circle-info"></i> Operations Guide
+                </h4>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem;">
+                    <div>
+                        <p style="font-size: 0.85rem; font-weight: 700; color: var(--accent); text-transform: uppercase;">Step 1: Boarding</p>
+                        <p style="font-size: 0.9rem; color: #102a43;">Scan a <strong>Paid</strong> ticket when passenger rides. Status changes to <em>Dispatched</em>.</p>
+                    </div>
+                    <div>
+                        <p style="font-size: 0.85rem; font-weight: 700; color: var(--accent); text-transform: uppercase;">Step 2: Arrival</p>
+                        <p style="font-size: 0.9rem; color: #102a43;">Scan a <strong>Dispatched</strong> ticket at destination. Status changes to <em>Completed</em>.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Scan History Panel -->
+        <div id="history-section" class="tab-panel">
+            <div class="table-container" style="background: rgba(255, 255, 255, 0.1);">
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th>Time</th>
+                            <th>Ticket Info</th>
+                            <th>Status</th>
+                            <th>Result</th>
+                        </tr>
+                    </thead>
+                    <tbody id="scan-history-body">
+                        <!-- JavaScript will populate this -->
+                        <tr>
+                            <td colspan="4" style="text-align: center; padding: 2rem; color: rgba(16, 42, 67, 0.6);">No tickets scanned yet in this session.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</section>
+
+<style>
+    #reader {
+        background: #000;
+    }
+    #reader__status_span {
+        display: none;
+    }
+    #reader video {
+        border-radius: 18px;
+    }
+</style>
+
+<!-- Load HTML5-QRCode Library -->
+<script src="https://unpkg.com/html5-qrcode"></script>
+{% endblock %}

@@ -44,7 +44,7 @@
 
                     <div class="bus-price">
                         <div>
-                            <div class="price">₱{{ "%.2f"|format(bus.price) }}</div>
+                            
                             <div class="seat-count">{{ remaining_seats if remaining_seats > 0 else 0 }} seats left</div>
                         </div>
 
@@ -53,7 +53,11 @@
                                 <i class="fa-solid fa-ban"></i> {{ 'Maintenance' if bus.status == 'under_maintenance' else 'Fully Booked' }}
                             </span>
                         {% else %}
+                            {% if session.get('user_id') %}
                             <a href="{{ url_for('booking', trip_id=bus.trip_id) }}" class="book-now-btn">
+                            {% else %}
+                            <a href="{{ url_for('home', login_required=1) }}" class="book-now-btn">
+                            {% endif %}
                                 <i class="fa-solid fa-arrow-right"></i> Book Now
                             </a>
                         {% endif %}

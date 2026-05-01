@@ -18,6 +18,9 @@
             <a href="{{ url_for('admin_bookings') }}" class="{% if request.endpoint == 'admin_bookings' %}active{% endif %}">
                 <i class="fa-solid fa-ticket"></i> Bookings
             </a>
+            <a href="{{ url_for('admin_revenue') }}" class="{% if request.endpoint == 'admin_revenue' %}active{% endif %}">
+                <i class="fa-solid fa-sack-dollar"></i> Revenue
+            </a>
         </div>
         <main class="schedule-main">
             <div class="schedule-container glass-card user-panel-page" style="width: 98%; max-width: 1800px; padding: 2.5rem;">

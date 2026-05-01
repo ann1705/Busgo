@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+
+{% block title %}BusGo | Revenue{% endblock %}
+
+{% block content %}
+<div class="admin-wrapper">
+    <div class="admin-content">
+        <div class="admin-topnav">
+            <a href="{{ url_for('home') }}">
+                <i class="fa-solid fa-arrow-left"></i> Exit Admin
+            </a>
+            <a href="{{ url_for('admin_dashboard') }}" class="{% if request.endpoint == 'admin_dashboard' %}active{% endif %}">
+                <i class="fa-solid fa-chart-pie"></i> Dashboard
+            </a>
+            <a href="{{ url_for('admin_users') }}" class="{% if request.endpoint == 'admin_users' %}active{% endif %}">
+                <i class="fa-solid fa-users"></i> Users
+            </a>
+            <a href="{{ url_for('admin_buses') }}" class="{% if request.endpoint == 'admin_buses' %}active{% endif %}">
+                <i class="fa-solid fa-bus"></i> Manage Bus
+            </a>
+            <a href="{{ url_for('admin_bookings') }}" class="{% if request.endpoint == 'admin_bookings' %}active{% endif %}">
+                <i class="fa-solid fa-ticket"></i> Bookings
+            </a>
+            <a href="{{ url_for('admin_revenue') }}" class="{% if request.endpoint == 'admin_revenue' %}active{% endif %}">
+                <i class="fa-solid fa-sack-dollar"></i> Revenue
+            </a>
+        </div>
+        <main class="schedule-main">
+            <div class="schedule-container glass-card bus-management-card" style="width: 100%; max-width: 100%; padding: 2.5rem;">
+                <header class="content-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2.5rem; width: 100%; border-bottom: 2px solid rgba(16, 42, 67, 0.1); padding-bottom: 1.5rem;">
+                    <h2 class="section-heading" style="margin: 0; color: var(--dark-text); font-size: 1.8rem; font-weight: 800;">Revenue Overview</h2>
+                </header>
+
+                <div class="booking-panel-blue" style="margin-bottom: 2rem;">
+                    <form method="GET" action="{{ url_for('admin_revenue') }}" style="display: flex; gap: 1rem; align-items: flex-end; flex-wrap: wrap;">
+                        <div class="input-group" style="flex: 1; min-width: 180px;">
+                            <label for="date">Select Date</label>
+                            <input type="date" id="date" name="date" value="{{ filter_date if filter_date else '' }}" class="form-control">
+                        </div>
+                        <button type="submit" class="auth-btn" style="padding: 10px 20px; flex-shrink: 0;">Filter</button>
+                        <a href="{{ url_for('admin_revenue') }}" class="cancel-btn" style="padding: 10px 20px; flex-shrink: 0; text-decoration: none;">Clear Filter</a>
+                    </form>
+                </div>
+
+                <div class="stats-row" style="justify-content: flex-start; margin-bottom: 3rem;">
+                    <div class="stat-card">
+                        <i class="fa-solid fa-money-bill-wave"></i>
+                        <div>
+                            <div class="stat-number">₱{{ "%.2f"|format(total_revenue) }}</div>
+                            <div class="stat-label">Revenue Overview</div>
+                            <div>({% if filter_date %}For {{ filter_date }}{% else %}All time{% endif %})</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <i class="fa-solid fa-calendar-day"></i>
+                        <div>
+                            <div class="stat-number">₱{{ "%.2f"|format(today_revenue) }}</div>
+                            <div class="stat-label">Today's Revenue</div>
+                            <div>(Actual current day)</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="table-container" style="width: 100%; overflow-x: auto;">
+                    {% if revenue_by_date %}
+                        {% for date, data in revenue_by_date.items() %}
+                        <div style="margin-bottom: 2rem; width: 100%;">
+                            <div class="table-header" style="background: rgba(138, 184, 255, 0.25); border-bottom: 1px solid rgba(16,42,67,0.1); padding: 10px;">
+                                <i class="fa-solid fa-calendar-day"></i>
+                                {{ date }}
+                                <small style="margin-left: 0.5rem;">(Total: ₱{{ "%.2f"|format(data.total) }})</small>
+                            </div>
+                            <table class="admin-table admin-bookings-table" style="width: 100%; border-collapse: collapse;">
+                                <thead style="background: #0f1f3e;">
+                                    <tr>
+                                        <th style="color:white; padding: 12px; text-align: left;">Ticket ID</th>
+                                        <th style="color:white; padding: 12px; text-align: left;">Bus No</th>
+                                        <th style="color:white; padding: 12px; text-align: left;">Time</th>
+                                        <th style="color:white; padding: 12px; text-align: left;">Fare</th>
+                                    </tr>
+                                </thead>
+                                <tbody style="background: white;">
+                                    {% for item in data.items %}
+                                    <tr style="border-bottom: 1px solid rgba(16,42,67,0.1);">
+                                        <td style="padding: 10px;"><strong>#{{ item.ticket_id }}</strong></td>
+                                        <td style="padding: 10px;">{{ item.bus_no }}</td>
+                                        <td style="padding: 10px;">{{ item.date_time.split(' ')[-2:] | join(' ') }}</td> {# Extract time part #}
+                                        <td style="padding: 10px;">₱{{ "%.2f"|format(item.fare) }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div style="text-align:center; padding:3rem; color: rgba(16, 42, 67, 0.6);">
+                            <i class="fa-solid fa-inbox" style="font-size:2.5rem; margin-bottom:1rem;"></i>
+                            <p style="font-size:1.1rem;">No revenue records found for the selected date range.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </main>
+    </div>
+</div>
+{% endblock %}

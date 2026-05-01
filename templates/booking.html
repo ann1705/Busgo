@@ -23,6 +23,11 @@
             <!-- Passenger Info -->
             <div class="booking-panel-blue">
                 <h3>Passenger Information</h3>
+
+                <div class="booking-input-group">
+                    <label><i class="fa-solid fa-calendar-days" style="color: var(--accent); margin-right: 0.5rem;"></i>Travel Date</label>
+                    <input type="date" name="travel_date" value="{{ today }}" min="{{ today }}" required>
+                </div>
                 
                 <div class="booking-input-group">
                     <label><i class="fa-solid fa-user" style="color: var(--accent); margin-right: 0.5rem;"></i>Full Name</label>
@@ -43,7 +48,8 @@
                     {{ available_seats }} seats available
                 </p>
                 <span style="display: inline-block; margin-right: 2rem;"><span class="seat-legend available"></span> Available</span>
-                <span style="display: inline-block;"><span class="seat-legend booked"></span> Booked</span>
+                <span style="display: inline-block; margin-right: 2rem;"><span class="seat-legend booked"></span> Booked</span>
+                <span style="display: inline-block;"><span class="seat-legend blocked"></span> Blocked</span>
                 
                 <div class="bus-layout">
                     <!-- Driver area -->
@@ -216,10 +222,10 @@
                         </div>
                     </div>
 
-                    <!-- Row 6: Seats 24,23,22,21 -->
+                    <!-- Row 6: Seats 22,21,23,24 -->
                     <div class="seat-row">
                         <div class="seat-pair">
-                            {% set seat_list = [24, 23] %}
+                            {% set seat_list = [22, 21] %}
                             {% for seat_num in seat_list %}
                                 {% if seat_num|string in booked_seats %}
                                     <div class="seat-box booked" data-seat="{{ seat_num }}" title="Seat booked">
@@ -234,7 +240,7 @@
                         </div>
                         <div class="aisle"></div>
                         <div class="seat-pair">
-                            {% set seat_list = [22, 21] %}
+                            {% set seat_list = [23, 24] %}
                             {% for seat_num in seat_list %}
                                 {% if seat_num|string in booked_seats %}
                                     <div class="seat-box booked" data-seat="{{ seat_num }}" title="Seat booked">
@@ -414,22 +420,7 @@
                         </div>
                     </div>
 
-                    <!-- Row 12: Seats 46 and 45 - Centered under 42 and 43 -->
-                    <div class="seat-row centered-row">
-                        <div class="seat-pair">
-                            <div class="seat-box" data-seat="46">
-                                <span class="seat-number">46</span>
-                            </div>
-                        </div>
-                        <div class="aisle"></div>
-                        <div class="seat-pair">
-                            <div class="seat-box" data-seat="45">
-                                <span class="seat-number">45</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Row 13: Seats 48,47,49,50,51,52 (Back row with 6 seats) -->
+                    <!-- Row 12: Seats 48, 47 and 46, 45 -->
                     <div class="seat-row">
                         <div class="seat-pair">
                             {% set seat_list = [48, 47] %}
@@ -447,22 +438,7 @@
                         </div>
                         <div class="aisle"></div>
                         <div class="seat-pair">
-                            {% set seat_list = [49, 50] %}
-                            {% for seat_num in seat_list %}
-                                {% if seat_num|string in booked_seats %}
-                                    <div class="seat-box booked" data-seat="{{ seat_num }}" title="Seat booked">
-                                        <span class="seat-number">{{ seat_num }}</span>
-                                    </div>
-                                {% else %}
-                                    <div class="seat-box" data-seat="{{ seat_num }}">
-                                        <span class="seat-number">{{ seat_num }}</span>
-                                    </div>
-                                {% endif %}
-                            {% endfor %}
-                        </div>
-                        <div class="aisle"></div>
-                        <div class="seat-pair">
-                            {% set seat_list = [51, 52] %}
+                            {% set seat_list = [46, 45] %}
                             {% for seat_num in seat_list %}
                                 {% if seat_num|string in booked_seats %}
                                     <div class="seat-box booked" data-seat="{{ seat_num }}" title="Seat booked">
@@ -476,6 +452,86 @@
                             {% endfor %}
                         </div>
                     </div>
+
+                    <!-- Row 13: Seats 49, 50, 51, 52 horizontally at the back -->
+                    <div class="seat-row back-row">
+                        {% set seat_list = [49, 50, 51, 52] %}
+                        {% for seat_num in seat_list %}
+                            {% if seat_num|string in booked_seats %}
+                                <div class="seat-box booked" data-seat="{{ seat_num }}" title="Seat booked">
+                                    <span class="seat-number">{{ seat_num }}</span>
+                                </div>
+                            {% else %}
+                                <div class="seat-box" data-seat="{{ seat_num }}">
+                                    <span class="seat-number">{{ seat_num }}</span>
+                                </div>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="booking-panel-blue">
+                <h3>Select Drop-Off Location</h3>
+                <p style="margin-bottom: 0.75rem; color: rgba(15, 31, 62, 0.8);">Use the map below to choose your drop-off point on the bus route. Your selection is snapped to the route and cannot exceed the route distance.</p>
+
+                <div style="display: flex; gap: 0.75rem; margin-bottom: 1.25rem;">
+                    <input type="text" id="location-search-input" placeholder="Search for a location on the route..." style="flex: 1; padding: 0.75rem; border: 1px solid var(--border-gray); border-radius: 8px; font-size: 0.95rem;">
+                    <button type="button" id="location-search-btn" style="padding: 0.75rem 1.5rem; background: var(--accent); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 700; white-space: nowrap;">
+                        <i class="fa-solid fa-magnifying-glass"></i> Search
+                    </button>
+                </div>
+                <div id="search-status" style="margin-bottom: 1rem; padding: 0.75rem; border-radius: 8px; display: none; font-weight: 700; text-align: center;"></div>
+
+                <div id="route-map" style="height: 360px; width: 100%; border-radius: 18px; overflow: hidden; background: #f1f5f9; position: relative; margin-bottom: 1rem;"></div>
+                <div id="map-fallback" style="display:none; padding: 1.25rem; text-align: center; color: #334155; font-weight: 700;">Map is unavailable. Please try again later or refresh the page.</div>
+
+                <div style="display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 1rem; color: rgba(15, 31, 62, 0.9);">
+                    <div style="flex: 1; min-width: 200px;"><strong>Origin:</strong> {{ trip.origin }}</div>
+                    <div style="flex: 1; min-width: 200px;"><strong>Destination:</strong> {{ trip.destination }}</div>
+                    <div style="flex: 1; min-width: 200px;"><strong>Route max:</strong> <span id="route-max-distance">{{ route_info.route_distance }}</span> km</div>
+                </div>
+
+                <div style="display: flex; gap: 1rem; flex-wrap: wrap; align-items: center; margin-bottom: 1rem;">
+                    <div><strong>Selected stop:</strong> <span id="selected-dropoff-label">Origin</span></div>
+                    <div><strong>Selected distance:</strong> <span id="selected-distance-text">0.0</span> km</div>
+                </div>
+
+                <input type="hidden" id="dropoff_distance" name="distance" value="0">
+                <input type="hidden" id="dropoff_lat" name="dropoff_lat" value="">
+                <input type="hidden" id="dropoff_lon" name="dropoff_lon" value="">
+
+                <div class="input-group" style="margin-bottom: 1rem;">
+                    <label for="discount_type">Fare option</label>
+                    <select id="discount_type" name="discount_type">
+                        <option value="regular">Regular</option>
+                        <option value="student">Student ID</option>
+                        <option value="senior">Senior Citizen ID</option>
+                        <option value="pwd">PWD ID</option>
+                    </select>
+                </div>
+
+                <div id="id-upload-section" class="input-group hidden" style="margin-bottom: 1rem;">
+                    <label style="color: var(--accent); font-weight: 700; margin-bottom: 0.8rem; display: block;">
+                        <i class="fa-solid fa-id-card"></i> Verify Discount Eligibility
+                    </label>
+                    
+                    <div style="background: rgba(255,255,255,0.05); padding: 1.5rem; border-radius: 12px; border: 1px dashed rgba(132, 180, 255, 0.4);">
+                        <p style="font-size: 0.85rem; margin-bottom: 1rem; color: #102a43;">Please provide a clear photo of your ID to avail the discount.</p>
+                        
+                        <div id="id-scanner-ui" style="margin-bottom: 1.5rem;">
+                            <div id="id-reader" style="width: 100%; max-width: 400px; margin: 0 auto; border-radius: 10px; overflow: hidden; display: none;"></div>
+                            <button type="button" id="start-id-scan" class="auth-btn" style="margin-top: 10px; background: var(--accent-dark);"><i class="fa-solid fa-camera"></i> Use Camera to Scan ID</button>
+                        </div>
+
+                        <input type="hidden" id="id_scanned" name="id_scanned" value="0">
+                        <div id="id-verification-status" style="margin-top: 10px; font-weight: 700; font-size: 0.9rem; display: none;"></div>
+                    </div>
+                </div>
+
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.8rem 0; border-top: 2px solid var(--border-gray);">
+                    <span style="font-weight: 800; color: var(--dark-text);">Calculated Fare</span>
+                    <span style="font-size: 1.4rem; font-weight: 800; color: var(--dark-text);">₱<span id="fare-display">0.00</span></span>
                 </div>
             </div>
 
@@ -504,8 +560,8 @@
                 </div>
                 
                 <div style="display: flex; justify-content: space-between; padding: 1rem 0; margin-top: 1rem; border-top: 2px solid var(--yellow);">
-                    <span style="font-weight: 800; color: var(--dark-text); font-size: 1.1rem;">Total Price:</span>
-                    <span style="font-weight: 800; color: var(--dark-text); font-size: 1.5rem;">₱{{ "%.2f"|format(trip.price) }}</span>
+                    <span style="font-weight: 800; color: var(--dark-text); font-size: 1.1rem;">Total Fare:</span>
+                    <span id="selected-fare-display" style="font-weight: 800; color: var(--dark-text); font-size: 1.5rem;">₱0.00</span>
                 </div>
             </div>
 
@@ -523,13 +579,9 @@
 </div>
 
 <style>
-    /* Style for centered row with single seats */
-    .centered-row {
-        justify-content: center;
-    }
-    
-    .centered-row .seat-pair:first-child {
-        margin-right: 2rem;
+    /* Style for back row with horizontal seats */
+    .back-row {
+        gap: 0.8rem !important;
     }
     
     /* Ensure seat boxes have proper styling */
@@ -548,26 +600,240 @@
         color: #000;
         font-weight: 800;
     }
+
+    #route-map {
+        min-height: 320px;
+        border-radius: 18px;
+    }
+
+    #map-fallback {
+        font-size: 0.95rem;
+        line-height: 1.5;
+    }
 </style>
 
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+
 <script>
+    const routeInfo = {{ route_info | tojson }};
+    const initialSeatStatuses = {{ seat_statuses | tojson }};
     const seats = document.querySelectorAll(".seat-box");
     const seatInput = document.getElementById("seat_number");
+    const dropoffDistanceInput = document.getElementById("dropoff_distance");
+    const dropoffLatInput = document.getElementById("dropoff_lat");
+    const dropoffLonInput = document.getElementById("dropoff_lon");
+    const selectedDistanceText = document.getElementById("selected-distance-text");
+    const selectedDropoffLabel = document.getElementById("selected-dropoff-label");
+    const routeMaxDistance = document.getElementById("route-max-distance");
+    const discountType = document.getElementById("discount_type");
+    const fareDisplay = document.getElementById("fare-display");
+    const idUploadSection = document.getElementById("id-upload-section");
+    const idReader = document.getElementById("id-reader");
+    const idScannedInput = document.getElementById("id_scanned");
+    const selectedFareDisplay = document.getElementById("selected-fare-display");
+    const routeMapContainer = document.getElementById("route-map");
+    const mapFallback = document.getElementById("map-fallback");
+
+    function calculateFare(distance, discountValue) {
+        const distanceValue = Number(distance) || 0;
+        const isDiscount = ['student', 'senior', 'pwd'].includes(discountValue);
+        const base = isDiscount ? 14.40 : 18.00;
+        if (distanceValue <= 5) {
+            return Number(base.toFixed(2));
+        }
+        const total = base + (distanceValue - 5) * 2.97;
+        return Number(total.toFixed(2));
+    }
+
+    function updateFare(distanceValue) {
+        const maxDistance = Number(routeInfo.route_distance || 20);
+        const clampedDistance = Math.min(Math.max(Number(distanceValue) || 0, 0), maxDistance);
+        const fare = calculateFare(clampedDistance, discountType ? discountType.value : 'regular');
+        selectedDistanceText.textContent = clampedDistance.toFixed(1);
+        routeMaxDistance.textContent = maxDistance.toFixed(1);
+        fareDisplay.textContent = fare.toFixed(2);
+        selectedFareDisplay.textContent = `₱${fare.toFixed(2)}`;
+        return clampedDistance;
+    }
+    
+    // Common Discount ID Logic
+    function toggleDiscountVerification(type) {
+        if (type !== 'regular') {
+            idUploadSection.classList.remove('hidden');
+        } else {
+            idUploadSection.classList.add('hidden');
+            if (idScannedInput) idScannedInput.value = '0';
+            const statusDiv = document.getElementById('id-verification-status');
+            if (statusDiv) statusDiv.style.display = 'none';
+            if (window.stopIdScanner) window.stopIdScanner();
+        }
+    }
+
+    function updateDropoff(distanceKm, lat, lon, label) {
+        const clamped = updateFare(distanceKm);
+        if (dropoffDistanceInput) {
+            dropoffDistanceInput.value = clamped.toFixed(1);
+        }
+        if (dropoffLatInput) {
+            dropoffLatInput.value = lat !== null ? lat.toFixed(6) : '';
+        }
+        if (dropoffLonInput) {
+            dropoffLonInput.value = lon !== null ? lon.toFixed(6) : '';
+        }
+        if (selectedDropoffLabel) {
+            selectedDropoffLabel.textContent = label || `${clamped.toFixed(1)} km from origin`;
+        }
+    }
+
+    function showMapFallback(message) {
+        if (mapFallback) {
+            mapFallback.textContent = message;
+            mapFallback.style.display = 'block';
+        }
+        if (routeMapContainer) {
+            routeMapContainer.style.backgroundColor = '#f8fafc';
+        }
+    }
+
+    function initRouteMap() {
+        if (!routeMapContainer) return;
+        if (!routeInfo.origin_lat || !routeInfo.origin_lon || !routeInfo.destination_lat || !routeInfo.destination_lon) {
+            showMapFallback('Route coordinates are unavailable. Please try again later.');
+            return;
+        }
+
+        if (mapFallback) {
+            mapFallback.style.display = 'none';
+        }
+
+        const originLatLng = L.latLng(routeInfo.origin_lat, routeInfo.origin_lon);
+        const destinationLatLng = L.latLng(routeInfo.destination_lat, routeInfo.destination_lon);
+
+        routeMapContainer.innerHTML = '';
+
+        const map = L.map(routeMapContainer, {
+            zoomControl: true,
+            attributionControl: false
+        }).setView(originLatLng, 10);
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '&copy; OpenStreetMap contributors'
+        }).addTo(map);
+
+        const routeLine = L.polyline(routeInfo.geometry, {
+            color: '#1d4ed8',
+            weight: 6,
+            opacity: 0.88
+        }).addTo(map);
+
+        L.marker(originLatLng, { title: 'Origin' }).addTo(map).bindPopup('Origin');
+        L.marker(destinationLatLng, { title: 'Destination' }).addTo(map).bindPopup('Destination');
+
+        const dropoffMarker = L.circleMarker(originLatLng, {
+            radius: 9,
+            fillColor: '#f59e0b',
+            color: '#ffffff',
+            weight: 3,
+            fillOpacity: 1
+        }).addTo(map);
+
+        map.fitBounds(routeLine.getBounds(), { padding: [30, 30] });
+
+        function closestPointOnRoute(latlng) {
+            // Snap to the actual road polyline instead of a straight segment
+            let minfDist = Infinity;
+            let closestLatLng = latlng;
+            
+            // Iterate through the geometry to find the nearest point on the road path
+            const points = routeInfo.geometry;
+            for (let i = 0; i < points.length - 1; i++) {
+                const p1 = L.latLng(points[i]);
+                const p2 = L.latLng(points[i+1]);
+                const snapped = L.LineUtil.closestPointOnSegment(
+                    map.latLngToLayerPoint(latlng),
+                    map.latLngToLayerPoint(p1),
+                    map.latLngToLayerPoint(p2)
+                );
+                const snappedLatLng = map.layerPointToLatLng(snapped);
+                const dist = latlng.distanceTo(snappedLatLng);
+                if (dist < minfDist) {
+                    minfDist = dist;
+                    closestLatLng = snappedLatLng;
+                }
+            }
+            return closestLatLng;
+        }
+
+        function getRouteKilometers(snappedLatLng) {
+            // Calculate distance along the curved road path
+            const points = routeInfo.geometry;
+            let totalDist = 0;
+            for (let i = 0; i < points.length - 1; i++) {
+                const p1 = L.latLng(points[i]);
+                const p2 = L.latLng(points[i+1]);
+                
+                // Check if snapped point lies on this segment
+                const segment = [map.latLngToLayerPoint(p1), map.latLngToLayerPoint(p2)];
+                const snappedPoint = map.latLngToLayerPoint(snappedLatLng);
+                
+                if (L.LineUtil.pointToSegmentDistance(snappedPoint, segment[0], segment[1]) < 1) {
+                    totalDist += p1.distanceTo(snappedLatLng);
+                    break;
+                } else {
+                    totalDist += p1.distanceTo(p2);
+                }
+            }
+            return Math.min(routeInfo.route_distance, totalDist / 1000);
+        }
+
+        function selectRoutePosition(latlng) {
+            const snappedLatLng = closestPointOnRoute(latlng);
+            dropoffMarker.setLatLng(snappedLatLng);
+            const routeKm = getRouteKilometers(snappedLatLng);
+            updateDropoff(routeKm, snappedLatLng.lat, snappedLatLng.lng, `${routeKm.toFixed(1)} km from origin`);
+        }
+
+        map.on('click', function(e) {
+            selectRoutePosition(e.latlng);
+        });
+
+        selectRoutePosition(originLatLng);
+    }
+
+    function applySeatStatus(seat, status) {
+        seat.classList.remove("booked", "blocked-admin");
+        seat.title = "";
+
+        if (status === "blocked") {
+            seat.classList.add("booked", "blocked-admin");
+            seat.title = "Seat blocked by admin";
+        } else if (status) {
+            seat.classList.add("booked");
+            seat.title = "Seat booked";
+        }
+    }
+
+    seats.forEach(seat => {
+        const seatNum = seat.getAttribute("data-seat");
+        applySeatStatus(seat, initialSeatStatuses[seatNum]);
+    });
 
     seats.forEach(seat => {
         seat.addEventListener("click", function() {
-            // Prevent clicking booked seats
             if (this.classList.contains("booked")) {
-                alert("This seat is already booked. Please select another seat.");
+                const message = this.classList.contains("blocked-admin")
+                    ? "This seat is blocked by the admin. Please select another seat."
+                    : "This seat is already booked. Please select another seat.";
+                alert(message);
                 return;
             }
-            
             seats.forEach(s => s.classList.remove("selected"));
             this.classList.add("selected");
             const seatNumber = this.getAttribute("data-seat");
             seatInput.value = seatNumber;
-            
-            // Update summary to show selected seat
+
             const seatDisplay = document.getElementById("selected-seat-display");
             if (seatDisplay) {
                 seatDisplay.textContent = "Seat #" + seatNumber;
@@ -576,21 +842,173 @@
             }
         });
     });
-    
-    // Check for booked seats when clicking....
-    document.querySelectorAll('.seat-box.booked').forEach(bookedSeat => {
-        bookedSeat.addEventListener('click', function(e) {
-            e.stopPropagation();
-            alert("This seat is already booked. Please select another seat.");
+
+    // Refresh seat availability when the travel date changes
+    const travelDateInput = document.querySelector('input[name="travel_date"]');
+    if (travelDateInput) {
+        travelDateInput.addEventListener('change', function() {
+            const newDate = this.value;
+            const tripId = "{{ trip.id }}";
+            
+            // Reset selection
+            seatInput.value = '';
+            seats.forEach(s => s.classList.remove('selected'));
+            const seatDisplay = document.getElementById("selected-seat-display");
+            if (seatDisplay) seatDisplay.textContent = "Not selected";
+
+            // Fetch newly booked seats for this date
+            fetch(`/api/booked-seats/${tripId}?date=${newDate}`)
+                .then(res => res.json())
+                .then(data => {
+                    const statusMap = {};
+                    data.forEach(item => {
+                        statusMap[String(item.seat)] = item.status;
+                    });
+                    
+                    seats.forEach(seat => {
+                        const seatNum = seat.getAttribute('data-seat');
+                        applySeatStatus(seat, statusMap[String(seatNum)]);
+                    });
+
+                    // Update available seats counter
+                    const availableCount = Math.max(0, 52 - Object.keys(statusMap).length);
+                    const availableSeatsText = document.querySelector('.booking-panel-blue p');
+                    if (availableSeatsText && availableSeatsText.innerHTML.includes('seats available')) {
+                         availableSeatsText.innerHTML = `<i class="fa-solid fa-chair" style="margin-right: 0.5rem;"></i> ${availableCount} seats available`;
+                    }
+                })
+                .catch(err => console.error("Error updating seat map:", err));
         });
-    });
-    
-    // Prevent form submission if no seat is selected
+    }
+
+    if (discountType) {
+        discountType.addEventListener('change', function() {
+            updateFare(dropoffDistanceInput ? Number(dropoffDistanceInput.value) : 0);
+            toggleDiscountVerification(this.value);
+        });
+    }
+
     document.querySelector('form').addEventListener('submit', function(e) {
         if (!seatInput.value) {
             e.preventDefault();
             alert('Please select a seat');
+            return;
+        }
+
+        const distanceValue = Number(dropoffDistanceInput ? dropoffDistanceInput.value : 0);
+        const maxRouteDistance = Number(routeInfo.route_distance || 20);
+        if (distanceValue <= 0 || distanceValue > maxRouteDistance) {
+            e.preventDefault();
+            alert('Please select a valid stop within the route distance.');
+            return;
+        }
+
+        if (discountType.value !== 'regular' && idScannedInput && idScannedInput.value !== '1') {
+            e.preventDefault();
+            alert('Please scan your ID to verify discount eligibility.');
+            return;
         }
     });
+
+    function showSearchStatus(message, isSuccess = true) {
+        const searchStatus = document.getElementById('search-status');
+        if (searchStatus) {
+            searchStatus.textContent = message;
+            searchStatus.style.display = 'block';
+            searchStatus.style.backgroundColor = isSuccess ? '#dcfce7' : '#fee2e2';
+            searchStatus.style.color = isSuccess ? '#166534' : '#991b1b';
+            setTimeout(() => {
+                searchStatus.style.display = 'none';
+            }, 5000);
+        }
+    }
+
+    function isLocationWithinRouteBounds(searchedLat, searchedLng, originLat, originLng, destLat, destLng, toleranceKm = 30) {
+        const toRad = (deg) => deg * Math.PI / 180;
+        const haversine = (lat1, lon1, lat2, lon2) => {
+            const R = 6371;
+            const dLat = toRad(lat2 - lat1);
+            const dLon = toRad(lon2 - lon1);
+            const a = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+            return R * c;
+        };
+        const distToOrigin = haversine(searchedLat, searchedLng, originLat, originLng);
+        const distToDest = haversine(searchedLat, searchedLng, destLat, destLng);
+        const routeDist = haversine(originLat, originLng, destLat, destLng);
+        return (distToOrigin + distToDest) <= (routeDist + toleranceKm);
+    }
+
+    function searchAndSnapLocation(searchText) {
+        if (!searchText.trim()) {
+            showSearchStatus('Please enter a location to search.', false);
+            return;
+        }
+
+        const searchStatusDiv = document.getElementById('search-status');
+        if (searchStatusDiv) {
+            searchStatusDiv.textContent = 'Searching...';
+            searchStatusDiv.style.display = 'block';
+            searchStatusDiv.style.backgroundColor = '#e0f2fe';
+            searchStatusDiv.style.color = '#0c4a6e';
+        }
+
+        const headers = { 'User-Agent': 'BusGo-App/1.0' };
+        const nominatimUrl = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchText)}&limit=1`;
+
+        fetch(nominatimUrl, { headers })
+            .then(res => res.json())
+            .then(data => {
+                if (!data || data.length === 0) {
+                    showSearchStatus('Location not found. Please try a different search.', false);
+                    return;
+                }
+
+                const result = data[0];
+                const searchedLat = parseFloat(result.lat);
+                const searchedLng = parseFloat(result.lon);
+
+                if (isLocationWithinRouteBounds(searchedLat, searchedLng, routeInfo.origin_lat, routeInfo.origin_lon, routeInfo.destination_lat, routeInfo.destination_lon)) {
+                    const searchedLatLng = L.latLng(searchedLat, searchedLng);
+                    selectRoutePosition(searchedLatLng);
+                    showSearchStatus(`📍 "${result.name}" pinned to route!`, true);
+                    document.getElementById('location-search-input').value = '';
+                } else {
+                    showSearchStatus('Location is outside the bus route. Please select within the route.', false);
+                }
+            })
+            .catch(error => {
+                console.error('Search error:', error);
+                showSearchStatus('Error searching location. Please try again.', false);
+            });
+    }
+
+    // Only allow PH search results
+    function isLocationInPhilippines(result) {
+        return result.display_name && !/philippines/i.test(result.display_name);
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const locationSearchInput = document.getElementById('location-search-input');
+        const locationSearchBtn = document.getElementById('location-search-btn');
+
+        if (locationSearchBtn) {
+            locationSearchBtn.addEventListener('click', function() {
+                searchAndSnapLocation(locationSearchInput.value);
+            });
+        }
+
+        if (locationSearchInput) {
+            locationSearchInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    searchAndSnapLocation(locationSearchInput.value);
+                }
+            });
+        }
+
+        updateDropoff(0, null, null, 'Origin');
+        initRouteMap();
+    });
 </script>
+
 {% endblock %}

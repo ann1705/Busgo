@@ -6,6 +6,7 @@
     <title>{% block title %}BusGo | Premium Travel{% endblock %}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://unpkg.com/html5-qrcode"></script>
 </head>
 <body class="site-wrapper">
      <div class="content-wrapper">
@@ -50,9 +51,11 @@
                 {% if session.get('user_id') %}
                     
                     {% if session.get('role') == 'admin' %}
-                        <li><a href="{{ url_for('admin_dashboard') }}" class="{% if request.endpoint in ['admin_dashboard', 'admin_buses', 'admin_bookings'] %}active{% endif %}">Admin Panel</a></li>
+                        <li><a href="{{ url_for('admin_dashboard') }}" class="{% if request.endpoint in ['admin_dashboard', 'admin_buses', 'admin_bookings', 'admin_revenue'] %}active{% endif %}">Admin Panel</a></li>
                     {% elif session.get('role') == 'staff' %}
                         <li><a href="{{ url_for('staff_dashboard') }}" class="{% if request.endpoint == 'staff_dashboard' %}active{% endif %}">Staff Panel</a></li>
+                    {% elif session.get('role') == 'conductor' %}
+                        <li><a href="{{ url_for('conductor_dashboard') }}" class="{% if request.endpoint == 'conductor_dashboard' %}active{% endif %}">Conductor Panel</a></li>
                     {% else %}
                         <li><a href="{{ url_for('schedules') }}" class="{% if request.endpoint == 'schedules' %}active{% endif %}">Book Now</a></li>
                         <li><a href="{{ url_for('user_dashboard') }}" class="{% if request.endpoint == 'user_dashboard' %}active{% endif %}">My Bookings</a></li>

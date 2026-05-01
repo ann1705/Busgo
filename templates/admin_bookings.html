@@ -19,6 +19,9 @@
             <a href="{{ url_for('admin_bookings') }}" class="{% if request.endpoint == 'admin_bookings' %}active{% endif %}">
                 <i class="fa-solid fa-ticket"></i> Bookings
             </a>
+            <a href="{{ url_for('admin_revenue') }}" class="{% if request.endpoint == 'admin_revenue' %}active{% endif %}">
+                <i class="fa-solid fa-sack-dollar"></i> Revenue
+            </a>
         </div>
         <main class="schedule-main">
             <div class="schedule-container glass-card" style="width: 98%; max-width: 1800px; padding: 2.5rem;">
@@ -26,12 +29,13 @@
                 <header class="content-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2.5rem; width: 100%; border-bottom: 2px solid rgba(16, 42, 67, 0.1); padding-bottom: 1.5rem;">
                     <div class="tab-switcher" style="display: flex; gap: 0.75rem;">
                         <button id="activeBookingsTab" class="tab-btn active" type="button">Active</button>
+                        <button id="scheduledBookingsTab" class="tab-btn" type="button">Scheduled</button>
                         <button id="historyBookingsTab" class="tab-btn" type="button">History</button>
                         <button id="walkinBookingsTab" class="tab-btn" type="button">Walk-in</button>
                     </div>
                     <div class="header-actions">
                         <div class="search-wrapper" style="position: relative; margin: 0;">
-                            <input id="bookingSearch" type="text" placeholder="Search by ID, User, Bus, Route, Seat..." class="search-input" style="padding: 12px 45px 12px 15px; width: 320px; border-radius: 12px; background: white; color: var(--dark-text); border: 1px solid rgba(16,42,67,0.2);">
+                            <input id="bookingSearch" type="text" placeholder="Search by ID, User, Bus, Route, Seat, Date..." class="search-input" style="padding: 12px 45px 12px 15px; width: 320px; border-radius: 12px; background: white; color: var(--dark-text); border: 1px solid rgba(16,42,67,0.2);">
                             <i class="fa-solid fa-magnifying-glass" style="position: absolute; right: 15px; top: 50%; transform: translateY(-50%); color: var(--accent-dark); font-size: 1.1rem;"></i>
                         </div>
                     </div>
@@ -52,6 +56,7 @@
                             <th style="color: white;">Bus No.</th>
                             <th style="color: white;">Route</th>
                             <th style="color: white;">Seat</th>
+                            <th style="color: white;">Travel Date</th>
                             <th style="color: white;">Created</th>
                             <th style="color: white;">Status</th>
                             <th style="color: white; border-radius: 0 12px 0 0;">Action</th>
@@ -59,12 +64,13 @@
                     </thead>
                     <tbody style="background: rgba(255,255,255,1);">
                         {% for b in today_bookings %}
-                        <tr data-booking-id="{{ b.id }}" data-booking-user="{{ b.user|lower }}" data-booking-bus="{{ b.bus_no|lower }}" data-booking-route="{{ b.route|lower }}" data-booking-seat="{{ b.seat_number }}" data-booking-status="{{ b.status|lower }}">
+                        <tr data-booking-id="{{ b.id }}" data-booking-user="{{ b.user|lower }}" data-booking-bus="{{ b.bus_no|lower }}" data-booking-route="{{ b.route|lower }}" data-booking-seat="{{ b.seat_number }}" data-booking-date="{{ b.travel_date }}" data-booking-status="{{ b.status|lower }}">
                             <td style="color: var(--dark-text); font-weight: 700;">#{{ b.id }}</td>
                             <td style="color: var(--dark-text); font-weight: 700;">{{ b.user }}</td>
                             <td style="color: var(--dark-text);">{{ b.bus_no }}</td>
                             <td style="color: var(--dark-text);">{{ b.route }}</td>
                             <td style="color: var(--dark-text);">{{ b.seat_number }}</td>
+                            <td style="color: var(--dark-text); font-weight: 700;">{{ b.travel_date }}</td>
                             <td style="color: var(--dark-text);">{{ b.created_date }} {{ b.created_time }}</td>
                             <td class="status-{{ b.status }}" style="font-weight: 700;">{{ 'Completed' if b.status == 'paid' else 'Waiting for Payment' if b.status == 'waiting for payment' else b.status|capitalize }}</td>
                             <td>
@@ -88,6 +94,63 @@
                 {% endif %}
                 </div>
 
+                <div id="scheduledBookingsSection" class="booking-tab-section" style="display: none;">
+                    {% if scheduled_bookings_by_date %}
+                    {% for date, items in scheduled_bookings_by_date.items() %}
+                    <div class="table-container" style="margin-bottom: 2rem;" data-scheduled-date="{{ date }}">
+                        <div class="table-header" style="background: rgba(138, 184, 255, 0.25); color: var(--dark-text); border-bottom: 1px solid rgba(16,42,67,0.1);">
+                            <i class="fa-solid fa-calendar-check" style="margin-right: 0.5rem;"></i>
+                            {{ date }} <small style="color: rgba(16, 42, 67, 0.7); margin-left: 0.5rem;">(<span class="scheduled-count">{{ items|length }}</span> scheduled bookings)</small>
+                        </div>
+                    <table class="admin-table admin-bookings-table scheduled-table">
+                    <thead style="background: var(--dark-text);">
+                        <tr>
+                            <th style="color: white; border-radius: 12px 0 0 0;">ID</th>
+                            <th style="color: white;">User</th>
+                            <th style="color: white;">Bus No.</th>
+                            <th style="color: white;">Route</th>
+                            <th style="color: white;">Seat</th>
+                            <th style="color: white;">Travel Date</th>
+                            <th style="color: white;">Created</th>
+                            <th style="color: white;">Status</th>
+                            <th style="color: white; border-radius: 0 12px 0 0;">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody style="background: rgba(255,255,255,1);">
+                        {% for b in items %}
+                        <tr data-booking-id="{{ b.id }}" data-booking-user="{{ b.user|lower }}" data-booking-bus="{{ b.bus_no|lower }}" data-booking-route="{{ b.route|lower }}" data-booking-seat="{{ b.seat_number }}" data-booking-date="{{ b.travel_date }}" data-booking-status="{{ b.status|lower }}">
+                            <td style="color: var(--dark-text); font-weight: 700;">#{{ b.id }}</td>
+                            <td style="color: var(--dark-text); font-weight: 700;">{{ b.user }}</td>
+                            <td style="color: var(--dark-text);">{{ b.bus_no }}</td>
+                            <td style="color: var(--dark-text);">{{ b.route }}</td>
+                            <td style="color: var(--dark-text);">{{ b.seat_number }}</td>
+                            <td style="color: var(--dark-text); font-weight: 700;">{{ b.travel_date }}</td>
+                            <td style="color: var(--dark-text);">{{ b.created_date }} {{ b.created_time }}</td>
+                            <td class="status-{{ b.status }}" style="font-weight: 700;">{{ 'Completed' if b.status == 'paid' else 'Waiting for Payment' if b.status == 'waiting for payment' else b.status|capitalize }}</td>
+                            <td>
+                                <a href="{{ url_for('admin_view_booking', booking_id=b.id) }}" class="book-now-btn" style="padding: 6px 12px; font-size: 0.85rem; margin-right: 0.5rem;">
+                                    View
+                                </a>
+                                {% if b.status != 'paid' %}
+                                <a href="{{ url_for('cancel_booking', booking_id=b.id) }}" class="cancel-btn" style="padding: 6px 12px; font-size: 0.85rem;">
+                                    Cancel
+                                </a>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                </div>
+                {% endfor %}
+                {% else %}
+                <div style="text-align: center; padding: 3rem; color: rgba(16, 42, 67, 0.6);">
+                    <i class="fa-solid fa-calendar-check" style="font-size: 3rem; margin-bottom: 1rem; color: var(--accent);"></i>
+                    <p style="font-size: 1.1rem;">No advance bookings scheduled.</p>
+                </div>
+                {% endif %}
+                </div>
+
                 <div id="historyBookingsSection" class="booking-tab-section" style="display: none;">
                     {% if history_bookings_by_date %}
                     {% for date, items in history_bookings_by_date.items() %}
@@ -104,6 +167,7 @@
                             <th style="color: white;">Bus No.</th>
                             <th style="color: white;">Route</th>
                             <th style="color: white;">Seat</th>
+                            <th style="color: white;">Travel Date</th>
                             <th style="color: white;">Created</th>
                             <th style="color: white;">Status</th>
                             <th style="color: white; border-radius: 0 12px 0 0;">Action</th>
@@ -111,12 +175,13 @@
                     </thead>
                     <tbody style="background: rgba(255,255,255,1);">
                         {% for b in items %}
-                        <tr data-booking-id="{{ b.id }}" data-booking-user="{{ b.user|lower }}" data-booking-bus="{{ b.bus_no|lower }}" data-booking-route="{{ b.route|lower }}" data-booking-seat="{{ b.seat_number }}" data-booking-status="{{ b.status|lower }}">
+                        <tr data-booking-id="{{ b.id }}" data-booking-user="{{ b.user|lower }}" data-booking-bus="{{ b.bus_no|lower }}" data-booking-route="{{ b.route|lower }}" data-booking-seat="{{ b.seat_number }}" data-booking-date="{{ b.travel_date }}" data-booking-status="{{ b.status|lower }}">
                             <td style="color: var(--dark-text); font-weight: 700;">#{{ b.id }}</td>
                             <td style="color: var(--dark-text); font-weight: 700;">{{ b.user }}</td>
                             <td style="color: var(--dark-text);">{{ b.bus_no }}</td>
                             <td style="color: var(--dark-text);">{{ b.route }}</td>
                             <td style="color: var(--dark-text);">{{ b.seat_number }}</td>
+                            <td style="color: var(--dark-text); font-weight: 700;">{{ b.travel_date }}</td>
                             <td style="color: var(--dark-text);">{{ b.created_date }} {{ b.created_time }}</td>
                             <td class="status-{{ b.status }}" style="font-weight: 700;">{{ 'Completed' if b.status == 'paid' else 'Waiting for Payment' if b.status == 'waiting for payment' else b.status|capitalize }}</td>
                             <td>
@@ -199,6 +264,7 @@
     const adminTabButtons = document.querySelectorAll('.tab-switcher button');
     const bookingSections = {
         activeBookingsTab: 'activeBookingsSection',
+        scheduledBookingsTab: 'scheduledBookingsSection',
         historyBookingsTab: 'historyBookingsSection',
         walkinBookingsTab: 'walkinBookingsSection'
     };
@@ -245,10 +311,11 @@
             const bus = row.cells[2]?.innerText.toLowerCase() || '';
             const route = row.cells[3]?.innerText.toLowerCase() || '';
             const seat = row.cells[4]?.innerText.toLowerCase() || '';
-            const status = row.cells[6]?.innerText.toLowerCase() || '';
+            const travelDate = row.cells[5]?.innerText.toLowerCase() || '';
+            const status = row.cells[7]?.innerText.toLowerCase() || '';
             
             const matches = id.includes(term) || user.includes(term) || bus.includes(term) || 
-                           route.includes(term) || seat.includes(term) || status.includes(term);
+                           route.includes(term) || seat.includes(term) || travelDate.includes(term) || status.includes(term);
             
             row.style.display = matches ? '' : 'none';
             if (matches) activeVisibleCount++;
@@ -259,6 +326,34 @@
         if (activeCountSpan) {
             activeCountSpan.innerText = activeVisibleCount;
         }
+
+        // Filter Scheduled Bookings
+        const scheduledContainers = document.querySelectorAll('#scheduledBookingsSection .table-container');
+        scheduledContainers.forEach(container => {
+            const rows = container.querySelectorAll('tbody tr');
+            let visibleCount = 0;
+            rows.forEach(row => {
+                const id = row.cells[0]?.innerText.toLowerCase() || '';
+                const user = row.cells[1]?.innerText.toLowerCase() || '';
+                const bus = row.cells[2]?.innerText.toLowerCase() || '';
+                const route = row.cells[3]?.innerText.toLowerCase() || '';
+                const seat = row.cells[4]?.innerText.toLowerCase() || '';
+                const travelDate = row.cells[5]?.innerText.toLowerCase() || '';
+                const status = row.cells[7]?.innerText.toLowerCase() || '';
+
+                const matches = id.includes(term) || user.includes(term) || bus.includes(term) ||
+                               route.includes(term) || seat.includes(term) || travelDate.includes(term) || status.includes(term);
+
+                row.style.display = matches ? '' : 'none';
+                if (matches) visibleCount++;
+            });
+
+            const countSpan = container.querySelector('.scheduled-count');
+            if (countSpan) {
+                countSpan.innerText = visibleCount;
+            }
+            container.style.display = visibleCount === 0 ? 'none' : '';
+        });
         
         // Filter History Bookings
         const historyContainers = document.querySelectorAll('#historyBookingsSection .table-container');
@@ -271,10 +366,11 @@
                 const bus = row.cells[2]?.innerText.toLowerCase() || '';
                 const route = row.cells[3]?.innerText.toLowerCase() || '';
                 const seat = row.cells[4]?.innerText.toLowerCase() || '';
-                const status = row.cells[6]?.innerText.toLowerCase() || '';
+                const travelDate = row.cells[5]?.innerText.toLowerCase() || '';
+                const status = row.cells[7]?.innerText.toLowerCase() || '';
                 
                 const matches = id.includes(term) || user.includes(term) || bus.includes(term) || 
-                               route.includes(term) || seat.includes(term) || status.includes(term);
+                               route.includes(term) || seat.includes(term) || travelDate.includes(term) || status.includes(term);
                 
                 row.style.display = matches ? '' : 'none';
                 if (matches) visibleCount++;
@@ -329,6 +425,18 @@
         if (activeCountSpan) {
             activeCountSpan.innerText = activeRows.length;
         }
+
+        // Show all scheduled containers and rows
+        const scheduledContainers = document.querySelectorAll('#scheduledBookingsSection .table-container');
+        scheduledContainers.forEach(container => {
+            container.style.display = '';
+            const rows = container.querySelectorAll('tbody tr');
+            rows.forEach(row => row.style.display = '');
+            const countSpan = container.querySelector('.scheduled-count');
+            if (countSpan) {
+                countSpan.innerText = rows.length;
+            }
+        });
         
         // Show all history containers and rows
         const historyContainers = document.querySelectorAll('#historyBookingsSection .table-container');

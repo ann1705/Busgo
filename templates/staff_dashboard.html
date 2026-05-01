@@ -3,6 +3,9 @@
 {% block title %}BusGo | Staff Dashboard{% endblock %}
 
 {% block content %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+
 <section class="schedule-main" style="flex-direction: column; align-items: center;">
     <div class="page-back-nav" style="width: 100%; max-width: 1800px; margin: 0 auto 1.5rem auto;">
         <a href="{{ url_for('home') }}" class="back-btn" style="background: rgba(16, 42, 67, 0.1); color: var(--dark-text);">
@@ -54,11 +57,82 @@
                     <input type="text" name="contact" id="contact" placeholder="Enter contact details" required maxlength="11" pattern="[0-9]{11}" title="Contact number must be an 11-digit number" oninput="this.value = this.value.replace(/[^0-9]/g, '');" />
                 </div>
 
+                <div class="booking-panel-blue" style="margin-bottom: 1.5rem;">
+                    <h3>Select Passenger Drop-off</h3>
+                    <p style="margin-bottom: 0.75rem; color: rgba(15, 31, 62, 0.8);">Choose the exact destination point along the selected route. Pricing is calculated automatically based on kilometers.</p>
+
+                    <div class="input-group">
+                        <label>Route Range</label>
+                        <div style="display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap;">
+                            <span><strong>From:</strong> <span id="staff-route-origin">—</span></span>
+                            <span><strong>To:</strong> <span id="staff-route-destination">—</span></span>
+                        </div>
+                    </div>
+
+                    <p style="margin-bottom: 0.75rem; color: rgba(15, 31, 62, 0.8);">Use the map below to choose your drop-off point on the bus route. Your selection is snapped to the route.</p>
+
+                    <div style="display: flex; gap: 0.75rem; margin-bottom: 1.25rem;">
+                        <input type="text" id="staff-location-search-input" placeholder="Search for a location on the route..." style="flex: 1; padding: 0.75rem; border: 1px solid rgba(16, 42, 67, 0.15); border-radius: 8px; font-size: 0.95rem; color: #102a43;">
+                        <button type="button" id="staff-location-search-btn" style="padding: 0.75rem 1.5rem; background: var(--accent); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 700; white-space: nowrap;">
+                            <i class="fa-solid fa-magnifying-glass"></i> Search
+                        </button>
+                    </div>
+                    <div id="staff-search-status" style="margin-bottom: 1rem; padding: 0.75rem; border-radius: 8px; display: none; font-weight: 700; text-align: center;"></div>
+
+                    <div id="staff-route-map" style="height: 300px; width: 100%; border-radius: 14px; margin-bottom: 1rem; border: 1px solid rgba(16, 42, 67, 0.15); display: none;"></div>
+                    <div id="staff-map-fallback" style="display: none; padding: 1rem; background: #fee2e2; color: #991b1b; border-radius: 8px; margin-bottom: 1rem; font-size: 0.9rem;">
+                        Route coordinates unavailable for this trip.
+                    </div>
+
+                    <div class="input-group">
+                        <div style="display: flex; gap: 1rem; flex-wrap: wrap; align-items: center; margin-bottom: 0.5rem;">
+                            <div><strong>Selected stop:</strong> <span id="staff-selected-dropoff-label">Origin</span></div>
+                        </div>
+
+                        <input type="hidden" id="staff-distance-input" name="distance" value="0">
+                        
+                        <div style="display: flex; justify-content: space-between; margin-top: 0.5rem; font-size: 0.95rem; color: #102a43;">
+                            <span>Selected: <strong id="staff-selected-distance">0.0</strong> km</span>
+                            <span>Max: <strong id="staff-route-max">20.0</strong> km</span>
+                        </div>
+                    </div>
+
+                    <div class="input-group">
+                        <label for="discount_type">Fare option</label>
+                        <select id="discount_type" name="discount_type">
+                            <option value="regular">Regular</option>
+                            <option value="student">Student ID</option>
+                            <option value="senior">Senior Citizen ID</option>
+                            <option value="pwd">PWD ID</option>
+                        </select>
+                    </div>
+
+                    <div id="staff-id-verify-section" class="input-group hidden" style="margin-top: 1rem;">
+                        <label style="color: var(--accent); font-weight: 700; margin-bottom: 0.5rem; display: block;">
+                            <i class="fa-solid fa-id-card"></i> Verify Discount ID
+                        </label>
+                        <div style="background: rgba(255,255,255,0.05); padding: 1.25rem; border-radius: 12px; border: 1px dashed rgba(16, 42, 67, 0.2);">
+                            <div id="staff-id-scanner-ui" style="margin-bottom: 1rem;">
+                                <div id="staff-id-reader" style="width: 100%; max-width: 400px; margin: 0 auto; border-radius: 10px; overflow: hidden; display: none;"></div>
+                                <button type="button" id="staff-start-id-scan" class="auth-btn" style="background: var(--accent-dark);"><i class="fa-solid fa-camera"></i> Scan Customer ID</button>
+                            </div>
+                            <input type="hidden" id="staff_id_scanned" name="id_scanned" value="0">
+                            <div id="staff-id-verification-status" style="margin-top: 10px; font-weight: 700; font-size: 0.9rem; display: none;"></div>
+                        </div>
+                    </div>
+
+                    <div class="input-group" style="margin-top: 0.5rem;">
+                        <label>Calculated fare</label>
+                        <div style="font-size: 1.25rem; font-weight: 700; color: #102a43;">₱<span id="staff-route-fare">0.00</span></div>
+                    </div>
+                </div>
+
                 <div class="seat-selection-wrapper">
                     <h3 class="selection-subtitle">Select Your Seat</h3>
                     <p style="color: #102a43; font-size: 0.95rem; margin-bottom: 1rem; font-weight: 600;">
                         <span style="display: inline-block; margin-right: 2rem;"><span class="seat-legend available"></span> Available</span>
                         <span style="display: inline-block; margin-right: 2rem;"><span class="seat-legend booked"></span> Booked</span>
+                        <span style="display: inline-block; margin-right: 2rem;"><span class="seat-legend blocked"></span> Blocked</span>
                         <span id="staff-available-count" style="display: inline-block; font-weight: 700; color: #102a43;">52 seats available</span>
                     </p>
 
@@ -321,6 +395,14 @@ const summaryArrival = document.getElementById('staff-summary-arrival');
 const summaryPrice = document.getElementById('staff-summary-price');
 const availableCount = document.getElementById('staff-available-count');
 const paymentAmount = document.getElementById('payment_amount');
+const distanceInput = document.getElementById('staff-distance-input');
+const locationSearchBtn = document.getElementById('staff-location-search-btn');
+const searchStatusDiv = document.getElementById('staff-search-status');
+const selectedDropoffLabel = document.getElementById('staff-selected-dropoff-label');
+
+const staffMapContainer = document.getElementById('staff-route-map');
+const staffMapFallback = document.getElementById('staff-map-fallback');
+let staffMap, staffRouteLine, staffDropoffMarker;
 
 const modal = document.getElementById("payment-modal");
 const proceedBtn = document.getElementById("proceed-payment-btn");
@@ -334,10 +416,209 @@ const cashTotalDisplay = document.getElementById("cash-total-display");
 const cashGivenDisplay = document.getElementById("cash-given-display");
 const cashChangeDisplay = document.getElementById("cash-change-display");
 
+const discountSelect = document.getElementById('discount_type');
+const selectedDistanceLabel = document.getElementById('staff-selected-distance');
+const routeMaxLabel = document.getElementById('staff-route-max');
+const routeOriginLabel = document.getElementById('staff-route-origin');
+const routeDestinationLabel = document.getElementById('staff-route-destination');
+const routeFareDisplay = document.getElementById('staff-route-fare');
+
+let currentRouteFare = 0;
+
 if (!tripSelect || !seatMap) return;
 
-function getBookedSeats(tripId) {
-    return new Set((bookedSeatsByTrip && bookedSeatsByTrip[tripId]) || []);
+function getSeatStatuses(tripId) {
+    const rawStatuses = (bookedSeatsByTrip && bookedSeatsByTrip[tripId]) || {};
+    if (Array.isArray(rawStatuses)) {
+        return rawStatuses.reduce((statuses, seat) => {
+            statuses[String(seat)] = 'booked';
+            return statuses;
+        }, {});
+    }
+    return rawStatuses;
+}
+
+function calculateRouteFare(distance, discountType) {
+    const distanceValue = Number(distance) || 0;
+    const isDiscount = ['student', 'senior', 'pwd'].includes(discountType);
+    const base = isDiscount ? 14.40 : 18.00;
+    const fare = distanceValue <= 5 ? base : base + (distanceValue - 5) * 2.97;
+    return Number(fare.toFixed(2));
+}
+
+function refreshRoutePricing(trip, distance = null) {
+    if (!trip || !discountSelect) return;
+
+    const maxDistance = Number(trip.route_distance || 20);
+    const currentDistance = distance !== null ? 
+        Math.min(Math.max(distance, 0), maxDistance) : 
+        Math.min(Math.max(Number(distanceInput.value || 0), 0), maxDistance);
+
+    distanceInput.value = currentDistance.toFixed(1);
+    routeMaxLabel.textContent = maxDistance.toFixed(1);
+    selectedDistanceLabel.textContent = currentDistance.toFixed(1);
+    routeOriginLabel.textContent = trip.origin;
+    routeDestinationLabel.textContent = trip.destination;
+
+    const fare = calculateRouteFare(currentDistance, discountSelect.value);
+    routeFareDisplay.textContent = fare.toFixed(2);
+    currentRouteFare = fare;
+
+    summaryPrice.textContent = `₱${fare.toFixed(2)}`;
+    paymentAmount.value = fare.toFixed(2);
+    if (modalTotalAmount) modalTotalAmount.textContent = `₱${fare.toFixed(2)}`;
+    if (cashTotalDisplay) cashTotalDisplay.textContent = `₱${fare.toFixed(2)}`;
+
+    if (staffMap && staffDropoffMarker) {
+        let geometry = [];
+        try { geometry = JSON.parse(trip.geometry_json); } catch(e) {}
+        updateStaffMapMarker(currentDistance, geometry, maxDistance);
+    }
+}
+
+function closestPointOnStaffRoute(latlng, geometry) {
+    let minfDist = Infinity;
+    let closestLatLng = latlng;
+    for (let i = 0; i < geometry.length - 1; i++) {
+        const p1 = L.latLng(geometry[i]);
+        const p2 = L.latLng(geometry[i+1]);
+        const snapped = L.LineUtil.closestPointOnSegment(
+            staffMap.latLngToLayerPoint(latlng),
+            staffMap.latLngToLayerPoint(p1),
+            staffMap.latLngToLayerPoint(p2)
+        );
+        const snappedLatLng = staffMap.layerPointToLatLng(snapped);
+        const dist = latlng.distanceTo(snappedLatLng);
+        if (dist < minfDist) {
+            minfDist = dist;
+            closestLatLng = snappedLatLng;
+        }
+    }
+    return closestLatLng;
+}
+
+function getStaffRouteKilometers(snappedLatLng, geometry, totalKm) {
+    let totalDist = 0;
+    for (let i = 0; i < geometry.length - 1; i++) {
+        const p1 = L.latLng(geometry[i]);
+        const p2 = L.latLng(geometry[i+1]);
+        const segment = [staffMap.latLngToLayerPoint(p1), staffMap.latLngToLayerPoint(p2)];
+        const snappedPoint = staffMap.latLngToLayerPoint(snappedLatLng);
+        if (L.LineUtil.pointToSegmentDistance(snappedPoint, segment[0], segment[1]) < 1) {
+            totalDist += p1.distanceTo(snappedLatLng);
+            break;
+        } else {
+            totalDist += p1.distanceTo(p2);
+        }
+    }
+    return Math.min(totalKm, totalDist / 1000);
+}
+
+function selectStaffRoutePosition(latlng, trip) {
+    let geometry = [];
+    try { geometry = JSON.parse(trip.geometry_json); } catch(e) {}
+    if (!geometry || geometry.length < 2) return;
+    const snappedLatLng = closestPointOnStaffRoute(latlng, geometry);
+    staffDropoffMarker.setLatLng(snappedLatLng);
+    const routeKm = getStaffRouteKilometers(snappedLatLng, geometry, trip.route_distance);
+    if (selectedDropoffLabel) {
+        selectedDropoffLabel.textContent = `${routeKm.toFixed(1)} km from origin`;
+    }
+    refreshRoutePricing(trip, routeKm);
+}
+
+function initStaffMap(trip) {
+    if (!staffMapContainer) return;
+    
+    let geometry = [];
+    try { geometry = JSON.parse(trip.geometry_json); } catch(e) {}
+
+    if (!geometry || geometry.length === 0) {
+        staffMapContainer.style.display = 'none';
+        staffMapFallback.style.display = 'block';
+        return;
+    }
+
+    staffMapFallback.style.display = 'none';
+    staffMapContainer.style.display = 'block';
+
+    if (!staffMap) {
+        staffMap = L.map('staff-route-map', { zoomControl: true, attributionControl: false });
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(staffMap);
+        staffDropoffMarker = L.circleMarker([0,0], { radius: 7, fillColor: '#f27523', color: '#fff', weight: 2, fillOpacity: 1 }).addTo(staffMap);
+        staffMap.on('click', function(e) {
+            const currentTrip = trips.find(t => String(t.id) === String(tripSelect.value));
+            if (currentTrip) selectStaffRoutePosition(e.latlng, currentTrip);
+        });
+    }
+
+    if (staffRouteLine) staffMap.removeLayer(staffRouteLine);
+    staffRouteLine = L.polyline(geometry, { color: '#0078FF', weight: 5 }).addTo(staffMap);
+    staffMap.fitBounds(staffRouteLine.getBounds(), { padding: [20, 20] });
+    
+    const currentDist = Number(distanceInput.value || 0);
+    updateStaffMapMarker(currentDist, geometry, trip.route_distance);
+}
+
+function searchAndSnapStaffLocation(searchText) {
+    const trip = trips.find(t => String(t.id) === String(tripSelect.value));
+    if (!trip) { alert("Please select a trip first."); return; }
+    if (!searchText.trim()) { showStaffSearchStatus('Please enter a location to search.', false); return; }
+    if (searchStatusDiv) {
+        searchStatusDiv.textContent = 'Searching...';
+        searchStatusDiv.style.display = 'block';
+        searchStatusDiv.style.backgroundColor = '#e0f2fe';
+        searchStatusDiv.style.color = '#0c4a6e';
+    }
+    const headers = { 'User-Agent': 'BusGo-App/1.0' };
+    const nominatimUrl = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchText + ', Philippines')}&limit=1`;
+    fetch(nominatimUrl, { headers })
+        .then(res => res.json())
+        .then(data => {
+            if (!data || data.length === 0) { showStaffSearchStatus('Location not found.', false); return; }
+            const result = data[0];
+            const searchedLatLng = L.latLng(parseFloat(result.lat), parseFloat(result.lon));
+            selectStaffRoutePosition(searchedLatLng, trip);
+            showStaffSearchStatus(`📍 pinned to route!`, true);
+            locationSearchInput.value = '';
+        })
+        .catch(error => { console.error('Search error:', error); showStaffSearchStatus('Error searching location.', false); });
+}
+
+function showStaffSearchStatus(message, isSuccess = true) {
+    if (searchStatusDiv) {
+        searchStatusDiv.textContent = message;
+        searchStatusDiv.style.display = 'block';
+        searchStatusDiv.style.backgroundColor = isSuccess ? '#dcfce7' : '#fee2e2';
+        searchStatusDiv.style.color = isSuccess ? '#166534' : '#991b1b';
+        setTimeout(() => { searchStatusDiv.style.display = 'none'; }, 5000);
+    }
+}
+
+function updateStaffMapMarker(distKm, geometry, totalKm) {
+    if (!staffDropoffMarker || !geometry || geometry.length < 2) return;
+    
+    let targetMeters = distKm * 1000;
+    let currentMeters = 0;
+    let pos = L.latLng(geometry[0]);
+
+    for (let i = 0; i < geometry.length - 1; i++) {
+        let p1 = L.latLng(geometry[i]);
+        let p2 = L.latLng(geometry[i+1]);
+        let segmentDist = p1.distanceTo(p2);
+        
+        if (currentMeters + segmentDist >= targetMeters) {
+            let ratio = (targetMeters - currentMeters) / segmentDist;
+            pos = L.latLng(
+                p1.lat + (p2.lat - p1.lat) * ratio,
+                p1.lng + (p2.lng - p1.lng) * ratio
+            );
+            break;
+        }
+        currentMeters += segmentDist;
+        pos = p2;
+    }
+    staffDropoffMarker.setLatLng(pos);
 }
 
 function updateSummary(trip) {
@@ -346,17 +627,22 @@ function updateSummary(trip) {
     summaryRoute.textContent = `${trip.bus_no} — ${trip.origin} → ${trip.destination}`;
     summaryDeparture.textContent = trip.departure || '—';
     summaryArrival.textContent = trip.arrival || '—';
-
-    const price = Number(trip.price || 0);
-    summaryPrice.textContent = `₱${price.toFixed(2)}`;
-    paymentAmount.value = price.toFixed(2);
-    
-    if (modalTotalAmount) {
-        modalTotalAmount.textContent = `₱${price.toFixed(2)}`;
-        cashTotalDisplay.textContent = `₱${price.toFixed(2)}`;
-    }
-
     summarySeat.textContent = 'None';
+
+    if (trip.route_distance) {
+        distanceInput.value = "0.0";
+        if (selectedDropoffLabel) selectedDropoffLabel.textContent = "Origin";
+        refreshRoutePricing(trip, 0);
+        initStaffMap(trip);
+    } else {
+        const price = 0;
+        summaryPrice.textContent = `₱0.00`;
+        paymentAmount.value = '0.00';
+        if (modalTotalAmount) {
+            modalTotalAmount.textContent = `₱0.00`;
+            cashTotalDisplay.textContent = `₱0.00`;
+        }
+    }
 }
 
 function resetSummary() {
@@ -383,8 +669,8 @@ function renderSeatMap(tripId) {
 
     updateSummary(trip);
 
-    const bookedSeats = getBookedSeats(tripId);
-    const availableSeats = 52 - bookedSeats.size;
+    const seatStatuses = getSeatStatuses(tripId);
+    const availableSeats = 52 - Object.keys(seatStatuses).length;
     availableCount.textContent = `${availableSeats} seats available`;
 
     const seatRows = [
@@ -399,8 +685,8 @@ function renderSeatMap(tripId) {
         [[33, 34], [35, 36]],
         [[40, 39], [38, 37]],
         [[41, 42], [43, 44]],
-        [[46], [45]],
-        [[48, 47], [49, 50], [51, 52]]
+        [[48, 47], [46, 45]],
+        [[49, 50,  51, 52]]
     ];
 
     seatRows.forEach(row => {
@@ -416,12 +702,22 @@ function renderSeatMap(tripId) {
                 seatEl.className = 'seat-box';
                 seatEl.innerHTML = `<span class="seat-number">${seat}</span>`;
 
-                if (bookedSeats.has(String(seat))) {
+                const seatStatus = seatStatuses[String(seat)];
+                if (seatStatus === 'blocked') {
+                    seatEl.classList.add('booked', 'blocked-admin');
+                    seatEl.title = 'Seat blocked by admin';
+                } else if (seatStatus) {
                     seatEl.classList.add('booked');
+                    seatEl.title = 'Seat booked';
                 }
 
                 seatEl.addEventListener('click', () => {
-                    if (seatEl.classList.contains('booked')) return;
+                    if (seatEl.classList.contains('booked')) {
+                        alert(seatEl.classList.contains('blocked-admin')
+                            ? 'This seat is blocked by the admin.'
+                            : 'This seat is already booked.');
+                        return;
+                    }
 
                     document.querySelectorAll('.seat-box')
                         .forEach(b => b.classList.remove('selected'));
@@ -482,6 +778,24 @@ tripSelect.addEventListener('change', function () {
     renderSeatMap(this.value);
 });
 
+if (locationSearchBtn) {
+    locationSearchBtn.addEventListener('click', function() {
+        searchAndSnapStaffLocation(locationSearchInput.value);
+    });
+}
+if (locationSearchInput) {
+    locationSearchInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') searchAndSnapStaffLocation(locationSearchInput.value);
+    });
+}
+
+if (discountSelect) {
+    discountSelect.addEventListener('change', function () {
+        const trip = trips.find(t => String(t.id) === String(tripSelect.value));
+        if (trip) refreshRoutePricing(trip);
+    });
+}
+
 if (tripSelect.value) renderSeatMap(tripSelect.value);
 
 proceedBtn.addEventListener("click", function () {
@@ -491,7 +805,7 @@ proceedBtn.addEventListener("click", function () {
     }
 
     const trip = trips.find(t => String(t.id) === String(tripSelect.value));
-    const price = Number(trip.price || 0);
+    const price = currentRouteFare;
     
     if (modalTotalAmount) {
         modalTotalAmount.textContent = `₱${price.toFixed(2)}`;
@@ -511,9 +825,9 @@ window.onclick = (e) => {
 if (cashInput) {
     cashInput.addEventListener("input", function () {
         const trip = trips.find(t => String(t.id) === String(tripSelect.value));
-        const price = Number(trip.price || 0);
+        const basePrice = currentRouteFare;
         const cashGiven = Number(this.value) || 0;
-        const change = cashGiven - price;
+        const change = cashGiven - basePrice;
         
         cashGivenDisplay.textContent = `₱${cashGiven.toFixed(2)}`;
         cashChangeDisplay.textContent = `₱${change > 0 ? change.toFixed(2) : "0.00"}`;
@@ -522,6 +836,11 @@ if (cashInput) {
 }
 
 confirmBtn.addEventListener("click", function () {
+    if (discountSelect.value !== 'regular' && document.getElementById('staff_id_scanned').value !== '1') {
+        alert("Please scan the customer's ID to verify discount.");
+        return;
+    }
+
     const method = selectedModalMethod;
     
     document.getElementById("payment_method").value = method;
@@ -529,7 +848,7 @@ confirmBtn.addEventListener("click", function () {
     if (method === "cash") {
         const cashGiven = document.getElementById("modal_cash_given").value;
         const trip = trips.find(t => String(t.id) === String(tripSelect.value));
-        const price = Number(trip.price || 0);
+        const price = currentRouteFare;
         
         if (!cashGiven || Number(cashGiven) < price) {
             alert(`Insufficient cash. Amount due is ₱${price.toFixed(2)}`);

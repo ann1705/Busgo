@@ -7,12 +7,14 @@ from flask import jsonify
 import urllib.parse
 from flask import flash
 from werkzeug.security import generate_password_hash, check_password_hash
+import re
 
 app = Flask(__name__)
 app.secret_key = "busgo_secret_key"
 app.config['TEMPLATES_AUTO_RELOAD'] = True
 PAYMONGO_SECRET_KEY = os.environ.get("PAYMONGO_SECRET_KEY", "sk_test_2Qq7gVeyLzRf1eB7xYyMUTUF")
 DATABASE = "busgo.db"
+GOOGLE_MAPS_API_KEY = os.environ.get("GOOGLE_MAPS_API_KEY", "AIzaSyAHXSF5ijWwrf6K_FLw8YI6NCd5yebxLng")
 
 
 def get_db_connection():
@@ -50,7 +52,9 @@ def create_tables():
         CREATE TABLE IF NOT EXISTS routes (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             origin TEXT NOT NULL,
-            destination TEXT NOT NULL
+            destination TEXT NOT NULL,
+            distance REAL DEFAULT 0,
+            geometry_json TEXT
         )
         """)
 
@@ -61,7 +65,6 @@ def create_tables():
             route_id INTEGER,
             departure TEXT,
             arrival TEXT,
-            price REAL,
             status TEXT DEFAULT 'scheduled',
             FOREIGN KEY(bus_id) REFERENCES buses(id),
             FOREIGN KEY(route_id) REFERENCES routes(id)
@@ -86,6 +89,12 @@ def create_tables():
             status TEXT DEFAULT 'waiting for payment',
             booking_type TEXT DEFAULT 'Online',
             payment_method TEXT DEFAULT 'Online',
+            price REAL DEFAULT 0,
+            distance REAL DEFAULT 0,
+            fare_type TEXT DEFAULT 'regular',
+            discount_type TEXT,
+            travel_date TEXT,
+            id_photo_path TEXT, -- New column for ID photo path
             created_at TEXT DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY(user_id) REFERENCES users(id),
             FOREIGN KEY(trip_id) REFERENCES trips(id),
@@ -93,7 +102,28 @@ def create_tables():
         )
         """)
 
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS seat_blocks (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            trip_id INTEGER NOT NULL,
+            seat_number TEXT NOT NULL,
+            created_by INTEGER,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE(trip_id, seat_number),
+            FOREIGN KEY(trip_id) REFERENCES trips(id),
+            FOREIGN KEY(created_by) REFERENCES users(id)
+        )
+        """)
+
     conn.commit()
+    conn.close()
+
+def ensure_bookings_travel_date_column():
+    conn = get_db_connection()
+    columns = [row['name'] for row in conn.execute("PRAGMA table_info(bookings)").fetchall()]
+    if 'travel_date' not in columns:
+        conn.execute("ALTER TABLE bookings ADD COLUMN travel_date TEXT")
+        conn.commit()
     conn.close()
 
 
@@ -128,6 +158,33 @@ def ensure_bookings_ticket_columns():
     conn.commit()
     conn.close()
 
+
+def ensure_bookings_fare_columns():
+    conn = get_db_connection()
+    columns = [row['name'] for row in conn.execute("PRAGMA table_info(bookings)").fetchall()]
+    if 'price' not in columns:
+        conn.execute("ALTER TABLE bookings ADD COLUMN price REAL DEFAULT 0")
+    if 'distance' not in columns:
+        conn.execute("ALTER TABLE bookings ADD COLUMN distance REAL DEFAULT 0")
+    if 'fare_type' not in columns:
+        conn.execute("ALTER TABLE bookings ADD COLUMN fare_type TEXT DEFAULT 'regular'")
+    if 'discount_type' not in columns:
+        conn.execute("ALTER TABLE bookings ADD COLUMN discount_type TEXT")
+    if 'id_photo_path' not in columns: # Add new column if it doesn't exist
+        conn.execute("ALTER TABLE bookings ADD COLUMN id_photo_path TEXT")
+    conn.commit()
+    conn.close()
+
+
+def ensure_routes_columns():
+    conn = get_db_connection()
+    columns = [row['name'] for row in conn.execute("PRAGMA table_info(routes)").fetchall()]
+    if 'distance' not in columns:
+        conn.execute("ALTER TABLE routes ADD COLUMN distance REAL DEFAULT 0")
+    if 'geometry_json' not in columns:
+        conn.execute("ALTER TABLE routes ADD COLUMN geometry_json TEXT")
+    conn.commit()
+    conn.close()
 
 def ensure_bus_status_column():
     conn = get_db_connection()
@@ -168,6 +225,65 @@ def ensure_buses_updated_at_column():
     conn.close()
 
 
+def ensure_seat_blocks_table():
+    conn = get_db_connection()
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS seat_blocks (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            trip_id INTEGER NOT NULL,
+            seat_number TEXT NOT NULL,
+            created_by INTEGER,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE(trip_id, seat_number),
+            FOREIGN KEY(trip_id) REFERENCES trips(id),
+            FOREIGN KEY(created_by) REFERENCES users(id)
+        )
+    """)
+
+    blocked_rows = conn.execute("""
+        SELECT id, trip_id, seat_number, user_id, created_at
+        FROM bookings
+        WHERE status = 'blocked'
+    """).fetchall()
+    for row in blocked_rows:
+        conn.execute("""
+            INSERT OR IGNORE INTO seat_blocks (trip_id, seat_number, created_by, created_at)
+            VALUES (?, ?, ?, COALESCE(?, CURRENT_TIMESTAMP))
+        """, (row["trip_id"], row["seat_number"], row["user_id"], row["created_at"]))
+    conn.execute("UPDATE bookings SET status = 'cancelled' WHERE status = 'blocked'")
+    conn.commit()
+    conn.close()
+
+
+def get_blocked_seats(conn, trip_id):
+    rows = conn.execute("""
+        SELECT seat_number
+        FROM seat_blocks
+        WHERE trip_id = ?
+    """, (trip_id,)).fetchall()
+    return {str(row["seat_number"]) for row in rows}
+
+
+def get_seat_statuses(conn, trip_id, travel_date=None):
+    params = [trip_id]
+    query = """
+        SELECT seat_number, status
+        FROM bookings
+        WHERE trip_id = ? AND status != 'cancelled'
+    """
+    if travel_date:
+        query += " AND travel_date = ?"
+        params.append(travel_date)
+
+    statuses = {
+        str(row["seat_number"]): row["status"]
+        for row in conn.execute(query, params).fetchall()
+    }
+    for seat_number in get_blocked_seats(conn, trip_id):
+        statuses.setdefault(seat_number, "blocked")
+    return statuses
+
+
 def create_default_admin():
     conn = get_db_connection()
     admin = conn.execute("SELECT * FROM users WHERE role='admin'").fetchone()
@@ -190,11 +306,129 @@ def create_default_admin():
 create_tables()
 ensure_bookings_created_at_column()
 ensure_bookings_ticket_columns()
+ensure_bookings_travel_date_column()
+ensure_bookings_fare_columns()
 ensure_bus_status_column()
+ensure_routes_columns()
 ensure_users_created_at_column()
 ensure_buses_created_at_column()
 ensure_buses_updated_at_column()
+ensure_seat_blocks_table()
 create_default_admin()
+
+route_geo_cache = {}
+
+def haversine_distance(lat1, lon1, lat2, lon2):
+    from math import radians, cos, sin, asin, sqrt
+    lat1, lon1, lat2, lon2 = map(radians, [lat1, lon1, lat2, lon2])
+    dlat = lat2 - lat1
+    dlon = lon2 - lon1
+    a = sin(dlat/2)**2 + cos(lat1) * cos(lat2) * sin(dlon/2)**2
+    c = 2 * asin(sqrt(a))
+    return 6371 * c
+
+
+def geocode_place(place):
+    if not place:
+        return None
+    try:
+        url = "https://nominatim.openstreetmap.org/search"
+        headers = {"User-Agent": "BusGo-App/1.0"}
+        params = {
+            "q": f"{place}, Philippines",
+            "format": "json",
+            "limit": 1
+        }
+        response = requests.get(url, params=params, headers=headers, timeout=6)
+        response.raise_for_status()
+        results = response.json()
+        if not results:
+            return None
+        return {
+            "lat": float(results[0]["lat"]),
+            "lon": float(results[0]["lon"])
+        }
+    except Exception:
+        return None
+
+
+def get_route_geo(origin, destination):
+    key = f"{origin}|{destination}"
+    if key in route_geo_cache:
+        return route_geo_cache[key]
+
+    origin_geo = geocode_place(origin)
+    destination_geo = geocode_place(destination)
+    if origin_geo and destination_geo:
+        distance_km_straight = round(haversine_distance(
+            origin_geo["lat"], origin_geo["lon"],
+            destination_geo["lat"], destination_geo["lon"]
+        ), 2)
+        
+        # Default estimate multiplier
+        route_distance = max(5.0, round(distance_km_straight * 1.2, 1))
+        route_geometry = [[origin_geo["lat"], origin_geo["lon"]], [destination_geo["lat"], destination_geo["lon"]]]
+        
+        # Fetch actual road distance from OSRM to follow highways and main roads
+        try:
+            # overview=full & geometries=geojson to get the actual road-following path
+            osrm_url = f"https://router.project-osrm.org/route/v1/driving/{origin_geo['lon']},{origin_geo['lat']};{destination_geo['lon']},{destination_geo['lat']}?overview=full&geometries=geojson"
+            res = requests.get(osrm_url, headers={"User-Agent": "BusGo-App/1.0"}, timeout=5)
+            if res.status_code == 200:
+                data = res.json()
+                if data.get("routes"):
+                    route = data["routes"][0]
+                    route_distance = round(route["distance"] / 1000, 1)
+                    # OSRM returns [lng, lat], Leaflet wants [lat, lng]
+                    route_geometry = [[coord[1], coord[0]] for coord in route["geometry"]["coordinates"]]
+        except Exception:
+            pass
+
+        route_geo_cache[key] = {
+            "origin_lat": origin_geo["lat"],
+            "origin_lon": origin_geo["lon"],
+            "destination_lat": destination_geo["lat"],
+            "destination_lon": destination_geo["lon"],
+            "route_distance": route_distance,
+            "direct_distance": distance_km_straight,
+            "geometry": route_geometry
+        }
+    else:
+        route_geo_cache[key] = {
+            "origin_lat": None,
+            "origin_lon": None,
+            "destination_lat": None,
+            "destination_lon": None,
+            "route_distance": 20.0,
+            "direct_distance": None,
+            "geometry": []
+        }
+
+    return route_geo_cache[key]
+
+
+def calculate_fare(distance, discount_type='regular'):
+    try:
+        distance = float(distance)
+    except Exception:
+        distance = 0.0
+
+    fare_type = 'regular'
+    if discount_type in ['student', 'senior', 'pwd']:
+        fare_type = 'discount'
+
+    if fare_type == 'discount':
+        base = 14.40
+    else:
+        base = 18.00
+
+    if distance <= 5:
+        return round(base, 2), fare_type
+
+    extra_km = max(0.0, distance - 5.0)
+    total = base + extra_km * 2.97
+    return round(total, 2), fare_type
+
 
 def create_default_staff():
     conn = get_db_connection()
@@ -215,8 +449,32 @@ def create_default_staff():
     conn.close()
 
 
-create_default_staff()
+def create_default_conductor():
+    conn = get_db_connection()
+    conductor = conn.execute("SELECT * FROM users WHERE role='conductor'").fetchone()
+    if not conductor:
+        conn.execute(
+            "INSERT INTO users (fullname, email, password, role) VALUES (?, ?, ?, ?)",
+            (
+                "BusGo Conductor",
+                "conductor@busgo.com",
+                generate_password_hash("conductor123"),
+                "conductor"
+            )
+        )
+        conn.commit()
+    conn.close()
 
+create_default_staff()
+create_default_conductor()
+
+@app.context_processor
+def inject_user_info():
+    """Makes user role and fullname available to all templates for navigation logic."""
+    return dict(
+        user_role=session.get("role"),
+        user_name=session.get("fullname")
+    )
 
 @app.route("/")
 def home():
@@ -236,12 +494,9 @@ def contact():
 
 @app.route("/schedules")
 def schedules():
-    if "user_id" not in session:
-        return redirect(url_for("home", login_required=1))
-
     conn = get_db_connection()
 
-    trips = conn.execute("""
+    raw_trips = conn.execute("""
         SELECT 
             t.id AS trip_id,
             b.id AS bus_id,
@@ -250,20 +505,27 @@ def schedules():
             b.capacity,
             r.origin,
             r.destination,
+            r.distance AS route_distance,
             t.departure,
             t.arrival,
-            t.price,
-            COUNT(bo.id) AS booked_count
+            (SELECT COUNT(*) FROM bookings bo WHERE bo.trip_id = t.id AND bo.status != 'cancelled') +
+            (SELECT COUNT(*) FROM seat_blocks sb WHERE sb.trip_id = t.id) AS booked_count
         FROM trips t
         JOIN buses b ON b.id = t.bus_id
         JOIN routes r ON r.id = t.route_id
-        LEFT JOIN bookings bo ON bo.trip_id = t.id
-        GROUP BY t.id
     """).fetchall()
+
+    trips_with_fare = []
+    for trip_row in raw_trips:
+        trip = dict(trip_row) # Convert sqlite3.Row to dict for easier modification
+        # Assuming 'regular' fare type for display in schedules
+        fare, _ = calculate_fare(trip["route_distance"], 'regular')
+        trip["calculated_fare"] = fare
+        trips_with_fare.append(trip)
 
     conn.close()
 
-    return render_template("schedules.html", buses=trips)
+    return render_template("schedules.html", buses=trips_with_fare)
 
 
 @app.route("/booking/<int:trip_id>", methods=["GET", "POST"])
@@ -279,12 +541,13 @@ def booking(trip_id):
             t.bus_id,
             t.departure,
             t.arrival,
-            t.price,
             b.bus_no,
             b.capacity,
             b.status,
             r.origin,
-            r.destination
+            r.destination,
+            r.distance AS route_distance,
+            r.geometry_json
         FROM trips t
         JOIN buses b ON b.id = t.bus_id
         JOIN routes r ON r.id = t.route_id
@@ -296,15 +559,77 @@ def booking(trip_id):
         flash("This trip is unavailable.")
         return redirect(url_for("schedules"))
 
+    # Fallback: Fetch geometry if missing in database
+    import json
+    geometry = json.loads(trip["geometry_json"]) if trip["geometry_json"] else []
+    if not geometry:
+        geo = get_route_geo(trip["origin"], trip["destination"])
+        geometry = geo['geometry']
+        if geometry:
+            conn.execute("UPDATE routes SET distance = ?, geometry_json = ? WHERE id = (SELECT route_id FROM trips WHERE id = ?)", 
+                         (geo['route_distance'], json.dumps(geometry), trip_id))
+            conn.commit()
+
+    # Prepare route_info for template
+    route_info = {
+        "origin": trip["origin"],
+        "destination": trip["destination"],
+        "route_distance": trip["route_distance"],
+        "geometry": geometry,
+        # Add coordinates so the map knows where to start/end
+        "origin_lat": geometry[0][0] if geometry else None,
+        "origin_lon": geometry[0][1] if geometry else None,
+        "destination_lat": geometry[-1][0] if geometry else None,
+        "destination_lon": geometry[-1][1] if geometry else None
+    }
+
     if request.method == "POST":
         passenger_name = request.form["passenger_name"]
         contact = request.form["contact"]
         seat_number = request.form["seat_number"]
+        travel_date = request.form.get("travel_date")
+        distance = request.form.get("distance", "0").strip()
+        discount_type = request.form.get("discount_type", "regular")
+        id_photo_path = None
+
+        try:
+            distance_value = float(distance)
+        except ValueError:
+            distance_value = 0.0
 
         if not contact.isdigit() or len(contact) != 11:
             conn.close()
             flash("Invalid contact number.")
             return redirect(url_for("booking", trip_id=trip_id))
+
+        if seat_number in get_blocked_seats(conn, trip_id):
+            conn.close()
+            flash(f"Seat #{seat_number} is blocked by the admin. Please choose another seat.")
+            return redirect(url_for("booking", trip_id=trip_id))
+
+        # Check if seat is already taken for that specific day.
+        existing = conn.execute("""
+            SELECT id, status FROM bookings
+            WHERE trip_id = ? AND seat_number = ? AND travel_date = ? AND status != 'cancelled'
+        """, (trip_id, seat_number, travel_date)).fetchone()
+
+        if existing:
+            conn.close()
+            flash(f"Seat #{seat_number} is already booked for {travel_date}. Please choose another seat.")
+            return redirect(url_for("booking", trip_id=trip_id))
+
+        if distance_value <= 0 or distance_value > route_info["route_distance"]:
+            conn.close()
+            flash("Selected destination exceeds the available route for this trip.")
+            return redirect(url_for("booking", trip_id=trip_id))
+
+        # Verification check for Discounted IDs (ID Scan required)
+        if discount_type != 'regular':
+            if request.form.get('id_scanned') != '1':
+                flash("Discount ID must be verified via scanner.")
+                return redirect(url_for("booking", trip_id=trip_id))
+
+        price, fare_type = calculate_fare(distance_value, discount_type)
 
         created_at = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
@@ -317,9 +642,10 @@ def booking(trip_id):
         cur = conn.execute("""
             INSERT INTO bookings (
                 user_id, trip_id, passenger_id, seat_number,
-                status, booking_type, payment_method, created_at
+                status, booking_type, payment_method, price, distance,
+                fare_type, discount_type, travel_date, id_photo_path, created_at
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, (
             session["user_id"],
             trip_id,
@@ -328,6 +654,12 @@ def booking(trip_id):
             "waiting for payment",
             "Online",
             "Online",
+            price,
+            distance_value,
+            fare_type,
+            discount_type,
+            travel_date,
+            id_photo_path,
             created_at
         ))
 
@@ -337,22 +669,21 @@ def booking(trip_id):
 
         return redirect(url_for("view_booking", booking_id=booking_id))
 
-    booked_seats = conn.execute("""
-        SELECT seat_number
-        FROM bookings
-        WHERE trip_id = ?
-    """, (trip_id,)).fetchall()
-
-    booked_seat_numbers = [s["seat_number"] for s in booked_seats]
+    today = datetime.date.today().isoformat()
+    seat_statuses = get_seat_statuses(conn, trip_id, today)
+    booked_seat_numbers = list(seat_statuses.keys())
     available_seats = max(0, trip["capacity"] - len(booked_seat_numbers))
-
     conn.close()
 
     return render_template(
         "booking.html",
         trip=trip,
         booked_seats=booked_seat_numbers,
+        seat_statuses=seat_statuses,
         available_seats=available_seats,
+        today=today,
+        route_info=route_info,
+        google_maps_api_key=GOOGLE_MAPS_API_KEY,
         back_url=url_for("schedules")
     )
 
@@ -371,9 +702,10 @@ def user_dashboard():
             r.destination,
             t.departure,
             t.arrival,
-            t.price,
+            b.price,
             b.status,
-            b.created_at
+            b.created_at,
+            b.travel_date
         FROM bookings b
         JOIN trips t ON t.id = b.trip_id
         JOIN buses bs ON bs.id = t.bus_id
@@ -400,7 +732,8 @@ def user_dashboard():
             'arrival': row['arrival'],
             'price': row['price'],
             'status': row['status'],
-            'booked_on': booked_on
+            'booked_on': booked_on,
+            'travel_date': row['travel_date']
         })
     conn.close()
 
@@ -408,15 +741,59 @@ def user_dashboard():
 
 @app.route("/api/booked-seats/<int:trip_id>")
 def booked_seats(trip_id):
+    travel_date = request.args.get('date')
     conn = get_db_connection()
-    rows = conn.execute(
-        "SELECT seat_number FROM bookings WHERE trip_id = ?",
-        (trip_id,)
-    ).fetchall()
+    status_map = get_seat_statuses(conn, trip_id, travel_date)
     conn.close()
 
-    seats = [row["seat_number"] for row in rows]
+    seats = [{"seat": seat, "status": status} for seat, status in status_map.items()]
     return jsonify(seats)
+
+@app.route("/admin/api/toggle-seat", methods=["POST"])
+def admin_toggle_seat():
+    if "user_id" not in session or session.get("role") != "admin":
+        return jsonify({"success": False, "message": "Unauthorized"}), 403
+    
+    data = request.get_json()
+    trip_id = data.get("trip_id")
+    date = data.get("date")
+    seat = str(data.get("seat_number"))
+
+    if not trip_id or not date or not seat:
+        return jsonify({"success": False, "message": "Missing trip, date, or seat."}), 400
+    
+    conn = get_db_connection()
+    
+    existing_booking = conn.execute("""
+        SELECT id, status FROM bookings 
+        WHERE trip_id = ? AND travel_date = ? AND seat_number = ? AND status != 'cancelled'
+    """, (trip_id, date, seat)).fetchone()
+    existing_block = conn.execute("""
+        SELECT id FROM seat_blocks
+        WHERE trip_id = ? AND seat_number = ?
+    """, (trip_id, seat)).fetchone()
+    
+    if existing_block:
+        conn.execute("DELETE FROM seat_blocks WHERE id = ?", (existing_block["id"],))
+        message = "Seat is now Available"
+        success = True
+        new_status = "available"
+    elif existing_booking:
+        message = "Cannot toggle: Seat is already booked by a customer."
+        success = False
+        new_status = existing_booking["status"]
+    else:
+        conn.execute("""
+            INSERT OR IGNORE INTO seat_blocks (trip_id, seat_number, created_by, created_at)
+            VALUES (?, ?, ?, ?)
+        """, (trip_id, seat, session["user_id"], datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
+        message = "Seat is now Blocked"
+        success = True
+        new_status = "blocked"
+        
+    conn.commit()
+    conn.close()
+    return jsonify({"success": success, "message": message, "new_status": new_status})
 
 @app.route("/user/booking/<int:booking_id>")
 def view_booking(booking_id):
@@ -431,8 +808,15 @@ def view_booking(booking_id):
             b.seat_number,
             b.status,
             b.created_at,
+            b.travel_date,
             b.booking_type,
             b.payment_method,
+            b.id_photo_path, -- Retrieve ID photo path
+            b.price,
+            b.distance,
+            b.fare_type,
+            b.discount_type,
+            b.id_photo_path, -- Retrieve ID photo path
 
             u.fullname AS customer,
 
@@ -441,7 +825,6 @@ def view_booking(booking_id):
 
             t.departure,
             t.arrival,
-            t.price,
 
             r.origin,
             r.destination,
@@ -463,13 +846,7 @@ def view_booking(booking_id):
         conn.close()
         return redirect(url_for("user_dashboard"))
 
-    # Calculate available seats for this bus
-    booked_seats_count = conn.execute(
-        "SELECT COUNT(*) as count FROM bookings WHERE trip_id = ?",
-        (booking["trip_id"],)
-    ).fetchone()["count"]
-    
-    available_seats = 52 - booked_seats_count
+    available_seats = 52 - len(get_seat_statuses(conn, booking["trip_id"], booking["travel_date"]))
     
     created_at_raw = booking['created_at'] if booking['created_at'] else None
     formatted_created_at = created_at_raw
@@ -492,7 +869,7 @@ def pay_booking(booking_id):
     conn = get_db_connection()
 
     booking = conn.execute("""
-        SELECT b.id, t.price, b.status
+        SELECT b.id, b.price, b.status
         FROM bookings b
         JOIN trips t ON t.id = b.trip_id
         WHERE b.id = ? AND b.user_id = ?
@@ -571,15 +948,20 @@ def payment_page(booking_id):
     booking = conn.execute("""
         SELECT 
             b.id,
+            b.trip_id,
             b.seat_number,
             b.status,
             b.booking_type,
             b.payment_method,
+            b.price,
+            b.distance,
+            b.fare_type,
+            b.discount_type,
+            b.travel_date,
             p.fullname AS passenger_name,
             p.contact,
             t.departure,
             t.arrival,
-            t.price,
             r.origin,
             r.destination,
             r.origin || ' → ' || r.destination AS route,
@@ -604,13 +986,7 @@ def payment_page(booking_id):
         flash("This booking has already been paid.")
         return redirect(url_for("ticket", booking_id=booking_id))
     
-    # Calculate available seats
-    booked_seats_count = conn.execute("""
-        SELECT COUNT(*) as count FROM bookings 
-        WHERE trip_id = (SELECT trip_id FROM bookings WHERE id = ?)
-    """, (booking_id,)).fetchone()["count"]
-    
-    available_seats = booking["capacity"] - booked_seats_count
+    available_seats = booking["capacity"] - len(get_seat_statuses(conn, booking["trip_id"], booking["travel_date"]))
     
     conn.close()
     
@@ -708,14 +1084,48 @@ def staff_walkin_gcash():
     passenger_name = request.form["passenger_name"]
     contact = request.form["contact"]
     seat_number = request.form["seat_number"]
+    distance = request.form.get("distance", "0").strip()
+    discount_type = request.form.get("discount_type", "regular")
+    today_iso = datetime.date.today().isoformat()
+
+    try:
+        distance_value = float(distance)
+    except ValueError:
+        distance_value = 0.0
 
     trip = conn.execute("""
-        SELECT id, price FROM trips WHERE id = ?
+        SELECT t.id, r.origin, r.destination
+        FROM trips t
+        JOIN routes r ON r.id = t.route_id
+        WHERE t.id = ?
     """, (trip_id,)).fetchone()
 
     if not trip:
         conn.close()
         return redirect(url_for("staff_dashboard"))
+
+    route_geo = get_route_geo(trip["origin"], trip["destination"])
+    if distance_value <= 0 or distance_value > route_geo["route_distance"]:
+        conn.close()
+        return redirect(url_for("staff_dashboard"))
+
+    if seat_number in get_blocked_seats(conn, trip_id):
+        conn.close()
+        flash(f"Seat #{seat_number} is blocked by the admin.")
+        return redirect(url_for("staff_dashboard"))
+
+    # Check for existing booking today
+    existing = conn.execute("""
+        SELECT 1 FROM bookings 
+        WHERE trip_id = ? AND seat_number = ? AND travel_date = ? AND status != 'cancelled'
+    """, (trip_id, seat_number, today_iso)).fetchone()
+    
+    if existing:
+        conn.close()
+        flash(f"Seat #{seat_number} is already booked for today.")
+        return redirect(url_for("staff_dashboard"))
+
+    price, fare_type = calculate_fare(distance_value, discount_type)
 
     # create passenger
     cur = conn.execute("""
@@ -729,9 +1139,10 @@ def staff_walkin_gcash():
     cur = conn.execute("""
         INSERT INTO bookings (
             user_id, trip_id, passenger_id,
-            seat_number, status, booking_type, payment_method
+            seat_number, status, booking_type, payment_method,
+            price, distance, fare_type, discount_type, travel_date
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     """, (
         session.get("user_id"),
         trip_id,
@@ -739,7 +1150,12 @@ def staff_walkin_gcash():
         seat_number,
         "waiting for payment",
         "Walk-in",
-        "GCash"
+        "GCash",
+        price,
+        distance_value,
+        fare_type,
+        discount_type,
+        today_iso
     ))
 
     booking_id = cur.lastrowid
@@ -832,6 +1248,14 @@ def staff_dashboard():
         passenger_name = request.form.get("passenger_name", "").strip()
         contact = request.form.get("contact", "").strip()
         seat_number = request.form.get("seat_number", "").strip()
+        distance = request.form.get("distance", "0").strip()
+        discount_type = request.form.get("discount_type", "regular")
+        id_photo_path = None
+
+        try:
+            distance_value = float(distance)
+        except ValueError:
+            distance_value = 0.0
 
         if not trip_id or not passenger_name or not contact or not seat_number:
             conn.close()
@@ -841,10 +1265,29 @@ def staff_dashboard():
             conn.close()
             return redirect(url_for("staff_dashboard"))
 
+        today_iso = datetime.date.today().isoformat()
+
+        if seat_number in get_blocked_seats(conn, trip_id):
+            conn.close()
+            flash(f"Seat #{seat_number} is blocked by the admin.")
+            return redirect(url_for("staff_dashboard"))
+
+        # Check if seat is already taken today
+        existing_seat = conn.execute("""
+            SELECT 1 FROM bookings
+            WHERE trip_id = ? AND seat_number = ? AND travel_date = ? AND status != 'cancelled'
+        """, (trip_id, seat_number, today_iso)).fetchone()
+
+        if existing_seat:
+            conn.close()
+            flash(f"Seat #{seat_number} is already booked for today.")
+            return redirect(url_for("staff_dashboard"))
+
         trip = conn.execute("""
-            SELECT t.id, t.bus_id, b.status
+            SELECT t.id, t.bus_id, b.status, r.origin, r.destination
             FROM trips t
             JOIN buses b ON b.id = t.bus_id
+            JOIN routes r ON r.id = t.route_id
             WHERE t.id = ?
         """, (trip_id,)).fetchone()
 
@@ -852,14 +1295,18 @@ def staff_dashboard():
             conn.close()
             return redirect(url_for("staff_dashboard"))
 
-        existing_seat = conn.execute("""
-            SELECT 1 FROM bookings
-            WHERE trip_id = ? AND seat_number = ?
-        """, (trip_id, seat_number)).fetchone()
-
-        if existing_seat:
+        route_geo = get_route_geo(trip["origin"], trip["destination"])
+        if distance_value <= 0 or distance_value > route_geo["route_distance"]:
             conn.close()
             return redirect(url_for("staff_dashboard"))
+
+        # Handle Discount Verification for Staff Walk-ins (ID Scan required)
+        if discount_type != 'regular':
+            if request.form.get('id_scanned') != '1':
+                flash("Customer ID must be verified via scanner.")
+                return redirect(url_for("staff_dashboard"))
+
+        price, fare_type = calculate_fare(distance_value, discount_type)
 
         payment_method = request.form.get("payment_method", "").lower()
         
@@ -889,9 +1336,10 @@ def staff_dashboard():
         cur = conn.execute("""
             INSERT INTO bookings (
                 user_id, trip_id, passenger_id, seat_number,
-                status, booking_type, payment_method, created_at
+                status, booking_type, payment_method, price,
+                distance, fare_type, discount_type, travel_date, id_photo_path, created_at
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, (
             session["user_id"],
             trip_id,
@@ -900,6 +1348,12 @@ def staff_dashboard():
             payment_status,
             booking_type,
             payment_method,
+            price,
+            distance_value,
+            fare_type,
+            discount_type,
+            today_iso,
+            id_photo_path,
             created_at
         ))
 
@@ -919,13 +1373,15 @@ def staff_dashboard():
             b.bus_no,
             r.origin,
             r.destination,
+            r.distance AS route_distance,
+            r.geometry_json,
             t.departure,
-            t.arrival,
-            t.price
+            t.arrival
         FROM trips t
         JOIN buses b ON b.id = t.bus_id
         JOIN routes r ON r.id = t.route_id
     """).fetchall()
+    trips = [dict(t) for t in trips]
 
     bookings = conn.execute("""
         SELECT 
@@ -939,7 +1395,7 @@ def staff_dashboard():
             r.origin || ' → ' || r.destination AS route,
             t.departure,
             t.arrival,
-            t.price
+            b.price
         FROM bookings b
         JOIN passengers p ON p.id = b.passenger_id
         JOIN trips t ON t.id = b.trip_id
@@ -949,11 +1405,10 @@ def staff_dashboard():
         ORDER BY b.created_at DESC
     """, (session["user_id"],)).fetchall()
 
+    today_iso = datetime.date.today().isoformat()
     booked_seats_by_bus = {}
-    all_bookings = conn.execute("SELECT trip_id, seat_number FROM bookings").fetchall()
-
-    for row in all_bookings:
-        booked_seats_by_bus.setdefault(str(row["trip_id"]), []).append(str(row["seat_number"]))
+    for trip in trips:
+        booked_seats_by_bus[str(trip["id"])] = get_seat_statuses(conn, trip["id"], today_iso)
 
     active_bookings_by_date = {}
     history_bookings_by_date = {}
@@ -1019,8 +1474,10 @@ def staff_view_booking(booking_id):
             b.seat_number,
             b.status,
             b.created_at,
+            b.travel_date,
             b.booking_type,
             b.payment_method,
+            b.id_photo_path, -- Retrieve ID photo path
 
             p.fullname AS passenger_name,
             p.contact,
@@ -1033,7 +1490,7 @@ def staff_view_booking(booking_id):
 
             t.departure,
             t.arrival,
-            t.price
+            b.price
 
         FROM bookings b
         JOIN passengers p ON p.id = b.passenger_id
@@ -1047,12 +1504,7 @@ def staff_view_booking(booking_id):
         conn.close()
         return redirect(url_for("staff_dashboard"))
 
-    booked_seats_count = conn.execute(
-        "SELECT COUNT(*) as count FROM bookings WHERE trip_id = ?",
-        (booking["trip_id"],)
-    ).fetchone()["count"]
-
-    available_seats = 52 - booked_seats_count
+    available_seats = 52 - len(get_seat_statuses(conn, booking["trip_id"], booking["travel_date"]))
 
     conn.close()
 
@@ -1081,25 +1533,31 @@ def admin_buses():
 
         departure = request.form["departure"]
         arrival = request.form["arrival"]
-        price = request.form["price"]
         status = request.form.get("status", "available")
 
         updated_at = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
         
         route_row = conn.execute(
-            "SELECT id FROM routes WHERE origin = ? AND destination = ?",
+            "SELECT id, geometry_json FROM routes WHERE origin = ? AND destination = ?",
             (origin, destination)
         ).fetchone()
 
-        if route_row:
-            route_id = route_row["id"]
+        # If route exists but geometry is missing, fetch it
+        if not route_row or not route_row["geometry_json"]:
+            geo = get_route_geo(origin, destination)
+            import json
+            if route_row:
+                conn.execute("UPDATE routes SET distance = ?, geometry_json = ? WHERE id = ?",
+                             (geo['route_distance'], json.dumps(geo['geometry']), route_row["id"]))
+                route_id = route_row["id"]
+            else:
+                cur = conn.execute(
+                    "INSERT INTO routes (origin, destination, distance, geometry_json) VALUES (?, ?, ?, ?)",
+                    (origin, destination, geo['route_distance'], json.dumps(geo['geometry'])))
+                route_id = cur.lastrowid
         else:
-            cur = conn.execute(
-                "INSERT INTO routes (origin, destination) VALUES (?, ?)",
-                (origin, destination)
-            )
-            route_id = cur.lastrowid
+            route_id = route_row["id"]
 
         if bus_id:
             
@@ -1110,9 +1568,9 @@ def admin_buses():
 
             conn.execute("""
                 UPDATE trips
-                SET route_id = ?, departure = ?, arrival = ?, price = ?
+                SET route_id = ?, departure = ?, arrival = ?
                 WHERE bus_id = ?
-            """, (route_id, departure, arrival, price, bus_id))
+            """, (route_id, departure, arrival, bus_id))
 
         else:
             
@@ -1123,9 +1581,9 @@ def admin_buses():
             new_bus_id = cur.lastrowid
 
             conn.execute("""
-                INSERT INTO trips (bus_id, route_id, departure, arrival, price)
-                VALUES (?, ?, ?, ?, ?)
-            """, (new_bus_id, route_id, departure, arrival, price))
+                INSERT INTO trips (bus_id, route_id, departure, arrival)
+                VALUES (?, ?, ?, ?)
+            """, (new_bus_id, route_id, departure, arrival))
 
         conn.commit()
         conn.close()
@@ -1136,7 +1594,7 @@ def admin_buses():
         edit_bus = conn.execute("""
             SELECT b.id, b.bus_no, b.status,
                    r.origin, r.destination,
-                   t.departure, t.arrival, t.price
+                   t.departure, t.arrival
             FROM buses b
             JOIN trips t ON t.bus_id = b.id
             JOIN routes r ON r.id = t.route_id
@@ -1146,15 +1604,17 @@ def admin_buses():
     buses = conn.execute("""
         SELECT b.id, b.bus_no, b.status,
                r.origin || ' - ' || r.destination AS route,
-               t.departure, t.arrival, t.price
+               t.id AS trip_id,
+               t.departure, t.arrival
         FROM buses b
         JOIN trips t ON t.bus_id = b.id
         JOIN routes r ON r.id = t.route_id
         ORDER BY b.id DESC
     """).fetchall()
 
+    today_date = datetime.date.today().isoformat()
     conn.close()
-    return render_template("admin_buses.html", buses=buses, edit_bus=edit_bus)
+    return render_template("admin_buses.html", buses=buses, edit_bus=edit_bus, today_date=today_date)
 
 
 @app.route("/admin/delete_bus/<int:bus_id>")
@@ -1236,6 +1696,7 @@ def admin_bookings():
             b.seat_number,
             b.status,
             b.created_at,
+            b.travel_date,
             b.booking_type,
             u.fullname AS user,
             t.id AS trip_id,
@@ -1252,8 +1713,10 @@ def admin_bookings():
     """).fetchall()
 
     today_str = datetime.datetime.now().strftime('%B %d, %Y')
+    today_iso = datetime.date.today().isoformat()
 
     today_bookings = []
+    scheduled_bookings_by_date = {}
     history_bookings_by_date = {}
     walkin_bookings_by_date = {}
 
@@ -1274,14 +1737,18 @@ def admin_bookings():
             "bus_no": row["bus_no"],
             "route": row["route"],
             "seat_number": row["seat_number"],
+            "travel_date": row["travel_date"] or "Not set",
             "status": row["status"],
             "created_date": created_date,
             "created_time": created_time,
             "booking_type": row["booking_type"]
         }
 
+        travel_date_raw = row["travel_date"] or ""
         if booking_item["booking_type"] == "Walk-in":
             walkin_bookings_by_date.setdefault(created_date, []).append(booking_item)
+        elif travel_date_raw > today_iso and booking_item["status"] != "cancelled":
+            scheduled_bookings_by_date.setdefault(travel_date_raw, []).append(booking_item)
         elif booking_item["status"] in ["paid", "cancelled"]:
             history_bookings_by_date.setdefault(created_date, []).append(booking_item)
         elif created_date == today_str:
@@ -1292,9 +1759,89 @@ def admin_bookings():
     return render_template(
         "admin_bookings.html",
         today_bookings=today_bookings,
+        scheduled_bookings_by_date=scheduled_bookings_by_date,
         history_bookings_by_date=history_bookings_by_date,
         walkin_bookings_by_date=walkin_bookings_by_date,
         today_str=today_str
+    )
+
+@app.route("/admin/revenue")
+def admin_revenue():
+    if "user_id" not in session or session.get("role") != "admin":
+        return redirect(url_for("home"))
+
+    conn = get_db_connection()
+    
+    filter_date = request.args.get('date')
+
+    # Query for filtered revenue
+    filtered_query_params = []
+    filtered_where_clauses = ["b.status = 'paid'"]
+
+    if filter_date:
+        filtered_where_clauses.append("date(b.created_at) = ?")
+        filtered_query_params.append(filter_date)
+    
+    filtered_where_clause_str = " AND ".join(filtered_where_clauses)
+
+    filtered_rows = conn.execute(f"""
+        SELECT
+            b.id,
+            b.created_at,
+            COALESCE(b.price, 0) AS fare,
+            bs.bus_no
+        FROM bookings b
+        JOIN trips t ON t.id = b.trip_id
+        JOIN buses bs ON bs.id = t.bus_id
+        WHERE {filtered_where_clause_str}
+        ORDER BY date(b.created_at) DESC, b.created_at DESC
+    """, filtered_query_params).fetchall()
+
+    revenue_by_date = {}
+    total_filtered_revenue = 0
+
+    for row in filtered_rows:
+        created_at_raw = row["created_at"] or ""
+        date_key = "Unknown Date"
+        time_label = created_at_raw
+        iso_date = ""
+
+        try:
+            parsed = datetime.datetime.strptime(created_at_raw, "%Y-%m-%d %H:%M:%S")
+            date_key = parsed.strftime("%B %d, %Y")
+            time_label = parsed.strftime("%I:%M %p")
+            iso_date = parsed.date().isoformat()
+        except Exception:
+            pass
+
+        fare = float(row["fare"] or 0)
+        total_filtered_revenue += fare
+
+        group = revenue_by_date.setdefault(date_key, {"items": [], "total": 0})
+        group["items"].append({
+            "ticket_id": row["id"],
+            "bus_no": row["bus_no"],
+            "date_time": f"{date_key} {time_label}" if time_label else date_key,
+            "fare": fare
+        })
+        group["total"] += fare
+
+    # Query for today's actual revenue (unfiltered)
+    today_iso = datetime.date.today().isoformat()
+    today_revenue_rows = conn.execute("""
+        SELECT COALESCE(SUM(b.price), 0)
+        FROM bookings b
+        WHERE b.status = 'paid' AND date(b.created_at) = ?
+    """, (today_iso,)).fetchone()[0]
+    
+    conn.close()
+
+    return render_template(
+        "admin_revenue.html",
+        revenue_by_date=revenue_by_date,
+        total_revenue=total_filtered_revenue,
+        today_revenue=today_revenue_rows,
+        filter_date=filter_date
     )
 
 @app.route("/admin/booking/<int:booking_id>")
@@ -1310,6 +1857,7 @@ def admin_view_booking(booking_id):
             b.status,
             b.trip_id,
             b.created_at,
+            b.travel_date,
             b.booking_type,
             b.payment_method,
 
@@ -1318,8 +1866,7 @@ def admin_view_booking(booking_id):
 
             t.departure,
             t.arrival,
-            t.price,
-
+            b.price,
             r.origin,
             r.destination,
             (r.origin || ' → ' || r.destination) AS route,
@@ -1343,13 +1890,7 @@ def admin_view_booking(booking_id):
         conn.close()
         return redirect(url_for("admin_bookings"))
 
-    # Calculate available seats for this bus
-    booked_seats_count = conn.execute(
-        "SELECT COUNT(*) as count FROM bookings WHERE trip_id = ?",
-        (booking["trip_id"],)
-    ).fetchone()["count"]
-    
-    available_seats = 52 - booked_seats_count
+    available_seats = 52 - len(get_seat_statuses(conn, booking["trip_id"], booking["travel_date"]))
     
     created_at_raw = booking['created_at'] if booking['created_at'] else None
     formatted_created_at = created_at_raw
@@ -1521,13 +2062,14 @@ def ticket(booking_id):
             b.seat_number,
             b.status,
             b.created_at,
+            b.travel_date,
             b.booking_type,
             b.payment_method,
             p.fullname AS passenger_name,
             p.contact,
             t.departure,
             t.arrival,
-            t.price,
+            b.price,
             r.origin,
             r.destination,
             bu.bus_no
@@ -1539,7 +2081,7 @@ def ticket(booking_id):
         WHERE b.id = ?
     """, (booking_id,)).fetchone()
 
-    if not booking or booking["status"] != "paid":
+    if not booking or booking["status"] not in ["paid", "dispatched", "completed"]:
         conn.close()
         role = session.get("role")
         if role == "admin":
@@ -1562,6 +2104,7 @@ def ticket(booking_id):
         f"Ticket #{booking['id']}\n"
         f"Passenger: {booking['passenger_name']}\n"
         f"Booking Type: {booking['booking_type'] if 'booking_type' in booking.keys() else 'N/A'}\n"
+        f"Travel Date: {booking['travel_date']}\n"
         f"Bus No: {booking['bus_no']}\n"
         f"Seat No: {booking['seat_number']}\n"
         f"Departure: {booking['departure']}\n"
@@ -1629,6 +2172,8 @@ def login():
                 return redirect(url_for("admin_dashboard"))
             elif user["role"] == "staff":
                 return redirect(url_for("staff_dashboard"))
+            elif user["role"] == "conductor":
+                return redirect(url_for("conductor_dashboard"))
             else:
                 return redirect(url_for("user_dashboard"))
         
@@ -1639,6 +2184,71 @@ def login():
         return redirect(url_for("home", error="An error occurred during login. Please try again."))
 
 
+@app.route("/conductor")
+def conductor_dashboard():
+    if "user_id" not in session or session.get("role") != "conductor":
+        return redirect(url_for("home", login_required=1))
+    return render_template("conductor_dashboard.html")
+
+@app.route("/api/scan_ticket", methods=["POST"])
+def scan_ticket():
+    if "user_id" not in session or session.get("role") not in ["admin", "conductor"]:
+        return jsonify({"success": False, "message": "Unauthorized access"}), 403
+
+    data = request.get_json()
+    qr_content = data.get("qr_content", "")
+
+    # Extract ID from "Ticket #ID" pattern generated in the ticket route
+    match = re.search(r"Ticket #(\d+)", qr_content)
+    if not match:
+        return jsonify({"success": False, "message": "Invalid QR code format."}), 400
+
+    booking_id = match.group(1)
+    conn = get_db_connection()
+    booking = conn.execute("SELECT id, status, passenger_id, travel_date FROM bookings WHERE id = ?", (booking_id,)).fetchone()
+
+    if not booking:
+        conn.close()
+        return jsonify({"success": False, "message": "Booking not found."}), 404
+
+    current_status = booking["status"]
+    new_status = None
+    msg = ""
+
+    # Get today's date to validate if boarding is allowed on this schedule
+    today_iso = datetime.date.today().isoformat()
+
+    if current_status == "paid":
+        # Validate that the passenger is boarding on their scheduled travel date
+        if booking["travel_date"] and booking["travel_date"] != today_iso:
+            conn.close()
+            if booking["travel_date"] > today_iso:
+                return jsonify({"success": False, "message": f"Access Denied: Advance booking for {booking['travel_date']}. Boarding not allowed today."}), 400
+            else:
+                return jsonify({"success": False, "message": f"Access Denied: Ticket expired. Scheduled travel was for {booking['travel_date']}."}), 400
+
+        new_status = "dispatched"
+        msg = "Passenger Boarded Successfully! Status: Dispatched."
+    elif current_status == "dispatched":
+        new_status = "completed"
+        msg = "Passenger Arrived at Destination. Status: Completed."
+    elif current_status == "completed":
+        conn.close()
+        return jsonify({"success": False, "message": "Error: This ticket has already been used and is completed."}), 400
+    elif current_status == "cancelled":
+        conn.close()
+        return jsonify({"success": False, "message": "Error: This ticket has been cancelled."}), 400
+    else:
+        conn.close()
+        return jsonify({"success": False, "message": f"Invalid ticket status: {current_status}. Must be 'Paid' to board."}), 400
+
+    conn.execute("UPDATE bookings SET status = ? WHERE id = ?", (new_status, booking_id))
+    conn.commit()
+    conn.close()
+
+    return jsonify({"success": True, "message": msg, "new_status": new_status})
+
+
 @app.route("/logout")
 def logout():
     session.clear()
@@ -1646,4 +2256,5 @@ def logout():
 
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(debug=True) 
+    app.run(host='0.0.0.0', port=5000, debug=True)

@@ -204,14 +204,25 @@ function renderSeats(bookedSeats) {
     if (!container) return;
 
     container.innerHTML = "";
+    const seatStatuses = {};
+    bookedSeats.forEach(item => {
+        if (typeof item === 'object' && item !== null) {
+            seatStatuses[String(item.seat)] = item.status || 'booked';
+        } else {
+            seatStatuses[String(item)] = 'booked';
+        }
+    });
 
     for (let i = 1; i <= TOTAL_SEATS; i++) {
         const seat = document.createElement('div');
         seat.classList.add('seat');
         seat.textContent = i;
 
-        if (bookedSeats.includes(String(i))) {
+        if (seatStatuses[String(i)]) {
             seat.classList.add('booked');
+            if (seatStatuses[String(i)] === 'blocked') {
+                seat.classList.add('blocked-admin');
+            }
         } else {
             seat.addEventListener('click', () => selectSeat(seat, i));
         }
@@ -315,6 +326,218 @@ document.addEventListener('DOMContentLoaded', () => {
             activeTab.classList.remove('active');
             historySection?.classList.add('active');
             activeSection?.classList.remove('active');
+        });
+    }
+});
+
+/* =========================================
+   8. CONDUCTOR SCANNER SYSTEM
+========================================= */
+
+function initTicketScanner() {
+    const readerElem = document.getElementById('reader');
+    const dashboard = document.querySelector('.dashboard-page');
+    if (!readerElem || !dashboard) return;
+
+    // Conductor Tab Navigation
+    const tabs = dashboard.querySelectorAll('.tab-btn');
+    const panels = dashboard.querySelectorAll('.tab-panel');
+
+    tabs.forEach(btn => {
+        btn.addEventListener('click', () => {
+            const target = btn.getAttribute('data-tab');
+            
+            tabs.forEach(t => t.classList.remove('active'));
+            panels.forEach(p => p.classList.remove('active'));
+            
+            btn.classList.add('active');
+            document.getElementById(target).classList.add('active');
+        });
+    });
+
+    const feedbackDiv = document.getElementById('scan-feedback');
+    const feedbackIcon = document.getElementById('feedback-icon');
+    const feedbackTitle = document.getElementById('feedback-title');
+    const feedbackMessage = document.getElementById('feedback-message');
+    const resetBtn = document.getElementById('reset-scanner-btn');
+    const historyBody = document.getElementById('scan-history-body');
+
+    const html5QrCode = new Html5Qrcode("reader");
+    const config = { fps: 10, qrbox: { width: 280, height: 280 } };
+
+    const onScanSuccess = (decodedText) => {
+        // Pause scanning to process the result
+        html5QrCode.pause();
+        
+        // Show processing state
+        feedbackDiv.style.display = 'block';
+        feedbackDiv.style.background = 'rgba(255, 255, 255, 0.8)';
+        feedbackTitle.textContent = "Processing...";
+        feedbackMessage.textContent = "Validating ticket...";
+        feedbackIcon.className = "fa-solid fa-spinner fa-spin";
+        feedbackIcon.style.color = "var(--accent)";
+        resetBtn.style.display = 'none';
+
+        // Send scanned data to API
+        fetch('/api/scan_ticket', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ qr_content: decodedText })
+        })
+        .then(res => res.json())
+        .then(data => {
+            resetBtn.style.display = 'inline-block';
+            const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            const ticketId = decodedText.match(/Ticket #(\d+)/)?.[1] || "Unknown";
+            
+            if (data.success) {
+                // Boarding or Completion Success
+                feedbackDiv.style.background = 'rgba(76, 175, 80, 0.25)';
+                feedbackDiv.style.border = '2px solid #2e7d32';
+                feedbackIcon.className = "fa-solid fa-circle-check";
+                feedbackIcon.style.color = "#2e7d32";
+                feedbackTitle.textContent = "SUCCESS";
+                feedbackTitle.style.color = "#2e7d32";
+                feedbackMessage.textContent = data.message;
+            } else {
+                // Already used or cancelled ticket (Real-time "Flash" Error)
+                feedbackDiv.style.background = 'rgba(244, 67, 54, 0.4)'; // Darker red for emphasis
+                feedbackDiv.style.border = '2px solid #c62828';
+                feedbackDiv.style.animation = 'shake 0.4s ease-in-out'; // Adding a shake animation
+                feedbackIcon.className = "fa-solid fa-circle-xmark";
+                feedbackIcon.style.color = "#c62828";
+                feedbackTitle.textContent = "SCAN ERROR";
+                feedbackTitle.style.color = "#c62828";
+                feedbackMessage.textContent = data.message;
+                
+                // Remove shake class after animation finishes
+                setTimeout(() => feedbackDiv.style.animation = '', 400);
+            }
+
+            // Add to History Table
+            if (historyBody) {
+                if (historyBody.children.length === 1 && historyBody.innerText.includes('No tickets')) {
+                    historyBody.innerHTML = '';
+                }
+                const row = document.createElement('tr');
+                const statusClass = data.success ? 'status-paid' : 'status-cancelled';
+                row.innerHTML = `
+                    <td>${now}</td>
+                    <td><strong>#${ticketId}</strong></td>
+                    <td><span class="${statusClass}">${data.new_status || 'Error'}</span></td>
+                    <td style="font-size: 0.85rem;">${data.message}</td>
+                `;
+                historyBody.prepend(row);
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            feedbackDiv.style.display = 'block';
+            feedbackTitle.textContent = "CONNECTION ERROR";
+            feedbackMessage.textContent = "Could not communicate with the server.";
+            resetBtn.style.display = 'inline-block';
+        });
+    };
+
+    // Start camera (Environment/Back camera preferred)
+    html5QrCode.start({ facingMode: "environment" }, config, onScanSuccess)
+        .catch(err => console.error("Scanner start error:", err));
+
+    resetBtn.addEventListener('click', () => {
+        feedbackDiv.style.display = 'none';
+        html5QrCode.resume();
+    });
+}
+
+document.addEventListener('DOMContentLoaded', initTicketScanner);
+
+/* =========================================
+   9. DISCOUNT ID SCANNER LOGIC
+========================================= */
+
+function setupIdScanner(btnId, readerId, inputId, statusId) {
+    const btn = document.getElementById(btnId);
+    const reader = document.getElementById(readerId);
+    const input = document.getElementById(inputId);
+    const status = document.getElementById(statusId);
+    
+    if (!btn || !reader) return;
+
+    let html5QrCode = null;
+
+    window.stopIdScanner = () => {
+        if (html5QrCode && html5QrCode.isScanning) {
+            html5QrCode.stop().then(() => {
+                reader.style.display = 'none';
+                btn.innerHTML = btnId.includes('staff') ? '<i class="fa-solid fa-camera"></i> Scan Customer ID' : '<i class="fa-solid fa-camera"></i> Use Camera to Scan ID';
+            });
+        }
+    };
+
+    btn.addEventListener('click', () => {
+        if (html5QrCode && html5QrCode.isScanning) {
+            window.stopIdScanner();
+            return;
+        }
+
+        reader.style.display = 'block';
+        btn.innerHTML = '<i class="fa-solid fa-stop"></i> Stop Camera';
+        
+        html5QrCode = new Html5Qrcode(readerId);
+        const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+
+        html5QrCode.start({ facingMode: "environment" }, config, (decodedText) => {
+            // Real-time verification logic
+            const isIdValid = decodedText.toUpperCase().includes("ID");
+            
+            if (isIdValid) {
+                status.style.display = 'block';
+                status.style.color = '#166534';
+                status.style.backgroundColor = '#dcfce7';
+                status.innerHTML = `<i class="fa-solid fa-circle-check"></i> ID Verified: ${decodedText}`;
+                if (input) input.value = "1";
+                window.stopIdScanner();
+            } else {
+                // Real-time error feedback
+                status.style.display = 'block';
+                status.style.color = '#991b1b';
+                status.style.backgroundColor = '#fee2e2';
+                status.innerHTML = `<i class="fa-solid fa-circle-xmark"></i> Scan Error: Invalid ID format detected.`;
+                
+                // Shake effect for error
+                reader.style.animation = 'shake 0.4s ease-in-out';
+                setTimeout(() => reader.style.animation = '', 400);
+            }
+        }).catch(err => {
+            console.error(err);
+            status.style.display = 'block';
+            status.style.color = '#991b1b';
+            status.textContent = "Could not start camera.";
+        });
+    });
+}
+
+// Initialize for both dashboards
+document.addEventListener('DOMContentLoaded', () => {
+    setupIdScanner('start-id-scan', 'id-reader', 'id_scanned', 'id-verification-status');
+    setupIdScanner('staff-start-id-scan', 'staff-id-reader', 'staff_id_scanned', 'staff-id-verification-status');
+    
+    // Staff Dashboard specific toggle
+    const staffDiscount = document.getElementById('discount_type');
+    const staffIdSection = document.getElementById('staff-id-verify-section');
+    
+    if (staffDiscount && staffIdSection) {
+        staffDiscount.addEventListener('change', function() {
+            if (this.value !== 'regular') {
+                staffIdSection.classList.remove('hidden');
+            } else {
+                staffIdSection.classList.add('hidden');
+                const hiddenInp = document.getElementById('staff_id_scanned');
+                if (hiddenInp) hiddenInp.value = '0';
+                const statusDiv = document.getElementById('staff-id-verification-status');
+                if (statusDiv) statusDiv.style.display = 'none';
+                if (window.stopIdScanner) window.stopIdScanner();
+            }
         });
     }
 });
